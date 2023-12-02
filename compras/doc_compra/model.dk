@@ -1,0 +1,157 @@
+#include "dkli.dkh"
+#!
+module "model"
+{
+    @table_name = "compra"
+
+    doc.buscarProveedor::&db,&params
+    {
+        sql = "
+        SELECT 
+            pdr.sys_pk,
+            pdr.codigo,
+            pdr.nombre,
+            pdr.tasaiva,
+            tpp.descripcion AS tipo,
+            dvs.codigo AS divisa,
+            dvs.tcambio
+        FROM proveedor AS pdr
+            INNER JOIN tipoproveedor AS tpp ON tpp.sys_pk = pdr.tipo
+            INNER JOIN divisa AS dvs ON dvs.sys_pk = pdr.idivisa
+        WHERE (pdr.codigo LIKE CONCAT('%',@search,'%') OR pdr.nombre LIKE CONCAT('%',@search,'%'));"
+        return dbr.list(db,sql,params)
+    }
+
+    doc.buscarProducto::&db,&params
+    {
+        sql = "
+        SELECT
+            p.sys_pk,
+            p.sys_guid,
+            p.codigo,
+            p.descripcion,
+            TRIM(p.unidad) AS unidada,
+            TRIM(IFNULL(p.unidadb,'')) AS unidadb,
+            TRIM(IFNULL(p.unidadc,'')) AS unidadc,
+            TRIM(IFNULL(p.unidadd,'')) AS unidadd,
+            TRIM(IFNULL(p.unidade,'')) AS unidade,
+            IFNULL(p.factorb,0) AS factorb,
+            IFNULL(p.factorc,0) AS factorc,
+            IFNULL(p.factord,0) AS factord,
+            IFNULL(p.factore,0) AS factore,
+            p.costoultimo AS precio,
+            1 AS cantidad,
+            0 AS descuentos,
+            IFNULL(p.existencia,0) AS existencia,
+            dvs.codigo AS `divisa`,
+            dvs.tcambio AS tipocambio,
+            imp.nombre AS conf_impuestos,
+            IFNULL(imp.uf_tipoi1,'') AS i1_txt,
+            (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i1compra, '|', 1),'%',''), DECIMAL) / 100) AS i1_tasa,
+            IFNULL(imp.uf_tipoi2,'') AS i2_txt,
+            (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i1compra, '|', 1),'%',''), DECIMAL) / 100) AS i2_tasa,
+            IFNULL(imp.uf_tipoi3,'') AS i3_txt,
+            (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i3compra, '|', 1),'%',''), DECIMAL) / 100) AS i3_tasa,
+            IFNULL(imp.uf_tipoi4,'') AS i4_txt,
+            (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i4compra, '|', 1),'%',''), DECIMAL) / 100) AS i4_tasa
+        FROM producto AS p
+            INNER JOIN divisa AS dvs ON dvs.sys_pk = p.idivisa
+            INNER JOIN cfgimpuesto AS imp ON imp.sys_pk = p.impuestos
+        WHERE (p.codigo LIKE CONCAT('%',@search,'%') OR p.descripcion LIKE CONCAT('%',@search,'%'));"
+        //zImpuesto: 1=Interior, -1=Frontera
+
+        return dbr.list(db,sql,params)
+    }
+
+    doc.prepareView::&db,&params,&data
+    {
+        sql_divisas = "SELECT sys_pk, codigo FROM divisa ORDER BY sys_pk ASC;"
+        sql_almacenes = "SELECT sys_pk, descripcion FROM almacen ORDER BY sys_pk ASC;"
+        sql_documentos = "SELECT id, const FROM cdocumentos"
+        
+        switch @@(@http_context,"$request/get/_view")
+        {
+            case "agregar"
+            {
+                data<"list_divisas*"> : dbr.list(db,sql_divisas,@null)
+                data<"list_almacenes*"> : dbr.list(db,sql_almacenes,@null)
+                data<"list_documentos*"> : dbr.list(db,sql_documentos,@null)
+                break
+            }
+        }
+    }
+
+    doc.agregar::&db,&params,&data
+    {
+        params<"idivisa"> : @@(data,"#idivisa")
+
+        ref compra = record.copy(data,"*")
+        using compra
+        {
+            @"auditado": 0
+            @"contabilizado": 0
+            @"descuento1": 0.0
+            @"descuento2": 0.0
+            @"directos": 0.0
+            @"impuesto1": 0.0
+            @"impuesto2": 0.0
+            @"impuesto3": 0.0
+            @"impuesto4": 0.0
+            @"formapago": 0
+            @"statusadministrativo": 2
+            @"statusentrega": 1
+            @"statusfacturacion": 0
+            @"statusfinanciero": 0
+            @"subtotal": 0.0
+            @"tipocambio": dbr.num(db,"SELECT tcambio FROM divisa WHERE sys_pk = @idivisa",params)
+        }
+        
+        using @childs
+        {
+            member "_detalle"
+            {
+                @"joinfield": "fk_compra_detalle"
+                @"keyfield": "sys_pk"
+                @"table": "dcompra"
+                @"select_query": "SELECT * FROM dcompra WHERE fk_compra_detalle = @sys_pk"
+                @"fields": "cantidad,costototal,descuento1,descuento2,factor,impuesto1,impuesto2,impuesto3,impuesto4,notas,precio,status,tipocambio,unidad,xfacturar,iproducto"
+            }
+        }
+
+        ref ent = entity.create(db,params,compra)
+    }
+
+    doc.list::&db,&params
+    {
+        sql = "
+        SELECT
+            doc.const AS documento,
+            c.referencia,
+            DATE_FORMAT(c.fecha,'%Y-%m-%d') AS fecha,
+            pdr.nombre AS proveedor,
+            DATE_FORMAT(c.vencimiento,'%Y-%m-%d') AS vencimiento,
+            dvs.codigo AS divisa,
+            c.tipocambio,
+            IFNULL(c.subtotal,0) AS subtotal,
+            ((((((c.subtotal - c.descuento1) - c.descuento2) + c.impuesto1) + c.impuesto2) + c.impuesto3) + c.impuesto4) AS total,
+            sf.const AS edo_financiero,
+            fp.const AS forma_pago,
+            sa.const AS edo_administrativo
+        FROM compra AS c
+            INNER JOIN proveedor AS pdr ON pdr.sys_pk = c.iproveedor
+            INNER JOIN divisa AS dvs ON dvs.sys_pk = c.idivisa
+            INNER JOIN cdocumentos AS doc ON doc.id = c.documento
+            INNER JOIN cformaspago AS fp ON fp.id = c.formapago
+            INNER JOIN cstatusfinancieros AS sf ON sf.id = c.statusfinanciero
+            INNER JOIN cstatusadministrativos AS sa ON sa.id = c.statusadministrativo
+        "
+        return dbr.list(db,sql,@null)
+    }
+
+    doc.blank::&db,&params
+    {
+        new data {}
+        do doc.prepareView(db,params,data)
+        return data
+    }
+}

@@ -1,0 +1,10 @@
+#include "ddm.dkh"
+model "erp.compras"
+{
+    /* 
+    Compras y Adquisiciones
+    =======================================================================
+    */
+
+    #include "induxsoft.abstracts.ddm"
+}

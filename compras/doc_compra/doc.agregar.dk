@@ -1,0 +1,515 @@
+#include "dkli.dkh"
+#!
+module "doc.pedido.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.dkl"
+    #include "../icons.dk"
+    #include "../config.dk"
+
+    do @context.begin(@crud_context)
+    // do rise_error(0,to.json(@crud_context))
+
+    ref infoProv = ifnull(@("&./info_proveedor"),record.create())
+    ref listDivisas = ifnull(@('&./list_divisas'),list.create())
+    ref listAlmacenes = ifnull(@('&./list_almacenes'),list.create())
+    ref listDocumentos = ifnull(@('&./list_documentos'),list.create())
+
+    new sel_documento
+    {
+        @"datatable*": listDocumentos
+        @"id": "sel_documento"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "documento"
+            @"required": ""
+        }
+        @"value_field": "id"
+        @"text_field": "const"
+        @"selected": @("$input/documento")
+    }
+
+    new sel_divisa
+    {
+        @"datatable*": listDivisas
+        @"id": "sel_divisa"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "idivisa"
+            @"required": ""
+        }
+        @"value_field": "sys_pk"
+        @"text_field": "codigo"
+        @"selected": @("$input/idivisa")
+    }
+
+    new sel_almacen
+    {
+        @"datatable*": listAlmacenes
+        @"id": "sel_almacen"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "ialmacen"
+            @"required": ""
+        }
+        @"value_field": "sys_pk"
+        @"text_field": "descripcion"
+        @"selected": @("$input/ialmacen")
+    }
+
+    form::name,type
+    {
+        switch str(type)
+        {
+            case "tx" { return trim(@("$input/"+str(name))) }
+            case "nm" { return @("#input/"+str(name)) }
+            case "dt"
+            {
+                fecha = trim(@("$input/"+str(name)))
+                if fecha == "" { fecha = date_str(now(),"yyyy-MM-dd") }
+                return fecha
+            }
+            default { return "" }
+        }
+    }
+
+    #$
+    div(class="container")
+    {
+        h1(class="h4"){$"Nuevo Documento"}
+
+        form(id="form_pedido")
+        {
+            nav
+            {
+                div(class="nav nav-tabs" id="nav-tab" role="tablist")
+                {
+                    button(class="nav-link active" id="nav-general-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-general" type="button" role="tab" "aria-controls"="nav-general" "aria-selected"="true"){$"General"}
+                    button(class="nav-link" id="nav-mrdata-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-mrdata" type="button" role="tab" "aria-controls"="nav-mrdata" "aria-selected"="false"){$"Más datos"}
+                }
+            }
+
+            div(class="tab-content")
+            {
+                div(class="tab-pane fade show active" id="nav-general" role="tabpanel" "aria-labelledby"="nav-general-tab")
+                {
+                    div(class="row")
+                    {
+                        div(class="col-lg-4 col-md-8 col-sm-12")
+                        {
+                            label(class="form-label" "for"="sel_proveedor"){$"Proveedor:"}
+                            "input-key"(
+                                id="sel_proveedor"
+                                name="iproveedor"
+                                "data-key"="sys_pk"
+                                "data-search"="codigo"
+                                "data-text"="nombre"
+                                "data-value"="#<to.json(infoProv)>"
+                                "data-source"="#<@URL_BUSCAR_PROVEEDOR>"
+                                columns="codigo,nombre,tipo"
+                                colcaptions="Código,Nombre,Tipo"
+                                "box-title-text"="Seleccione un proveedor"
+                                required="true"
+                                "control-styles"="
+                                    #input_search_container, #input_description_container,
+                                    #button_search_container, #button_clear_container {
+                                        height: calc(1.5em + .5rem + 2px) !important;
+                                        padding: .25rem .5rem !important;
+                                        font-size: .875rem !important;
+                                    }
+                                "
+                            ){$""}
+
+                            label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
+                            input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" maxlength="25" required="")
+
+                            label(class="form-label" "for"="sel_documento"){$"Tipo de documento:"}
+                            ##
+                            do uie.dbSelect(sel_documento)
+                            ##
+
+                            label(class="form-label" "for"="sel_divisa"){$"Divisa:"}
+                            ##
+                            do uie.dbSelect(sel_divisa)
+                            ##
+
+                            label(class="form-label" "for"="sel_almacen"){$"Almacén:"}
+                            ##
+                            do uie.dbSelect(sel_almacen)
+                            ##
+                        }
+                        div(class="col-lg-3 col-md-4 col-sm-12")
+                        {
+                            label(class="form-label" "for"="txt_fecha"){$"Fecha:"}
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha" id="txt_fecha" value="#<form('fecha','dt')>" required="")
+
+                            label(class="form-label" "for"="txt_fvencimiento"){$"Fecha de vencimiento:"}
+                            input(type="date" class="form-control form-control-sm rounded-0" name="vencimiento" id="txt_fvencimiento" value="#<form('vencimiento','dt')>" required="")
+
+                            label(class="form-label" "for"="txt_fentrega"){$"Fecha de entrega:"}
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fentrega" id="txt_fentrega" value="#<form('fentrega','dt')>" required="")
+
+                            label(class="form-label" "for"="txt_cindirectos"){$"Costos indirectos:"}
+                            input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" id="txt_cindirectos" value="#<form('indirectos','nm')>" required="")
+                        }
+                    }
+                }
+
+                div(class="tab-pane fade" id="nav-mrdata" role="tabpanel" "aria-labelledby"="nav-mrdata-tab")
+                {
+                    div(class="row")
+                    {
+                        div(class="col-lg-4 col-md-8 col-sm-12")
+                        {
+                            label(class="form-label" "for"="txt_fembarque"){$"Fecha de embarque:"}
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fembarque" id="txt_fembarque" value="#<form('fembarque','dt')>" required="")
+
+                            label(class="form-label" "for"="txt_notas"){$"Notas:"}
+                            textarea(class="form-control" name="notas" id="txt_notas" maxlength="32000"){ $"#<form('notas','tx')>" }
+                        }
+                    }
+                }
+            }
+
+            div(class="d-flex gap-1 my-2")
+            {
+                a(href="./" class="btn btn-secondary btn-sm"){$"#<@ICON_ARROW_CLOCKWISE>"}
+                button(type="submit" class="btn btn-secondary btn-sm" id="btn-save"){$"Guardar"}
+                // button(type="submit" class="btn btn-secondary btn-sm" id="btn-save-exit"){$"Guardar y cerrar"}
+                button(type="reset" class="btn btn-secondary btn-sm" id="btn-exit"){$"Cerrar"}
+                button(type="button" class="btn btn-secondary btn-sm" id="btn-add-row"){$"Agregar fila"}
+                button(type="button" class="btn btn-secondary btn-sm" id="btn-del-row"){$"Eliminar fila"}
+            }
+        }
+
+        div(class="")
+        {
+            "edit-table"(class="w-100" id="tbl_productos")
+            {
+                "edit-thead"
+                {
+                    "edit-tr"
+                    {
+                        "edit-th"(type="Text" field="codigo" button="true"){$"Código"}
+                        "edit-th"(type="Text" field="descripcion" button="true"){$"Descripción"}
+                        "edit-th"(type="Select" field="unidad" options="{}"){$"Unidad"}
+                        "edit-th"(type="Number" field="precio"){$"Precio"}
+                        "edit-th"(type="Number" field="cantidad"){$"Cantidad"}
+                        "edit-th"(type="NoEditable" field="subtotal"){$"Subtotal"}
+                        "edit-th"(type="Number" field="descuentos"){$"Descuentos"}
+                        "edit-th"(type="NoEditable" field="impuestos"){$"Impuestos"}
+                        "edit-th"(type="NoEditable" field="importe"){$"Importe"}
+                        "edit-th"(type="Memo" field="notas"){$"Notas"}
+                    }
+                }
+                "edit-tbody"
+                {
+                    #!
+                    repeat 10
+                    {
+                        #$
+                        "edit-tr"
+                        {
+                            "edit-td"{$""}
+                            "edit-td"{$""}
+                            "edit-td"{$""}
+                            "edit-td"{$""}
+                            "edit-td"{$""}
+                            "edit-td"{$""}
+                            "edit-td"{$""}
+                            "edit-td"{$""}
+                            "edit-td"{$""}
+                            "edit-td"{$""}
+                        }
+                    }
+                }
+            }
+        }
+
+        div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
+
+        div
+        {
+            div(class="")
+            {
+                "input-key"(
+                    id="sel_producto"
+                    "data-key"="sys_pk"
+                    "data-search"="codigo"
+                    "data-text"="descripcion"
+                    "data-source"="#<@URL_BUSCAR_PRODUCTO>"
+                    columns="codigo,descripcion"
+                    colcaptions="Código,Descripción"
+                    "box-title-text"="Seleccione un producto"
+                    "control-styles"="#container{display:none !important;}"
+                ){$""}
+            }
+            
+            script(type="text/javascript") {$'
+            document.addEventListener("DOMContentLoaded", () => 
+            {
+                let error_span = document.getElementById("err-msg");
+                let ikProducto = document.getElementById("sel_producto");
+                let formPedido = document.getElementById("form_pedido");
+
+                var table = document.getElementById("tbl_productos");
+                var tData = table.DataArray;
+                var tEvents = table.EdiTable.Const.Events;
+                var lastRowIndex = -1;
+                var lastUnit = "";
+
+                let btnAddRow = document.getElementById("btn-add-row");
+                let btnDelRow = document.getElementById("btn-del-row");
+
+                btnAddRow.addEventListener("click", () => { table.AddRow(); });
+                btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); });
+                table.setInputKey("codigo",ikProducto);
+                table.setInputKey("descripcion", ikProducto);
+
+                function showError (text,removeIn=0) {
+                    if (removeIn <= 0) removeIn = 3;
+
+                    error_span.textContent = text;
+                    
+                    setTimeout(function(){
+                        error_span.textContent = "";
+                    }, (removeIn * 1000));
+                }
+
+                function calcularImpuestos(info) {
+                    let costo = Number(info.precio);
+                    let cantidad = Number(info.cantidad);
+                    let descuentos = Number(info.descuentos);
+                    let i1_tasa = Number(info.i1_tasa);
+                    let i2_tasa = Number(info.i2_tasa);
+                    let i3_tasa = Number(info.i3_tasa);
+                    let i4_tasa = Number(info.i4_tasa);
+
+                    let subtotal = Math.mul(costo,cantidad);
+                    let sub_desc = Math.sub(subtotal,descuentos);
+                    let impuesto1 = Math.mul(sub_desc,i1_tasa);
+                    let impuesto2 = Math.mul(sub_desc,i2_tasa);
+                    let i1_i2 = Math.add(impuesto1,impuesto2);
+                    let sub_desc_i1_i2 = Math.add(sub_desc,i1_i2);
+                    let impuesto3 = Math.mul(sub_desc_i1_i2,i3_tasa);
+                    let impuesto4 = Math.mul(sub_desc_i1_i2,i4_tasa);
+                    let i3_i4 = Math.add(impuesto3,impuesto4);
+                    let impuestos = Math.add(i1_i2,i3_i4);
+                    let total = Math.add(sub_desc,impuestos);
+
+                    let importes = {
+                        costo: costo,
+                        cantidad: cantidad,
+                        subtotal: subtotal,
+                        descuentos: descuentos,
+                        impuestos: impuestos,
+                        total: total,
+                        impuesto1: impuesto1,
+                        impuesto2: impuesto2,
+                        impuesto3: impuesto3,
+                        impuesto4: impuesto4,
+                    }
+
+                    return importes;
+                }
+
+                function actualizarProducto(producto, rowIndex) {
+                    let i = calcularImpuestos(producto);
+
+                    producto["precio"] = i.costo;
+                    producto["cantidad"] = i.cantidad;
+                    producto["subtotal"] = i.subtotal;
+                    producto["descuentos"] = i.descuentos;
+                    producto["impuestos"] = i.impuestos;
+                    producto["importe"] = i.total;
+                    producto["impuesto1"] = i.impuesto1;
+                    producto["impuesto2"] = i.impuesto2;
+                    producto["impuesto3"] = i.impuesto3;
+                    producto["impuesto4"] = i.impuesto4;
+
+                    table.UpdateRow(rowIndex);
+                }
+
+                ikProducto.addEventListener("change", function(data) {
+                    let row = table.CurrentRowIndex();
+                    if (!tData[row]) tData[row] = {};
+
+                    function joinUnidades(...unidades) {
+                        let obj = {};
+
+                        for (let i = 0; i < unidades.length; i++) {
+                            const u = unidades[i];
+                            if (typeof u === "string" && u.trim() != "")
+                                obj[u] = u;
+                        }
+
+                        return JSON.stringify(obj);
+                    }
+
+                    let i = calcularImpuestos(data);
+                    let list_unidades = joinUnidades(data.unidada,data.unidadb,data.unidadc,data.unidadd,data.unidade);
+                    
+                    let producto = 
+                    {
+                        // campos visibles en el editable.
+                        codigo: data.codigo,
+                        descripcion: data.descripcion,
+                        unidad: data.unidada,
+                        precio: i.costo,
+                        cantidad: i.cantidad,
+                        subtotal: i.subtotal,
+                        descuentos: i.descuentos,
+                        impuestos: i.impuestos,
+                        importe: i.total,
+                        notas: "",
+
+                        // campos extras para el insert.
+                        costototal: i.total,
+                        descuento1: i.descuentos,
+                        descuento2: 0,
+                        factor: data.factorb,
+                        impuesto1: i.impuesto1,
+                        impuesto2: i.impuesto2,
+                        impuesto3: i.impuesto3,
+                        impuesto4: i.impuesto4,
+                        status: 1, // cPor_recibir
+                        tipocambio: data.tipocambio,
+                        xfacturar: 1.0,
+                        iproducto: data.sys_pk,
+
+                        // campos extras para operaciones.
+                        i1_tasa: data.i1_tasa,
+                        i2_tasa: data.i2_tasa,
+                        i3_tasa: data.i3_tasa,
+                        i4_tasa: data.i4_tasa,
+                        unidada: data.unidada,
+                        unidadb: data.unidadb,
+                        unidadc: data.unidadc,
+                        unidadd: data.unidadd,
+                        unidade: data.unidade,
+                        factorb: data.factorb,
+                        factorc: data.factorc,
+                        factord: data.factord,
+                        factore: data.factore,
+                        lunidades: list_unidades,
+                    }
+                    tData[row] = producto;
+
+                    table.UpdateRow(row);
+                    table.NavTo(row,2);
+                });
+
+                formPedido.addEventListener("submit", (event) => {
+                    event.preventDefault();
+                    if (!event.target.checkValidity()) return;
+
+                    let formData = {}
+                    let fields = event.target.elements;
+
+                    for (let i = 0; i < fields.length; i++) {
+                        const f = fields[i];
+                        if (f.name !== "")
+                            formData[f.name] = f.value;
+                    }
+
+                    formData._detalle = tData;
+                    let onSuccess = function(r) {
+                        if (r.message) { alert(r.message); return false; }
+                        window.location.href = "./";
+                    }
+                    let onFail = null;
+
+                    InduxsoftCrudlModel.InvokeService("./",formData,onSuccess,onFail,"POST",false,false,"",false);
+                });
+
+                formPedido.addEventListener("reset", (event) => {
+                    tData = {};
+                    window.location.href = "#<@DOC_COMPRAS>";
+                });
+
+                table.Events[tEvents.StartEdition] = function(e) {
+                    let coldef = e.sender.GetColumnDefOfTd(e.td);
+                    let currentRowIndex = table.CurrentRowIndex();
+                    let producto = tData[currentRowIndex];
+
+                    if (coldef.field == "unidad" && lastRowIndex != currentRowIndex && producto)
+                    {
+                        lastRowIndex = currentRowIndex;
+                        coldef.options = JSON.parse(producto.lunidades);
+                    }
+                }
+
+                table.Events[tEvents.BeforeUpdateCell] = function(e) {
+                    let field = e.coldef.field;
+
+                    if (field == "unidad" && e.text.trim() == "") { showError("Debe elegir una opción."); e.cancel = true; return false; }
+                    if ((field == "precio" || field == "cantidad") && Number(e.text.trim()) <= 0) { showError("El valor debe ser mayor que 0."); e.cancel = true; return false; }
+                    if (field == "descuentos" && Number(e.text.trim()) < 0) { showError("El valor no puede ser menor que 0."); e.cancel = true; return false; }
+                }
+
+                table.Events[tEvents.ConfirmEdition] = function(e) {
+                    let currentRowIndex = e.sender.RowIndexOfTd(e.td);
+                    let field = e.coldef.field;
+                    var producto = tData[currentRowIndex];
+
+                    if (field == "unidad") {
+                        switch (e.text) {
+                            case producto.unidada:
+                                if (lastUnit == producto.unidada) return;
+                                console.log("Calculando unidadA");
+                                lastUnit = producto.unidada;
+                                
+
+                                let precioA = Math.div(producto.precio,producto.factorb);
+                                producto["precio"] = precioA;
+                                actualizarProducto(producto,currentRowIndex);
+                                break;
+                            case producto.unidadb:
+                                if (lastUnit == producto.unidadb) return;
+                                console.log("Calculando unidadB");
+                                lastUnit = producto.unidadb;
+                                
+
+                                let precioB = Math.mul(producto.precio,producto.factorb);
+                                producto["precio"] = precioB;
+                                actualizarProducto(producto,currentRowIndex);
+                                break;
+                            case producto.unidadc:
+                                if (lastUnit == producto.unidadc) return;
+                                console.log("Calculando unidadC");
+                                lastUnit = producto.unidadc;
+                                
+                                break;
+                            case producto.unidadd:
+                                if (lastUnit == producto.unidadd) return;
+                                lastUnit = producto.unidadd;
+                                console.log("Calculando unidadD");
+                                break;
+                            case producto.unidade:
+                                if (lastUnit == producto.unidade) return;
+                                console.log("Calculando unidadE");
+                                lastUnit = producto.unidade;
+                                
+                                break;
+
+                            default:
+                                showError("Unidad: " + e.text + " no se encuentra en el diccionario.");
+                                break;
+                        }
+                    }
+
+                    if (["precio","cantidad","descuentos"].includes(field))
+                    {
+                        producto[field] = Number(e.text.trim());
+                        actualizarProducto(producto,currentRowIndex);
+                    }
+                }
+            });
+            '}
+        }
+    }
+}
