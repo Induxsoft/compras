@@ -1,0 +1,4 @@
+﻿"Sys_PK","Sys_TimeStamp","Sys_GUID","Sys_DTCreated","Sys_User","Sys_LastUser","Sys_Exported","Sys_DTExported","Sys_Info","Codigo","CodigoTel","Nombre","sys_recver","sys_deleted","sys_lock"
+"1","2017-06-07 11:03:34","2345F0ABC9AB418F00DE01DAF3A361E1","2007-10-22 05:27:16",\N,\N,"0","2007-10-22 05:27:16",\N,"MEX","52","México","0",\N,\N
+"2","2017-05-13 12:20:43","8FBBCEAB3A7C4E078D6F667DA97900CA","2007-10-23 10:30:55",\N,\N,"0","2007-10-23 10:30:55",\N,"XX","000","(Desconocido)","0",\N,\N
+"3","2017-06-07 11:01:13","2C995E39A8B046EE85ED48D9A55300F2","2017-06-07 11:00:48",\N,\N,"0","2017-06-07 11:00:48",\N,"USA","USA","Estados Unidos","0",\N,\N

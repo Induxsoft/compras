@@ -1,0 +1,15 @@
+#include "dkli.dkh"
+#!
+module
+{
+	@DECIMAL_PRECISION = 2
+
+	@DOC_MENU = "/!/compras/"
+	@URL_BUSCAR_PROVEEDOR = "/!/compras/compras/?_view=buscar-proveedor&search=@search"
+	@URL_BUSCAR_PRODUCTO = "/!/compras/compras/?_view=buscar-producto&search=@search&zimpuesto=@zimpuesto"
+
+	//#region doc_compra
+	@DOC_COMPRAS = "/!/compras/compras/"
+	@DOC_AGREGAR = "/!/compras/compras/_new/agregar/"
+	//#endregion
+}

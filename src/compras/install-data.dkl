@@ -1,0 +1,159 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+
+    ref lib_csv = _import_library("devkron.serialize.csv.dll")
+    /**
+    * CsvRead
+    *
+    * @param string file Ruta y nombre del archivo csv.
+    * @param string numcols Cadena delimitada por coma de los campos que se tomaran como numericos.
+    * @return list<object>
+    */
+    do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvRead","CsvRead","System.String,System.String","*")
+    /**
+    * CsvWrite
+    *
+    * @param string file Ruta y nombre del archivo csv.
+    * @param list<object> data Datos a escribir en el fichero.
+    */
+    do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvWrite","CsvWrite","System.String,*System.Object","void")
+
+    installData::&db,fsrc
+    {
+        table_name = file.justname(fsrc)
+        ref list_records = CsvRead(fsrc,"")
+
+        for m = 0; m < list.count(list_records); m+1
+        {
+            ref record = list.obj(list_records,m)
+            ref fields = list.create_from_fields(record)
+
+            for n = 0; n < list.count(fields); n+1
+            {
+                field = list.str(fields,n)
+                if @@(record,field) == "\\N" || @@(record,field) == "\\0" { record<field+"*"> : @null }
+            }
+
+            do dbr.insert(db,table_name,record)
+
+            exception{ do print(last_error()) }
+            // exception{/*ignore*/}
+        }
+        // do print("-- " + table_name + " finalizado.")
+    }
+
+    src = _get(@_run_settings,"$SourceCodeFile")
+    dir = dir.name(src)
+
+    file_almacen = path.concat(dir,"\\_install\\initial_data\\almacen.csv")
+    file_caja = path.concat(dir,"\\_install\\initial_data\\caja.csv")
+    file_cajero = path.concat(dir,"\\_install\\initial_data\\cajero.csv")
+    file_categoria = path.concat(dir,"\\_install\\initial_data\\categoria.csv")
+    file_cclaseproducto = path.concat(dir,"\\_install\\initial_data\\cclaseproducto.csv")
+    file_cconsumo = path.concat(dir,"\\_install\\initial_data\\cconsumo.csv")
+    file_cdocumentos = path.concat(dir,"\\_install\\initial_data\\cdocumentos.csv")
+    file_cfgimpuesto = path.concat(dir,"\\_install\\initial_data\\cfgimpuesto.csv")
+    file_cformacomisionproducto = path.concat(dir,"\\_install\\initial_data\\cformacomisionproducto.csv")
+    file_cformaspago = path.concat(dir,"\\_install\\initial_data\\cformaspago.csv")
+    file_ciudad = path.concat(dir,"\\_install\\initial_data\\ciudad.csv")
+    file_cmetodosvaluacion = path.concat(dir,"\\_install\\initial_data\\cmetodosvaluacion.csv")
+    file_cstatusadministrativos = path.concat(dir,"\\_install\\initial_data\\cstatusadministrativos.csv")
+    file_cstatusdetallecompra = path.concat(dir,"\\_install\\initial_data\\cstatusdetallecompra.csv")
+    file_cstatusentrega = path.concat(dir,"\\_install\\initial_data\\cstatusentrega.csv")
+    file_cstatusfacturacion = path.concat(dir,"\\_install\\initial_data\\cstatusfacturacion.csv")
+    file_cstatusfinancieros = path.concat(dir,"\\_install\\initial_data\\cstatusfinancieros.csv")
+    file_cstatusorg = path.concat(dir,"\\_install\\initial_data\\cstatusorg.csv")
+    file_ctasasiva = path.concat(dir,"\\_install\\initial_data\\ctasasiva.csv")
+    file_ctipoproducto = path.concat(dir,"\\_install\\initial_data\\ctipoproducto.csv")
+    file_ctiposcategorias = path.concat(dir,"\\_install\\initial_data\\ctiposcategorias.csv")
+    file_ctiposcomisionesproducto = path.concat(dir,"\\_install\\initial_data\\ctiposcomisionesproducto.csv")
+    file_divisa = path.concat(dir,"\\_install\\initial_data\\divisa.csv")
+    file_edoprov = path.concat(dir,"\\_install\\initial_data\\edoprov.csv")
+    file_linea = path.concat(dir,"\\_install\\initial_data\\linea.csv")
+    file_pais = path.concat(dir,"\\_install\\initial_data\\pais.csv")
+    file_sys_app_catalog = path.concat(dir,"\\_install\\initial_data\\sys_app_catalog.csv")
+    file_sys_app_category = path.concat(dir,"\\_install\\initial_data\\sys_app_category.csv")
+    file_sys_app_shortcut = path.concat(dir,"\\_install\\initial_data\\sys_app_shortcut.csv")
+    file_tipoproveedor = path.concat(dir,"\\_install\\initial_data\\tipoproveedor.csv")
+    
+    ref args = commandline("=")
+    qname = trim(@@(args,"$qn"))
+    if qname == "" { do rise_error(99,"Debe de indicar un nombre cualificado de conexión.") }
+    ref database = dbr.open(qname)
+    if not(dbr.is_open(database)) { do rise_error(99,"No fue posible abrir la conexión. Verifique el nombre cualificado de conexión.") }
+    
+    do print("-- ctiposcategorias")
+    do installData(database,file_ctiposcategorias)
+    do print("-- categoria")
+    do installData(database,file_categoria)
+    do print("-- pais")
+    do installData(database,file_pais)
+    do print("-- edoprov")
+    do installData(database,file_edoprov)
+    do print("-- ciudad")
+    do installData(database,file_ciudad)
+    do print("-- almacen")
+    do installData(database,file_almacen)
+    do print("-- cconsumo")
+    do installData(database,file_cconsumo)
+    do print("-- caja")
+    do installData(database,file_caja)
+    do print("-- cajero")
+    do installData(database,file_cajero)
+    do print("-- cclaseproducto")
+    do installData(database,file_cclaseproducto)
+    do print("-- cdocumentos")
+    do installData(database,file_cdocumentos)
+    do print("-- cfgimpuesto")
+    do installData(database,file_cfgimpuesto)
+    do print("-- cformacomisionproducto")
+    do installData(database,file_cformacomisionproducto)
+    do print("-- cformaspago")
+    do installData(database,file_cformaspago)
+    do print("-- cmetodosvaluacion")
+    do installData(database,file_cmetodosvaluacion)
+    do print("-- cstatusadministrativos")
+    do installData(database,file_cstatusadministrativos)
+    do print("-- cstatusdetallecompra")
+    do installData(database,file_cstatusdetallecompra)
+    do print("-- cstatusentrega")
+    do installData(database,file_cstatusentrega)
+    do print("-- cstatusfacturacion")
+    do installData(database,file_cstatusfacturacion)
+    do print("-- cstatusfinancieros")
+    do installData(database,file_cstatusfinancieros)
+    do print("-- cstatusorg")
+    do installData(database,file_cstatusorg)
+    do print("-- ctasasiva")
+    do installData(database,file_ctasasiva)
+    do print("-- ctipoproducto")
+    do installData(database,file_ctipoproducto)
+    do print("-- ctiposcomisionesproducto")
+    do installData(database,file_ctiposcomisionesproducto)
+    do print("-- divisa")
+    do installData(database,file_divisa)
+    do print("-- linea")
+    do installData(database,file_linea)
+    do print("-- tipoproveedor")
+    do installData(database,file_tipoproveedor)
+    do print("-- sys_app_catalog")
+    do installData(database,file_sys_app_catalog)
+    do print("-- sys_app_category")
+    do installData(database,file_sys_app_category)
+    do print("-- sys_app_shortcut")
+    do installData(database,file_sys_app_shortcut)
+
+    do dbr.close(database)
+    exception
+    {
+        if isset("database") {
+            if dbr.is_open(database){ do dbr.close(database) }
+        }
+        do print(last_error())
+    }
+}
