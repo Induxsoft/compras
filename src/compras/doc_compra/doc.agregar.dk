@@ -9,12 +9,13 @@ module "doc.pedido.dk"
     #include "../config.dk"
 
     do @context.begin(@crud_context)
-    // do rise_error(0,to.json(@crud_context))
+    // empty_rows = "[{},{},{},{},{},{},{},{},{},{}]"
 
     ref infoProv = ifnull(@("&./info_proveedor"),record.create())
     ref listDivisas = ifnull(@('&./list_divisas'),list.create())
     ref listAlmacenes = ifnull(@('&./list_almacenes'),list.create())
     ref listDocumentos = ifnull(@('&./list_documentos'),list.create())
+    ref dcompra = ifnull(@('&./dcompra'),list.create())
 
     new sel_documento
     {
@@ -196,45 +197,46 @@ module "doc.pedido.dk"
 
         div(class="")
         {
-            "edit-table"(class="w-100" id="tbl_productos")
+            "edit-table"(class="w-100" id="tbl_productos" data="#<to.json(dcompra)>")
             {
                 "edit-thead"
                 {
                     "edit-tr"
                     {
-                        "edit-th"(type="Text" field="codigo" button="true"){$"Código"}
-                        "edit-th"(type="Text" field="descripcion" button="true"){$"Descripción"}
-                        "edit-th"(type="Select" field="unidad" options="{}"){$"Unidad"}
-                        "edit-th"(type="Number" field="precio"){$"Precio"}
-                        "edit-th"(type="Number" field="cantidad"){$"Cantidad"}
-                        "edit-th"(type="NoEditable" field="subtotal"){$"Subtotal"}
-                        "edit-th"(type="Number" field="descuentos"){$"Descuentos"}
-                        "edit-th"(type="NoEditable" field="impuestos"){$"Impuestos"}
-                        "edit-th"(type="NoEditable" field="importe"){$"Importe"}
-                        "edit-th"(type="Memo" field="notas"){$"Notas"}
+                        "edit-th"(type="Text" field="edt_codigo" button="true"){$"Código"}
+                        "edit-th"(type="Text" field="edt_descripcion" button="true"){$"Descripción"}
+                        "edit-th"(type="Select" field="edt_unidad" options="{}"){$"Unidad"}
+                        "edit-th"(type="Number" field="edt_precio" textalign="end"){$"Precio"}
+                        "edit-th"(type="Number" field="edt_cantidad" textalign="center"){$"Cantidad"}
+                        "edit-th"(type="NoEditable" field="edt_subtotal" textalign="end"){$"Subtotal"}
+                        "edit-th"(type="Number" field="edt_descuentos" textalign="end"){$"Descuentos"}
+                        "edit-th"(type="NoEditable" field="edt_impuestos" textalign="end"){$"Impuestos"}
+                        "edit-th"(type="NoEditable" field="edt_importe" textalign="end"){$"Importe"}
+                        "edit-th"(type="Memo" field="edt_notas"){$"Notas"}
                     }
                 }
-                "edit-tbody"
+                #!
+                if list.count(dcompra) <= 0
                 {
-                    #!
-                    repeat 10
+                    #$
+                    "edit-tbody"
                     {
-                        #$
-                        "edit-tr"
+                        #!
+                        repeat 10
                         {
-                            "edit-td"{$""}
-                            "edit-td"{$""}
-                            "edit-td"{$""}
-                            "edit-td"{$""}
-                            "edit-td"{$""}
-                            "edit-td"{$""}
-                            "edit-td"{$""}
-                            "edit-td"{$""}
-                            "edit-td"{$""}
-                            "edit-td"{$""}
+                            #$
+                            "edit-tr"
+                            {
+                                #! repeat 10
+                                {
+                                    #$
+                                    "edit-td"{$""}
+                                }
+                            }
                         }
                     }
                 }
+                #$
             }
         }
 
@@ -265,6 +267,9 @@ module "doc.pedido.dk"
             script(type="text/javascript")
             {$'
                 const DOC_COMPRAS = "#<@DOC_COMPRAS>";
+                const THOUSANDS_SEPARATOR = "#<@THOUSANDS_SEPARATOR>";
+                const DECIMAL_SEPARATOR = "#<@DECIMAL_SEPARATOR>";
+                const DECIMAL_PRECISION = #<@DECIMAL_PRECISION>;
             '}
             script(src="/$/compras/js/compras.js"){""}
         }

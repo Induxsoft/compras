@@ -20,8 +20,8 @@ document.addEventListener("DOMContentLoaded", () =>
 
     btnAddRow.addEventListener("click", () => { table.AddRow(); });
     btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); });
-    table.setInputKey("codigo",ikProducto);
-    table.setInputKey("descripcion", ikProducto);
+    table.setInputKey("edt_codigo",ikProducto);
+    table.setInputKey("edt_descripcion", ikProducto);
 
     function trigger(element,event) {
         if (element) {
@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () =>
         }
     }
 
-    function show_error (text,removeIn=0) {
+    function show_error(text,removeIn=0) {
         if (removeIn <= 0) removeIn = 3;
 
         error_span.textContent = text;
@@ -40,26 +40,37 @@ document.addEventListener("DOMContentLoaded", () =>
         }, (removeIn * 1000));
     }
 
-    function number_format(val, tipo = "number", moneda = "MXN") {
-        let formatter = new Intl.NumberFormat("en");
-        let tmonedas = ["moneda", "currency", "dinero", "money"];
+    function round(num, dec=2) {
+        var signo = (num >= 0 ? 1 : -1);
+        num = num * signo;
+        if (dec === 0) return signo * Math.round(num);
+        num = num.toString().split('e');
+        num = Math.round(+(num[0] + 'e' + (num[1] ? (+num[1] + dec) : dec)));
+        num = num.toString().split('e');
+        return signo * (num[0] + 'e' + (num[1] ? (+num[1] - dec) : -dec));
+    }
 
-        if (tmonedas.includes(tipo)) {
-            let options = {
-                style: "currency",
-                minimumFractionDigits: 2,
-                currency: moneda
-            }
-            
-            formatter = new Intl.NumberFormat("en-US", options);
+    function number_format(value, {moneda = "", decimal = 2}) {
+        let options = {}
+
+        if (moneda.trim() != "") 
+        {
+            options.style = "currency";
+            options.currency = moneda;
+            options.minimumFractionDigits = decimal;
+        }
+        else
+        {
+            value = round(value,decimal);
         }
 
-        return formatter.format(val);
+        let result = new Intl.NumberFormat("en-US", options).format(value);
+        return result;
     }
 
     function sumarImportes() {
         let option = selDivisa.options[selDivisa.selectedIndex];
-        let moneda = option.getAttribute("data-codigo").toUpperCase();
+        let divisa = option.getAttribute("data-codigo").toUpperCase();
 
         let subtotal = 0;
         let descuento = 0;
@@ -68,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () =>
 
         for (let i = 0; i < tData.length; i++) {
             const producto = tData[i];
-            if (!producto) continue;
+            if (Object.entries(producto ?? {}).length === 0) continue;
             
             subtotal += Number(producto.subtotal);
             descuento += Number(producto.descuentos);
@@ -76,10 +87,15 @@ document.addEventListener("DOMContentLoaded", () =>
             importe += Number(producto.importe);
         }
 
-        lblSubtotal.textContent = number_format(subtotal,"money",moneda);
-        lblDescuento.textContent = number_format(descuento,"money",moneda);
-        lblImpuesto.textContent = number_format(impuesto,"money",moneda);
-        lblImporte.textContent = number_format(importe,"money",moneda);
+        let fmt = {
+            moneda: divisa,
+            decimal: DECIMAL_PRECISION
+        }
+
+        lblSubtotal.textContent = number_format(subtotal,fmt);
+        lblDescuento.textContent = number_format(descuento,fmt);
+        lblImpuesto.textContent = number_format(impuesto,fmt);
+        lblImporte.textContent = number_format(importe,fmt);
 
         /* let importes = {
             subtotal: subtotal,
@@ -129,6 +145,16 @@ document.addEventListener("DOMContentLoaded", () =>
 
     function actualizarProducto(producto, rowIndex) {
         let i = calcularImpuestos(producto);
+        let fmt = {
+            decimal: DECIMAL_PRECISION
+        }
+
+        producto["edt_precio"] = number_format(i.costo,fmt);
+        producto["edt_cantidad"] = i.cantidad;
+        producto["edt_subtotal"] = number_format(i.subtotal,fmt);
+        producto["edt_descuentos"] = number_format(i.descuentos,fmt);
+        producto["edt_impuestos"] = number_format(i.impuestos,fmt);
+        producto["edt_importe"] = number_format(i.total,fmt);
 
         producto["precio"] = i.costo;
         producto["cantidad"] = i.cantidad;
@@ -136,6 +162,8 @@ document.addEventListener("DOMContentLoaded", () =>
         producto["descuentos"] = i.descuentos;
         producto["impuestos"] = i.impuestos;
         producto["importe"] = i.total;
+        producto["costototal"] = i.total;
+        producto["descuento1"] = i.descuentos;
         producto["impuesto1"] = i.impuesto1;
         producto["impuesto2"] = i.impuesto2;
         producto["impuesto3"] = i.impuesto3;
@@ -178,32 +206,40 @@ document.addEventListener("DOMContentLoaded", () =>
         let producto = 
         {
             // campos visibles en el editable.
-            codigo: data.codigo,
-            descripcion: data.descripcion,
-            unidad: data.unidada,
-            precio: i.costo,
-            cantidad: i.cantidad,
-            subtotal: i.subtotal,
-            descuentos: i.descuentos,
-            impuestos: i.impuestos,
-            importe: i.total,
-            notas: "",
+            edt_codigo: data.codigo,
+            edt_descripcion: data.descripcion,
+            edt_unidad: data.unidada,
+            edt_precio: i.costo,
+            edt_cantidad: i.cantidad,
+            edt_subtotal: i.subtotal,
+            edt_descuentos: i.descuentos,
+            edt_impuestos: i.impuestos,
+            edt_importe: i.total,
+            edt_notas: "",
 
-            // campos extras para el insert.
+            // campos para el insert.
+            cantidad: i.cantidad,
             costototal: i.total,
             descuento1: i.descuentos,
             descuento2: 0,
-            factor: data.factorb,
+            factor: 1,
             impuesto1: i.impuesto1,
             impuesto2: i.impuesto2,
             impuesto3: i.impuesto3,
             impuesto4: i.impuesto4,
+            notas: "",
+            precio: i.costo,
             status: 1, // cPor_recibir
             tipocambio: data.tipocambio,
+            unidad: data.unidada,
             xfacturar: 1.0,
             iproducto: data.sys_pk,
 
             // campos extras para operaciones.
+            subtotal: i.subtotal,
+            descuentos: i.descuentos,
+            impuestos: i.impuestos,
+            importe: i.total,
             i1_tasa: data.i1_tasa,
             i2_tasa: data.i2_tasa,
             i3_tasa: data.i3_tasa,
@@ -241,11 +277,12 @@ document.addEventListener("DOMContentLoaded", () =>
         
         for (let i = 0; i < tData.length; i++) {
             const producto = tData[i];
-            if (!producto) continue;
+            if (Object.entries(producto ?? {}).length === 0) continue;
 
             let precio = Math.mul(producto.precio,lastTipoCambio);
             precio = Math.div(precio,tcambio);
             producto["precio"] = precio;
+            producto["tipocambio"] = tcambio;
 
             actualizarProducto(producto,i);
         }
@@ -291,8 +328,8 @@ document.addEventListener("DOMContentLoaded", () =>
         let currentRowIndex = table.CurrentRowIndex();
         let producto = tData[currentRowIndex];
 
-        if (!producto) return;
-        if (coldef.field == "unidad" && lastRowIndex != currentRowIndex)
+        if (Object.entries(producto ?? {}).length === 0) return;
+        if (coldef.field == "edt_unidad" && lastRowIndex != currentRowIndex)
         {
             lastRowIndex = currentRowIndex;
             coldef.options = JSON.parse(producto.lunidades);
@@ -304,10 +341,10 @@ document.addEventListener("DOMContentLoaded", () =>
         let field = e.coldef.field;
         let producto = tData[currentRowIndex];
 
-        if (!producto) return;
-        if (field == "unidad" && e.text.trim() == "") { show_error("Debe elegir una opción."); e.cancel = true; return false; }
-        if ((field == "precio" || field == "cantidad") && Number(e.text.trim()) <= 0) { show_error("El valor debe ser mayor que 0."); e.cancel = true; return false; }
-        if (field == "descuentos" && Number(e.text.trim()) < 0) { show_error("El valor no puede ser menor que 0."); e.cancel = true; return false; }
+        if (Object.entries(producto ?? {}).length === 0) return;
+        if (field == "edt_unidad" && e.text.trim() == "") { show_error("Debe elegir una opción."); e.cancel = true; return false; }
+        if ((field == "edt_precio" || field == "edt_cantidad") && Number(e.text.trim()) <= 0) { show_error("El valor debe ser mayor que 0."); e.cancel = true; return false; }
+        if (field == "edt_descuentos" && Number(e.text.trim()) < 0) { show_error("El valor no puede ser menor que 0."); e.cancel = true; return false; }
     }
 
     table.Events[tEvents.ConfirmEdition] = function(e) {
@@ -315,10 +352,12 @@ document.addEventListener("DOMContentLoaded", () =>
         let field = e.coldef.field;
         let producto = tData[currentRowIndex];
         
-        if (!producto) return;
+        if (Object.entries(producto ?? {}).length === 0) return;
         lastUnit = producto.unidad;
 
-        if (field == "unidad") {
+        if (field == "edt_unidad") {
+            producto["unidad"] = e.text;
+
             switch (e.text) {
                 case producto.unidada:
                     if (lastUnit == producto.unidada) return;
@@ -330,6 +369,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     else if (lastUnit == producto.unidade) precioA = Math.div(producto.precio,producto.factore);
                     
                     producto["precio"] = precioA;
+                    producto["factor"] = 1; // factora
                     lastUnit = producto.unidada;
 
                     actualizarProducto(producto,currentRowIndex);
@@ -353,6 +393,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     }
 
                     producto["precio"] = precioB;
+                    producto["factor"] = producto.factorb;
                     lastUnit = producto.unidadb;
 
                     actualizarProducto(producto,currentRowIndex);
@@ -376,6 +417,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     }
 
                     producto["precio"] = precioC;
+                    producto["factor"] = producto.factorc;
                     lastUnit = producto.unidadc;
 
                     actualizarProducto(producto,currentRowIndex);
@@ -399,6 +441,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     }
                     
                     producto["precio"] = precioD;
+                    producto["factor"] = producto.factord;
                     lastUnit = producto.unidadd;
 
                     actualizarProducto(producto,currentRowIndex);
@@ -422,6 +465,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     }
 
                     producto["precio"] = precioE;
+                    producto["factor"] = producto.factore;
                     lastUnit = producto.unidade;
 
                     actualizarProducto(producto,currentRowIndex);
@@ -433,10 +477,19 @@ document.addEventListener("DOMContentLoaded", () =>
             }
         }
 
-        if (["precio","cantidad","descuentos"].includes(field))
+        if (["edt_precio","edt_cantidad","edt_descuentos"].includes(field))
         {
-            producto[field] = Number(e.text.trim());
+            let value = Number(e.text.trim());
+            producto[field] = value;
+            if (field == "edt_precio") producto["precio"] = value;
+            if (field == "edt_cantidad") producto["cantidad"] = value;
+            if (field == "edt_descuentos") producto["descuentos"] = value;
             actualizarProducto(producto,currentRowIndex);
+        }
+
+        if (field == "edt_notas") {
+            producto["notas"] = e.text.trim();
+            table.UpdateRow(currentRowIndex);
         }
     }
 });

@@ -2,6 +2,9 @@
 #!
 module
 {
+	// Formnato de presentación
+	@THOUSANDS_SEPARATOR = ","
+	@DECIMAL_SEPARATOR = "."
 	@DECIMAL_PRECISION = 2
 
 	@DOC_MENU = "/!/compras/"

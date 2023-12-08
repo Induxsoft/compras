@@ -91,8 +91,6 @@ module "model"
 
     doc.agregar::&db,&params,&data
     {
-        params<"idivisa"> : @@(data,"#idivisa")
-
         ref compra = record.copy(data,"*")
         using compra
         {
@@ -111,7 +109,6 @@ module "model"
             @"statusfacturacion": 0
             @"statusfinanciero": 0
             @"subtotal": 0.0
-            // @"tipocambio": dbr.num(db,"SELECT tcambio FROM divisa WHERE sys_pk = @idivisa",params)
         }
         
         using @childs
