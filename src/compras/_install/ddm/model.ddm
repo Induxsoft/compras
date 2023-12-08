@@ -341,13 +341,19 @@ model "erp.compras"
         @"notas" string(4096) required
         @"partida" string(32)
         @"poliza" string(32)
-        @"referencia" string(50) unique required
+        @"referencia" string(50) required
         @"tipo" int ref:"cdocumentos" ["id"] required
         @"icategoria" int ref:"categoria" ["sys_pk"] required
         @"icuenta" int ref:"chequera" ["sys_pk"] required
         @"uf_color" int
         @"uf_fechacancelacion" datetime
         @"uf_iproveedor" int ref:"proveedor" ["sys_pk"]
+
+        index "movcuenta_id" unique
+        {
+            field "icuenta"
+            field "referencia"
+        }
     }
     // Información de productos
     entity "producto" : "TableModel"
