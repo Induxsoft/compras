@@ -251,7 +251,7 @@ model "erp.compras"
         @"xfacturar" decimal(18,8)
         @"documento" int ref:"compra" ["sys_pk"]
         @"iproducto" int ref:"producto" ["sys_pk"] required
-        @"fk_compra_detalle" int ref:"compra" ["sys_pk"]
+        @"fk_compra_detalle" int ref:"compra" ["sys_pk"] required
     }
     // departamento
     entity "departamento" : "TableModel"
@@ -268,7 +268,7 @@ model "erp.compras"
     entity "divisa" : "TableModel"
     {
         @"codigo" string(5) unique required
-        @"descripcion" string(30) required
+        @"descripcion" string(30) unique required
         @"tcambio" decimal(18,8)
     }
     // linea
@@ -436,7 +436,7 @@ model "erp.compras"
         @"idivisa" int ref:"divisa" ["sys_pk"] required
         @"ilinea" int ref:"linea" ["sys_pk"] required
         @"imarca" int ref:"marca" ["sys_pk"]
-        @"impuestos" int ref:"cfgimpuesto" ["sys_pk"]
+        @"impuestos" ref:"cfgimpuesto" required
         @"ivariables" int
         @"proveedor1" int ref:"proveedor" ["sys_pk"]
         @"proveedor2" int ref:"proveedor" ["sys_pk"]
