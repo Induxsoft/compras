@@ -1,26 +1,305 @@
 #include "dkli.dkh"
 #!
-module "form.dk"
+module "doc.pedido.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
+    #include "uielements.dkl"
+    #include "../icons.dk"
+    #include "../config.dk"
 
     do @context.begin(@crud_context)
-    
+    // empty_rows = "[{},{},{},{},{},{},{},{},{},{}]"
+
+    ref infoProv = ifnull(@("&./info_proveedor"),record.create())
+    ref compra = ifnull(@("&./compra"),record.create())
+    ref listDivisas = ifnull(@('&./list_divisas'),list.create())
+    ref listAlmacenes = ifnull(@('&./list_almacenes'),list.create())
+    ref listDocumentos = ifnull(@('&./list_documentos'),list.create())
+    ref dcompra = ifnull(@('&./dcompra'),list.create())
+
+    // do rise_error(0,to.json(@("&.")))
+
+    new sel_documento
+    {
+        @"datatable*": listDocumentos
+        @"id": "sel_documento"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "documento"
+            @"required": ""
+        }
+        @"value_field": "id"
+        @"text_field": "const"
+        @"selected": @("$input/documento")
+    }
+
+    new sel_divisa
+    {
+        @"datatable*": listDivisas
+        @"id": "sel_divisa"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "idivisa"
+            @"required": ""
+        }
+        @"value_field": "sys_pk"
+        @"text_field": "text"
+        new member "attr_options"
+        {
+            @"data-codigo": "#<@@(row,'codigo')>"
+            @"data-tcambio": "#<@@(row,'tcambio')>"
+        }
+        @"selected": @("$input/idivisa")
+    }
+
+    new sel_almacen
+    {
+        @"datatable*": listAlmacenes
+        @"id": "sel_almacen"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "ialmacen"
+            @"required": ""
+        }
+        @"value_field": "sys_pk"
+        @"text_field": "descripcion"
+        @"selected": @("$input/ialmacen")
+    }
+
+    form::name,type
+    {
+        switch str(type)
+        {
+            case "tx" { return trim(@("$input/"+str(name))) }
+            case "nm" { return @("#input/"+str(name)) }
+            case "dt"
+            {
+                fecha = trim(@("$input/"+str(name)))
+                if fecha == "" { fecha = date_str(now(),"yyyy-MM-dd") }
+                return fecha
+            }
+            default { return "" }
+        }
+    }
+
+    status_admin_doc = @@(compra,"$statusadministrativo")
+
+    show_btn_borrador = @false
+    show_btn_cerrar = @false
+    show_btn_procesar = @false
+    show_btn_cancelar = @false
+    show_btn_reabrir = @false
+
+    // Estados administrativos para documentos : https://docs.induxsoft.net/es/productos/v12/devops/enums/cstatusadministrativos.md
+    // 0=NoAplica | 1=Abierto | 2=Cerrado | 3=Procesado | 99=Cancelado
+
+    if containsword(status_admin_doc,",0,1") { show_btn_borrador = @true }
+    if containsword(status_admin_doc,",0,1") { show_btn_cerrar = @true }
+    if containsword(status_admin_doc,",0,1,2") { show_btn_procesar = @true }
+    if containsword(status_admin_doc,"0,1,2,3") { show_btn_cancelar = @true }
+    if containsword(status_admin_doc,"0,2") { show_btn_reabrir = @true }
+
     #$
     div(class="container")
     {
-        h1{$"Form"}
+        h1(class="h4"){$"Nuevo Documento"}
 
-        p{"ERROR:"}
-        p{$"#<@('$error/message')>"}
-        hr{}
+        form(action="./" method="POST" id="form_pedido")
+        {
+            nav
+            {
+                div(class="nav nav-tabs" id="nav-tab" role="tablist")
+                {
+                    button(class="nav-link active" id="nav-general-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-general" type="button" role="tab" "aria-controls"="nav-general" "aria-selected"="true"){$"General"}
+                    button(class="nav-link" id="nav-mrdata-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-mrdata" type="button" role="tab" "aria-controls"="nav-mrdata" "aria-selected"="false"){$"Más datos"}
+                }
+            }
 
-        p{"PARÁMETROS:"}
-        p{$"#<to.json(@('&parameters'))>"}
-        hr{}
+            div(class="tab-content")
+            {
+                div(class="tab-pane fade show active" id="nav-general" role="tabpanel" "aria-labelledby"="nav-general-tab")
+                {
+                    div(class="row")
+                    {
+                        div(class="col-lg-4 col-md-8 col-sm-12")
+                        {
+                            label(class="form-label" "for"="sel_proveedor"){$"Proveedor:"}
+                            "input-key"(
+                                id="sel_proveedor"
+                                name="iproveedor"
+                                "data-key"="sys_pk"
+                                "data-search"="codigo"
+                                "data-text"="nombre"
+                                "data-value"="#<to.json(infoProv)>"
+                                "data-source"="#<@URL_BUSCAR_PROVEEDOR>"
+                                columns="codigo,nombre,tipo"
+                                colcaptions="Código,Nombre,Tipo"
+                                "box-title-text"="Seleccione un proveedor"
+                                required="true"
+                                "control-styles"="
+                                    #input_search_container, #input_description_container,
+                                    #button_search_container, #button_clear_container {
+                                        height: calc(1.5em + .5rem + 2px) !important;
+                                        padding: .25rem .5rem !important;
+                                        font-size: .875rem !important;
+                                    }
+                                "
+                            ){$""}
 
-        p{"DATA (.):"}
-        p{$"#<to.json(@('&.'))>"}
+                            label(class="form-label" "for"="sel_documento"){$"Tipo de documento:"}
+                            ##
+                            do uie.dbSelect(sel_documento)
+                            ##
+
+                            label(class="form-label" "for"="sel_divisa"){$"Divisa:"}
+                            ##
+                            do uie.dbSelect(sel_divisa)
+                            ##
+
+                            label(class="form-label" "for"="txt_tipocambio"){$"Tipo de cambio:"}
+                            input(type="number" class="form-control form-control-sm rounded-0" name="tipocambio" min="1" id="txt_tipocambio" value="#<form('tipocambio','nm')>" required="")
+
+                            label(class="form-label" "for"="sel_almacen"){$"Almacén:"}
+                            ##
+                            do uie.dbSelect(sel_almacen)
+                            ##
+                        }
+                        div(class="col-lg-3 col-md-4 col-sm-12")
+                        {
+                            label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
+                            input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" maxlength="25" required="")
+
+                            label(class="form-label" "for"="txt_fecha"){$"Fecha:"}
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha" id="txt_fecha" value="#<form('fecha','dt')>" required="")
+
+                            label(class="form-label" "for"="txt_fvencimiento"){$"Fecha de vencimiento:"}
+                            input(type="date" class="form-control form-control-sm rounded-0" name="vencimiento" id="txt_fvencimiento" value="#<form('vencimiento','dt')>" required="")
+
+                            label(class="form-label" "for"="txt_fentrega"){$"Fecha de entrega:"}
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fentrega" id="txt_fentrega" value="#<form('fentrega','dt')>" required="")
+
+                            label(class="form-label" "for"="txt_cindirectos"){$"Costos indirectos:"}
+                            input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" id="txt_cindirectos" value="#<form('indirectos','nm')>" required="")
+                        }
+                    }
+                }
+
+                div(class="tab-pane fade" id="nav-mrdata" role="tabpanel" "aria-labelledby"="nav-mrdata-tab")
+                {
+                    div(class="row")
+                    {
+                        div(class="col-lg-4 col-md-8 col-sm-12")
+                        {
+                            label(class="form-label" "for"="txt_fembarque"){$"Fecha de embarque:"}
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fembarque" id="txt_fembarque" value="#<form('fembarque','dt')>" required="")
+
+                            label(class="form-label" "for"="txt_notas"){$"Notas:"}
+                            textarea(class="form-control" name="notas" id="txt_notas" maxlength="32000"){ $"#<form('notas','tx')>" }
+                        }
+                    }
+                }
+            }
+
+            input(type="hidden" name="statusadministrativo" value="" id="txt_statusadministrativo")
+            input(type="hidden" name="_detalle" value="" id="txt_detalle_compra")
+        }
+
+        div(class="d-flex gap-1 my-2")
+        {
+            a(href="#<@DOC_COMPRAS>" class="btn btn-secondary btn-sm"){$"#<@ICON_ARROW_LEFT>"}
+            a(href="./" class="btn btn-secondary btn-sm"){$"#<@ICON_ARROW_CLOCKWISE>"}
+
+            #! if show_btn_borrador {#$ button(type="button" class="btn btn-secondary btn-sm" id="btn-borrador"){$"Borrador"} }
+            #! if show_btn_cerrar {#$ button(type="button" class="btn btn-secondary btn-sm" id="btn-cerrar"){$"Cerrar"} }
+            #! if show_btn_procesar {#$ button(type="button" class="btn btn-secondary btn-sm" id="btn-procesar"){$"Procesar"} }
+            #! if show_btn_cancelar {#$ button(type="button" class="btn btn-secondary btn-sm" id="btn-cancelar"){$"Cancelar"} }
+            #! if show_btn_reabrir {#$ button(type="button" class="btn btn-secondary btn-sm" id="btn-reabrir"){$"Re-Abrir"} }
+            
+            button(type="button" class="btn btn-secondary btn-sm" id="btn-add-row"){$"Agregar fila"}
+            button(type="button" class="btn btn-secondary btn-sm" id="btn-del-row"){$"Eliminar fila"}
+        }
+
+        div(class="")
+        {
+            "edit-table"(class="w-100" id="tbl_productos" data="#<to.json(dcompra)>")
+            {
+                "edit-thead"
+                {
+                    "edit-tr"
+                    {
+                        "edit-th"(type="Text" field="edt_codigo" button="true"){$"Código"}
+                        "edit-th"(type="Text" field="edt_descripcion" button="true"){$"Descripción"}
+                        "edit-th"(type="Select" field="edt_unidad" options="{}"){$"Unidad"}
+                        "edit-th"(type="Number" field="edt_precio" textalign="end"){$"Precio"}
+                        "edit-th"(type="Number" field="edt_cantidad" textalign="center"){$"Cantidad"}
+                        "edit-th"(type="NoEditable" field="edt_subtotal" textalign="end"){$"Subtotal"}
+                        "edit-th"(type="Number" field="edt_descuentos" textalign="end"){$"Descuentos"}
+                        "edit-th"(type="NoEditable" field="edt_impuestos" textalign="end"){$"Impuestos"}
+                        "edit-th"(type="NoEditable" field="edt_importe" textalign="end"){$"Importe"}
+                        "edit-th"(type="Memo" field="edt_notas"){$"Notas"}
+                    }
+                }
+                #!
+                if list.count(dcompra) <= 0
+                {
+                    #$
+                    "edit-tbody"
+                    {
+                        #!
+                        repeat 10
+                        {
+                            #$
+                            "edit-tr"
+                            {
+                                #! repeat 10
+                                {
+                                    #$
+                                    "edit-td"{$""}
+                                }
+                            }
+                        }
+                    }
+                }
+                #$
+            }
+        }
+
+        div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
+
+        div(class="d-flex justify-content-between w-100 bg-light p-2 border")
+        {
+            b{$"Subtotal: " span(id="lbl_subtotal"){$""}}
+            b{$"Descuento: " span(id="lbl_descuento"){$""}}
+            b{$"Impuesto: " span(id="lbl_impuesto"){$""}}
+            b{$"Importe: " span(id="lbl_importe"){$""}}
+        }
+
+        div
+        {
+            "input-key"(
+                id="sel_producto"
+                "data-key"="sys_pk"
+                "data-search"="codigo"
+                "data-text"="descripcion"
+                "data-source"="#<@URL_BUSCAR_PRODUCTO>"
+                columns="codigo,descripcion"
+                colcaptions="Código,Descripción"
+                "box-title-text"="Seleccione un producto"
+                "control-styles"="#container{display:none !important;}"
+            ){$""}
+
+            script(type="text/javascript")
+            {$'
+                const DOC_COMPRAS = "#<@DOC_COMPRAS>";
+                const THOUSANDS_SEPARATOR = "#<@THOUSANDS_SEPARATOR>";
+                const DECIMAL_SEPARATOR = "#<@DECIMAL_SEPARATOR>";
+                const DECIMAL_PRECISION = #<@DECIMAL_PRECISION>;
+            '}
+            script(src="/$/compras/js/compras.js"){""}
+        }
     }
 }

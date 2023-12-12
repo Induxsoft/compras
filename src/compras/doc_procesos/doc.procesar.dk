@@ -1,0 +1,15 @@
+#include "dkli.dkh"
+#!
+module "doc.procesar.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+
+    do @context.begin(@crud_context)
+
+    #$
+    div(class="container")
+    {
+        h1(class="h4"){$"Procesar Documento"}
+    }
+}

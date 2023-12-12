@@ -6,7 +6,10 @@ module "controller"
     {
         case ""
         {
+            // point @read to doc.read
             point @list to doc.list
+            point @blank to doc.blank
+            point @create to doc.agregar
             break
         }
         case "buscar-proveedor"
@@ -17,14 +20,6 @@ module "controller"
         case "buscar-producto"
         {
             point @list to doc.buscarProducto
-            break
-        }
-        case "agregar"
-        {
-            point @blank to doc.blank
-            point @create to doc.agregar
-            
-            @form_view = "doc.agregar.dk"
             break
         }
     }

@@ -4,6 +4,11 @@ document.addEventListener("DOMContentLoaded", () =>
     let ikProveedor = document.getElementById("sel_proveedor");
     let ikProducto = document.getElementById("sel_producto");
     let formPedido = document.getElementById("form_pedido");
+    let btnBorradorDoc = document.getElementById("btn-borrador");
+    let btnCerrarDoc = document.getElementById("btn-cerrar");
+    let btnProcesarDoc = document.getElementById("btn-procesar");
+    let btnCancelarDoc = document.getElementById("btn-cancelar");
+    let btnReAbrirDoc = document.getElementById("btn-reabrir");
     let selDivisa = document.getElementById("sel_divisa");
     let txtTipoCambio = document.getElementById("txt_tipocambio");
     let lblSubtotal = document.getElementById("lbl_subtotal");
@@ -290,7 +295,7 @@ document.addEventListener("DOMContentLoaded", () =>
         lastTipoCambio = tcambio;
     });
 
-    formPedido.addEventListener("submit", (event) => {
+    /* formPedido.addEventListener("submit", (event) => {
         event.preventDefault();
         if (!event.target.checkValidity()) return;
 
@@ -311,12 +316,52 @@ document.addEventListener("DOMContentLoaded", () =>
         let onFail = null;
 
         InduxsoftCrudlModel.InvokeService("./",formData,onSuccess,onFail,"POST",false,false,"",false);
-    });
+    }); */
 
-    formPedido.addEventListener("reset", (event) => {
+    /* formPedido.addEventListener("reset", (event) => {
         tData = {};
         window.location.href = DOC_COMPRAS;
+    }); */
+
+    btnBorradorDoc.addEventListener("click", function() {
+        if (!formPedido.reportValidity()) return;
+
+        let txt_statusadministrativo = document.getElementById("txt_statusadministrativo")
+        let txt_detalle_compra = document.getElementById("txt_detalle_compra");
+        
+        txt_statusadministrativo.value = 1;
+        txt_detalle_compra.value = JSON.stringify(tData);
+
+        formPedido.submit();
     });
+
+    btnCerrarDoc.addEventListener("click", function() {
+        if (!formPedido.reportValidity()) return;
+
+        let txt_statusadministrativo = document.getElementById("txt_statusadministrativo")
+        let txt_detalle_compra = document.getElementById("txt_detalle_compra");
+        
+        txt_statusadministrativo.value = 2;
+        txt_detalle_compra.value = JSON.stringify(tData);
+
+        formPedido.submit();
+    });
+
+    btnProcesarDoc.addEventListener("click", function() {
+        if (!formPedido.reportValidity()) return;
+
+        let txt_statusadministrativo = document.getElementById("txt_statusadministrativo")
+        let txt_detalle_compra = document.getElementById("txt_detalle_compra");
+        
+        txt_statusadministrativo.value = 3;
+        txt_detalle_compra.value = JSON.stringify(tData);
+
+        formPedido.submit();
+    });
+
+    btnCancelarDoc.addEventListener("click", function(){});
+
+    btnReAbrirDoc.addEventListener("click", function(){});
 
     //* ======================================== [ EDITABLE EVENTS ] ========================================
 

@@ -1,0 +1,18 @@
+#include "dkli.dkh"
+#!
+module "controller"
+{
+    switch @@(@http_context,"$request/get/_view")
+    {
+        case "procesar"
+        {
+            @form_view = "doc.procesar.dk"
+            break
+        }
+        case "cancelar"
+        {
+            @form_view = "doc.cancelar.dk"
+            break
+        }
+    }
+}

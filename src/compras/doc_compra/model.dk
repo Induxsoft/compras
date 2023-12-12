@@ -3,6 +3,30 @@
 module "model"
 {
     @table_name = "compra"
+    @read_query = "
+    SELECT
+        c.sys_pk,
+        c.sys_guid,
+        c.documento,
+        DATE_FORMAT(c.fecha,'%Y-%m-%d') AS fecha,
+        DATE_FORMAT(c.fembarque,'%Y-%m-%d') AS fembarque,
+        DATE_FORMAT(c.fentrega,'%Y-%m-%d') AS fentrega,
+        IFNULL(c.notas,'') AS notas,
+        c.referencia,
+        c.statusadministrativo,
+        c.statusentrega,
+        c.statusfacturacion,
+        c.statusfinanciero,
+        c.subtotal,
+        c.tipocambio,
+        DATE_FORMAT(c.vencimiento,'%Y-%m-%d') AS vencimiento,
+        c.ialmacen,
+        c.idivisa,
+        c.iproveedor,
+        c.sys_recver
+    FROM compra c
+    WHERE #<@keyfield> = @_entity_id
+    "
 
     doc.buscarProveedor::&db,&params
     {
@@ -75,11 +99,11 @@ module "model"
     {
         sql_divisas = "SELECT sys_pk, codigo, tcambio, CONCAT(codigo,' [',descripcion,']') AS text FROM divisa ORDER BY sys_pk ASC;"
         sql_almacenes = "SELECT sys_pk, descripcion FROM almacen ORDER BY sys_pk ASC;"
-        sql_documentos = "SELECT id, const FROM cdocumentos"
+        sql_documentos = "SELECT id, const FROM cdocumentos doc INNER JOIN cfg_doc_compras cfg ON cfg.documento = doc.id ORDER BY doc.id ASC;"
         
         switch @@(@http_context,"$request/get/_view")
         {
-            case "agregar"
+            case ""
             {
                 data<"list_divisas*"> : dbr.list(db,sql_divisas,@null)
                 data<"list_almacenes*"> : dbr.list(db,sql_almacenes,@null)
@@ -91,6 +115,8 @@ module "model"
 
     doc.agregar::&db,&params,&data
     {
+        redir = @false
+
         ref compra = record.copy(data,"*")
         using compra
         {
@@ -104,7 +130,7 @@ module "model"
             @"impuesto3": 0.0
             @"impuesto4": 0.0
             @"formapago": 0
-            @"statusadministrativo": 2
+            // @"statusadministrativo": 0
             @"statusentrega": 1
             @"statusfacturacion": 0
             @"statusfinanciero": 0
@@ -123,7 +149,76 @@ module "model"
             }
         }
 
+        // 1 - $ | 2 - # | 3 - * | 0 - not exist
+        if field.typeof(compra,"_detalle") == 1 {
+            compra<"_detalle*"> : from.json(@@(compra,"_detalle"))
+        }
+
+        nvo_status_admin = @@(compra,"#statusadministrativo")
+
+        if nvo_status_admin == 3 {
+            compra<"statusadministrativo"> : 2
+            @url_redir = @DOC_PROCESAR
+            redir = @true
+        }
+        else if nvo_status_admin == 99 {
+            do rise_error(99,"Estado inválido.")
+        }
+
         ref ent = entity.create(db,params,compra)
+
+        if redir { @url_redir = replace(@url_redir,"{_doc}",@@(ent,"#sys_pk")) }
+        // do dbr.events.register(db,"compras","pruebas/eventos.dkl")
+        // // start,before_begin, before_commit, after_commit, finish
+        // // create,read,update,delete y list
+        // new event_data
+        // {
+        //     @"params*":params
+        //     @"data*":compra
+        // }
+        // do dbr.events.fire(db,"compras","after_commit_create",event_data)
+
+        exception
+        {
+            do doc.prepareView(db,params,data)
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    doc.read::&db,&params
+    {
+        new data {}
+
+        sql_compra = "
+        SELECT
+            c.sys_pk,
+            c.sys_guid,
+            c.documento,
+            DATE_FORMAT(c.fecha,'%Y-%m-%d') AS fecha,
+            DATE_FORMAT(c.fembarque,'%Y-%m-%d') AS fembarque,
+            DATE_FORMAT(c.fentrega,'%Y-%m-%d') AS fentrega,
+            IFNULL(c.notas,'') AS notas,
+            c.referencia,
+            c.statusadministrativo,
+            c.statusentrega,
+            c.statusfacturacion,
+            c.statusfinanciero,
+            c.subtotal,
+            c.tipocambio,
+            DATE_FORMAT(c.vencimiento,'%Y-%m-%d') AS vencimiento,
+            c.ialmacen,
+            c.idivisa,
+            c.iproveedor,
+            c.sys_recver
+        FROM compra c
+        WHERE c.sys_pk = @_entity_id
+        "
+        ref compra = dbr.rec(db,sql_compra,params)
+
+        data<"compra*"> : compra
+
+        do doc.prepareView(db,params,data)
+        return data
     }
 
     doc.list::&db,&params
@@ -149,6 +244,7 @@ module "model"
             INNER JOIN cformaspago AS fp ON fp.id = c.formapago
             INNER JOIN cstatusfinancieros AS sf ON sf.id = c.statusfinanciero
             INNER JOIN cstatusadministrativos AS sa ON sa.id = c.statusadministrativo
+        ORDER BY c.fecha DESC;
         "
         return dbr.list(db,sql,@null)
     }

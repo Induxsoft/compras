@@ -2,6 +2,8 @@
 #!
 module
 {
+	// Estados administrativos para documentos : https://docs.induxsoft.net/es/productos/v12/devops/enums/cstatusadministrativos.md
+
 	// Formnato de presentación
 	@THOUSANDS_SEPARATOR = ","
 	@DECIMAL_SEPARATOR = "."
@@ -13,6 +15,8 @@ module
 
 	//#region doc_compra
 	@DOC_COMPRAS = "/!/compras/compras/"
-	@DOC_AGREGAR = "/!/compras/compras/_new/agregar/"
+	@DOC_AGREGAR = "/!/compras/compras/_new/"
+	@DOC_PROCESAR = "/!/compras/procesos/{_doc}/procesar/"
+	@DOC_CANCELAR = "/!/compras/procesos/{_doc}/cancelar/"
 	//#endregion
 }
