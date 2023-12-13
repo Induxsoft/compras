@@ -12,13 +12,42 @@ module "doc.pedido.dk"
     // empty_rows = "[{},{},{},{},{},{},{},{},{},{}]"
 
     ref infoProv = ifnull(@("&./info_proveedor"),record.create())
-    ref compra = ifnull(@("&./compra"),record.create())
     ref listDivisas = ifnull(@('&./list_divisas'),list.create())
     ref listAlmacenes = ifnull(@('&./list_almacenes'),list.create())
     ref listDocumentos = ifnull(@('&./list_documentos'),list.create())
+    ref compra = ifnull(@("&./compra"),record.create())
     ref dcompra = ifnull(@('&./dcompra'),list.create())
 
     // do rise_error(0,to.json(@("&.")))
+
+    form::name,type,&obj
+    {
+        name = trim(str(name))
+
+        switch str(type)
+        {
+            case "tx"
+            {
+                text = trim(@@(obj,"$"+name))
+                if text == "" { text = trim(@("$input/"+name)) }
+                return text
+            }
+            case "nm"
+            {
+                value = @@(obj,"#"+name)
+                if value <= 0 { value = @("#input/"+name) }
+                return value
+            }
+            case "dt"
+            {
+                fecha = trim(@@(obj,"$"+name))
+                if fecha == "" { fecha = trim(@("$input/"+name)) }
+                if fecha == "" { fecha = date_str(now(),"yyyy-MM-dd") }
+                return fecha
+            }
+            default { return "" }
+        }
+    }
 
     new sel_documento
     {
@@ -32,7 +61,7 @@ module "doc.pedido.dk"
         }
         @"value_field": "id"
         @"text_field": "const"
-        @"selected": @("$input/documento")
+        @"selected": form("documento","nm",compra)
     }
 
     new sel_divisa
@@ -52,7 +81,7 @@ module "doc.pedido.dk"
             @"data-codigo": "#<@@(row,'codigo')>"
             @"data-tcambio": "#<@@(row,'tcambio')>"
         }
-        @"selected": @("$input/idivisa")
+        @"selected": form("idivisa","nm",compra)
     }
 
     new sel_almacen
@@ -67,46 +96,47 @@ module "doc.pedido.dk"
         }
         @"value_field": "sys_pk"
         @"text_field": "descripcion"
-        @"selected": @("$input/ialmacen")
+        @"selected": form("ialmacen","nm",compra)
     }
-
-    form::name,type
-    {
-        switch str(type)
-        {
-            case "tx" { return trim(@("$input/"+str(name))) }
-            case "nm" { return @("#input/"+str(name)) }
-            case "dt"
-            {
-                fecha = trim(@("$input/"+str(name)))
-                if fecha == "" { fecha = date_str(now(),"yyyy-MM-dd") }
-                return fecha
-            }
-            default { return "" }
-        }
-    }
-
-    status_admin_doc = @@(compra,"$statusadministrativo")
-
-    show_btn_borrador = @false
-    show_btn_cerrar = @false
-    show_btn_procesar = @false
-    show_btn_cancelar = @false
-    show_btn_reabrir = @false
 
     // Estados administrativos para documentos : https://docs.induxsoft.net/es/productos/v12/devops/enums/cstatusadministrativos.md
-    // 0=NoAplica | 1=Abierto | 2=Cerrado | 3=Procesado | 99=Cancelado
+    // ""=Nuevo | 0=NoAplica | 1=Abierto | 2=Cerrado | 3=Procesado | 99=Cancelado
+    cur_statusadmin = trim(@@(compra,"$statusadministrativo"))
 
-    if containsword(status_admin_doc,",0,1") { show_btn_borrador = @true }
-    if containsword(status_admin_doc,",0,1") { show_btn_cerrar = @true }
-    if containsword(status_admin_doc,",0,1,2") { show_btn_procesar = @true }
-    if containsword(status_admin_doc,"0,1,2,3") { show_btn_cancelar = @true }
-    if containsword(status_admin_doc,"0,2") { show_btn_reabrir = @true }
+    // show_btn_guardar = @false
+    // show_btn_cerrar = @false
+    // show_btn_procesar = @false
+    // show_btn_cancelar = @false
+    // show_btn_reabrir = @false
+
+    // if containsword(cur_statusadmin,",0,1") { show_btn_guardar = @true }
+    // if containsword(cur_statusadmin,",0,1") { show_btn_cerrar = @true }
+    // if containsword(cur_statusadmin,",0,1,2") { show_btn_procesar = @true }
+    // if containsword(cur_statusadmin,"0,1,2,3") { show_btn_cancelar = @true }
+    // if containsword(cur_statusadmin,"0,2") { show_btn_reabrir = @true }
 
     #$
     div(class="container")
     {
-        h1(class="h4"){$"Nuevo Documento"}
+        div(id="main_bar" class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top")
+        {
+            div(class="col-4 d-flex align-items-center p-0")
+            {
+                h6(class="tex-no-break m-0"){$"Nuevo documento"}
+            }
+            div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
+            {
+                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
+
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-guardar" title="Guardar"){$"#<@ICON_SAVE>"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-cerrar" title="Guardar y cerrar"){$"#<@ICON_LOCK>"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-reabrir" title="Re-abrir"){$"#<@ICON_UNLOCK>"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-procesar"){$"#<@ICON_FILE_CHECK> Procesar"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-cancelar"){$"#<@ICON_TRASH> Cancelar"}
+
+                a(href="#<@DOC_COMPRAS>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
+            }
+        }
 
         form(action="./" method="POST" id="form_pedido")
         {
@@ -161,7 +191,7 @@ module "doc.pedido.dk"
                             ##
 
                             label(class="form-label" "for"="txt_tipocambio"){$"Tipo de cambio:"}
-                            input(type="number" class="form-control form-control-sm rounded-0" name="tipocambio" min="1" id="txt_tipocambio" value="#<form('tipocambio','nm')>" required="")
+                            input(type="number" class="form-control form-control-sm rounded-0" name="tipocambio" min="1" id="txt_tipocambio" value="#<form('tipocambio','nm',compra)>" required="")
 
                             label(class="form-label" "for"="sel_almacen"){$"Almacén:"}
                             ##
@@ -171,19 +201,19 @@ module "doc.pedido.dk"
                         div(class="col-lg-3 col-md-4 col-sm-12")
                         {
                             label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
-                            input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" maxlength="25" required="")
+                            input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" maxlength="25" value="#<form('referencia','tx',compra)>" required="")
 
                             label(class="form-label" "for"="txt_fecha"){$"Fecha:"}
-                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha" id="txt_fecha" value="#<form('fecha','dt')>" required="")
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha" id="txt_fecha" value="#<form('fecha','dt',compra)>" required="")
 
                             label(class="form-label" "for"="txt_fvencimiento"){$"Fecha de vencimiento:"}
-                            input(type="date" class="form-control form-control-sm rounded-0" name="vencimiento" id="txt_fvencimiento" value="#<form('vencimiento','dt')>" required="")
+                            input(type="date" class="form-control form-control-sm rounded-0" name="vencimiento" id="txt_fvencimiento" value="#<form('vencimiento','dt',compra)>" required="")
 
                             label(class="form-label" "for"="txt_fentrega"){$"Fecha de entrega:"}
-                            input(type="date" class="form-control form-control-sm rounded-0" name="fentrega" id="txt_fentrega" value="#<form('fentrega','dt')>" required="")
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fentrega" id="txt_fentrega" value="#<form('fentrega','dt',compra)>" required="")
 
                             label(class="form-label" "for"="txt_cindirectos"){$"Costos indirectos:"}
-                            input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" id="txt_cindirectos" value="#<form('indirectos','nm')>" required="")
+                            input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" id="txt_cindirectos" value="#<form('indirectos','nm',compra)>" required="")
                         }
                     }
                 }
@@ -195,32 +225,25 @@ module "doc.pedido.dk"
                         div(class="col-lg-4 col-md-8 col-sm-12")
                         {
                             label(class="form-label" "for"="txt_fembarque"){$"Fecha de embarque:"}
-                            input(type="date" class="form-control form-control-sm rounded-0" name="fembarque" id="txt_fembarque" value="#<form('fembarque','dt')>" required="")
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fembarque" id="txt_fembarque" value="#<form('fembarque','dt',compra)>" required="")
 
                             label(class="form-label" "for"="txt_notas"){$"Notas:"}
-                            textarea(class="form-control" name="notas" id="txt_notas" maxlength="32000"){ $"#<form('notas','tx')>" }
+                            textarea(class="form-control" name="notas" id="txt_notas" maxlength="32000"){ $"#<form('notas','tx',compra)>" }
                         }
                     }
                 }
             }
 
-            input(type="hidden" name="statusadministrativo" value="" id="txt_statusadministrativo")
+            input(type="hidden" name="statusadministrativo" value="#<cur_statusadmin>" id="txt_statusadministrativo")
             input(type="hidden" name="_detalle" value="" id="txt_detalle_compra")
         }
 
-        div(class="d-flex gap-1 my-2")
+        div(class="d-flex justify-content-end align-items-center border gap-1 my-2")
         {
-            a(href="#<@DOC_COMPRAS>" class="btn btn-secondary btn-sm"){$"#<@ICON_ARROW_LEFT>"}
-            a(href="./" class="btn btn-secondary btn-sm"){$"#<@ICON_ARROW_CLOCKWISE>"}
+            small(class="flex-grow-1 text-muted"){$"Seleccione los productos en la cuadrícula"}
 
-            #! if show_btn_borrador {#$ button(type="button" class="btn btn-secondary btn-sm" id="btn-borrador"){$"Borrador"} }
-            #! if show_btn_cerrar {#$ button(type="button" class="btn btn-secondary btn-sm" id="btn-cerrar"){$"Cerrar"} }
-            #! if show_btn_procesar {#$ button(type="button" class="btn btn-secondary btn-sm" id="btn-procesar"){$"Procesar"} }
-            #! if show_btn_cancelar {#$ button(type="button" class="btn btn-secondary btn-sm" id="btn-cancelar"){$"Cancelar"} }
-            #! if show_btn_reabrir {#$ button(type="button" class="btn btn-secondary btn-sm" id="btn-reabrir"){$"Re-Abrir"} }
-            
-            button(type="button" class="btn btn-secondary btn-sm" id="btn-add-row"){$"Agregar fila"}
-            button(type="button" class="btn btn-secondary btn-sm" id="btn-del-row"){$"Eliminar fila"}
+            button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-add-row" title="Agregar fila"){$"#<@ICON_ADD_ROW>"}
+            button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-del-row" title="Eliminar fila"){$"#<@ICON_REMOVE_ROW>"}
         }
 
         div(class="")
@@ -295,6 +318,14 @@ module "doc.pedido.dk"
             script(type="text/javascript")
             {$'
                 const DOC_COMPRAS = "#<@DOC_COMPRAS>";
+                const EDO_ADMIN = #<to.json(@EDO_ADMIN)>;
+
+                const cCOTIZACION = #<@cCOTIZACION>;
+                const cPEDIDO = #<@cPEDIDO>;
+                const cREMISION = #<@cREMISION>;
+                const cFACTURA = #<@cFACTURA>;
+                const cNOTA_DE_CREDITO = #<@cNOTA_DE_CREDITO>;
+
                 const THOUSANDS_SEPARATOR = "#<@THOUSANDS_SEPARATOR>";
                 const DECIMAL_SEPARATOR = "#<@DECIMAL_SEPARATOR>";
                 const DECIMAL_PRECISION = #<@DECIMAL_PRECISION>;

@@ -22,7 +22,9 @@ module "list.dk"
                 {
                     a(href="#<@DOC_MENU>" class="btn btn-secondary btn-sm fw-bolder"){$"#<@ICON_ARROW_LEFT>"}
                     a(href="#<@DOC_AGREGAR>" class="btn btn-light btn-sm fw-bolder"){$"Agregar"}
-                    // button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@DOC_>')"){$""}
+                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@DOC_PROCESAR>')"){$"Procesar"}
+                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@DOC_CANCELAR>')"){$"Cancelar"}
+                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@DOC_CONSULTAR>')"){$"Consultar"}
                     a(href="./" class="btn btn-light btn-sm fw-bolder"){$"Refrescar"}
                 }
             }
@@ -66,7 +68,7 @@ module "list.dk"
 
                 var data = table.DataArray[table.CurrentRowIndex()];
 
-                var url = url.replace("_compra",data.sys_pk);
+                var url = url.replace("{_doc}",data.sys_pk);
                 window.location.href = url;
             }
         '}

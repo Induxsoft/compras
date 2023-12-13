@@ -6,10 +6,11 @@ module "controller"
     {
         case ""
         {
-            // point @read to doc.read
             point @list to doc.list
+            point @read to doc.read
             point @blank to doc.blank
             point @create to doc.agregar
+            point @update to doc.actualizar
             break
         }
         case "buscar-proveedor"

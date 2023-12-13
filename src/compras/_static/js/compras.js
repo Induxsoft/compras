@@ -4,13 +4,18 @@ document.addEventListener("DOMContentLoaded", () =>
     let ikProveedor = document.getElementById("sel_proveedor");
     let ikProducto = document.getElementById("sel_producto");
     let formPedido = document.getElementById("form_pedido");
-    let btnBorradorDoc = document.getElementById("btn-borrador");
+    let btnGuardarDoc = document.getElementById("btn-guardar");
     let btnCerrarDoc = document.getElementById("btn-cerrar");
     let btnProcesarDoc = document.getElementById("btn-procesar");
     let btnCancelarDoc = document.getElementById("btn-cancelar");
     let btnReAbrirDoc = document.getElementById("btn-reabrir");
+    let selDocumento = document.getElementById("sel_documento");
     let selDivisa = document.getElementById("sel_divisa");
     let txtTipoCambio = document.getElementById("txt_tipocambio");
+    let txt_statusadministrativo = document.getElementById("txt_statusadministrativo")
+    let txt_detalle_compra = document.getElementById("txt_detalle_compra");
+    let btnAddRow = document.getElementById("btn-add-row");
+    let btnDelRow = document.getElementById("btn-del-row");
     let lblSubtotal = document.getElementById("lbl_subtotal");
     let lblDescuento = document.getElementById("lbl_descuento");
     let lblImpuesto = document.getElementById("lbl_impuesto");
@@ -19,9 +24,6 @@ document.addEventListener("DOMContentLoaded", () =>
     var table = document.getElementById("tbl_productos");
     var tData = table.DataArray;
     var tEvents = table.EdiTable.Const.Events;
-
-    let btnAddRow = document.getElementById("btn-add-row");
-    let btnDelRow = document.getElementById("btn-del-row");
 
     btnAddRow.addEventListener("click", () => { table.AddRow(); });
     btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); });
@@ -267,8 +269,166 @@ document.addEventListener("DOMContentLoaded", () =>
         sumarImportes();
     });
 
-    var lastTipoCambio = 1;
+    selDocumento.addEventListener("change", function() {
+        // let option = selDocumento.options[selDocumento.selectedIndex];
+        let idocumento = Number(selDocumento.value);
+        let statusadministrativo = txt_statusadministrativo.value;
 
+        let show_btn_guardar = false;
+        let show_btn_cerrar = false;
+        let show_btn_reabrir = false;
+        let show_btn_procesar = false;
+        let show_btn_cancelar = false;
+
+        switch (idocumento) {
+            case cCOTIZACION:
+                console.log(idocumento, "cCOTIZACION");
+                if (statusadministrativo === "")
+                {
+                    show_btn_guardar = true;
+                    show_btn_cerrar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cNO_APLICA)
+                {
+                    show_btn_guardar = true;
+                    show_btn_cancelar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cABIERTO)
+                {
+                    show_btn_guardar = true;
+                    show_btn_cerrar = true;
+                    show_btn_cancelar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cCERRADO)
+                {
+                    show_btn_reabrir = true;
+                    show_btn_cancelar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cPROCESADO)
+                {
+                    show_btn_cancelar = true;
+                }
+                break;
+            case cPEDIDO:
+                console.log(idocumento, "cPEDIDO");
+                if (statusadministrativo === "")
+                {
+                    show_btn_guardar = true;
+                    show_btn_cerrar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cNO_APLICA){}
+                else if (statusadministrativo == EDO_ADMIN.cABIERTO)
+                {
+                    show_btn_guardar = true;
+                    show_btn_cerrar = true;
+                    show_btn_cancelar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cCERRADO)
+                {
+                    show_btn_reabrir = true;
+                    show_btn_cancelar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cPROCESADO)
+                {
+                    show_btn_cancelar = true;
+                }
+                break;
+            case cREMISION:
+                console.log(idocumento, "cREMISION");
+                if (statusadministrativo === "")
+                {
+                    show_btn_guardar = true;
+                    show_btn_cerrar = true;
+                    show_btn_procesar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cNO_APLICA){}
+                else if (statusadministrativo == EDO_ADMIN.cABIERTO)
+                {
+                    show_btn_guardar = true;
+                    show_btn_cerrar = true;
+                    show_btn_procesar = true;
+                    show_btn_cancelar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cCERRADO)
+                {
+                    show_btn_reabrir = true;
+                    show_btn_procesar = true;
+                    show_btn_cancelar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cPROCESADO)
+                {
+                    show_btn_cancelar = true;
+                }
+                break;
+            case cFACTURA:
+                console.log(idocumento, "cFACTURA");
+                if (statusadministrativo === "")
+                {
+                    show_btn_guardar = true;
+                    show_btn_cerrar = true;
+                    show_btn_procesar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cNO_APLICA){}
+                else if (statusadministrativo == EDO_ADMIN.cABIERTO)
+                {
+                    show_btn_guardar = true;
+                    show_btn_cerrar = true;
+                    show_btn_procesar = true;
+                    show_btn_cancelar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cCERRADO)
+                {
+                    show_btn_reabrir = true;
+                    show_btn_procesar = true;
+                    show_btn_cancelar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cPROCESADO)
+                {
+                    show_btn_cancelar = true;
+                }
+                break;
+            case cNOTA_DE_CREDITO:
+                console.log(idocumento, "cNOTA_DE_CREDITO");
+                if (statusadministrativo === "")
+                {
+                    show_btn_guardar = true;
+                    show_btn_cerrar = true;
+                    show_btn_procesar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cNO_APLICA){}
+                else if (statusadministrativo == EDO_ADMIN.cABIERTO)
+                {
+                    show_btn_guardar = true;
+                    show_btn_cerrar = true;
+                    show_btn_procesar = true;
+                    show_btn_cancelar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cCERRADO)
+                {
+                    show_btn_reabrir = true;
+                    show_btn_procesar = true;
+                    show_btn_cancelar = true;
+                }
+                else if (statusadministrativo == EDO_ADMIN.cPROCESADO)
+                {
+                    show_btn_cancelar = true;
+                }
+                break;
+        
+            default:
+                console.log(idocumento, "DESCONOCIDO");
+                break;
+        }
+
+        btnGuardarDoc.classList.toggle("d-none",!show_btn_guardar);
+        btnCerrarDoc.classList.toggle("d-none",!show_btn_cerrar);
+        btnReAbrirDoc.classList.toggle("d-none",!show_btn_reabrir);
+        btnProcesarDoc.classList.toggle("d-none",!show_btn_procesar);
+        btnCancelarDoc.classList.toggle("d-none",!show_btn_cancelar);
+    });
+    trigger(selDocumento,"change");
+
+    var lastTipoCambio = 1;
     selDivisa.addEventListener("change", function() {
         let option = selDivisa.options[selDivisa.selectedIndex];
         txtTipoCambio.value = Number(option.getAttribute("data-tcambio"));
@@ -323,12 +483,8 @@ document.addEventListener("DOMContentLoaded", () =>
         window.location.href = DOC_COMPRAS;
     }); */
 
-    btnBorradorDoc.addEventListener("click", function() {
+    btnGuardarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
-
-        let txt_statusadministrativo = document.getElementById("txt_statusadministrativo")
-        let txt_detalle_compra = document.getElementById("txt_detalle_compra");
-        
         txt_statusadministrativo.value = 1;
         txt_detalle_compra.value = JSON.stringify(tData);
 
@@ -337,10 +493,6 @@ document.addEventListener("DOMContentLoaded", () =>
 
     btnCerrarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
-
-        let txt_statusadministrativo = document.getElementById("txt_statusadministrativo")
-        let txt_detalle_compra = document.getElementById("txt_detalle_compra");
-        
         txt_statusadministrativo.value = 2;
         txt_detalle_compra.value = JSON.stringify(tData);
 
@@ -349,10 +501,6 @@ document.addEventListener("DOMContentLoaded", () =>
 
     btnProcesarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
-
-        let txt_statusadministrativo = document.getElementById("txt_statusadministrativo")
-        let txt_detalle_compra = document.getElementById("txt_detalle_compra");
-        
         txt_statusadministrativo.value = 3;
         txt_detalle_compra.value = JSON.stringify(tData);
 

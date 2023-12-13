@@ -2,12 +2,27 @@
 #!
 module
 {
-	// Estados administrativos para documentos : https://docs.induxsoft.net/es/productos/v12/devops/enums/cstatusadministrativos.md
-
 	// Formnato de presentación
 	@THOUSANDS_SEPARATOR = ","
 	@DECIMAL_SEPARATOR = "."
 	@DECIMAL_PRECISION = 2
+
+	// Documentos de compra
+	@cCOTIZACION = 1
+	@cPEDIDO = 2
+	@cREMISION = 3
+	@cFACTURA = 4
+	@cNOTA_DE_CREDITO = 5
+
+	// Estados administrativos para documentos
+	new @EDO_ADMIN
+	{
+		@"cNO_APLICA": 0
+		@"cABIERTO": 1
+		@"cCERRADO": 2
+		@"cPROCESADO": 3
+		@"cCANCELADO": 99
+	}
 
 	@DOC_MENU = "/!/compras/"
 	@URL_BUSCAR_PROVEEDOR = "/!/compras/compras/?_view=buscar-proveedor&search=@search"
@@ -16,6 +31,7 @@ module
 	//#region doc_compra
 	@DOC_COMPRAS = "/!/compras/compras/"
 	@DOC_AGREGAR = "/!/compras/compras/_new/"
+	@DOC_CONSULTAR = "/!/compras/compras/{_doc}/"
 	@DOC_PROCESAR = "/!/compras/procesos/{_doc}/procesar/"
 	@DOC_CANCELAR = "/!/compras/procesos/{_doc}/cancelar/"
 	//#endregion
