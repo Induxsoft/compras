@@ -1,21 +1,26 @@
 document.addEventListener("DOMContentLoaded", () => 
 {
     let error_span = document.getElementById("err-msg");
-    let ikProveedor = document.getElementById("sel_proveedor");
-    let ikProducto = document.getElementById("sel_producto");
-    let formPedido = document.getElementById("form_pedido");
+    let mainActionBar = document.getElementById("main_action_bar");
     let btnGuardarDoc = document.getElementById("btn-guardar");
     let btnCerrarDoc = document.getElementById("btn-cerrar");
     let btnProcesarDoc = document.getElementById("btn-procesar");
     let btnCancelarDoc = document.getElementById("btn-cancelar");
     let btnReAbrirDoc = document.getElementById("btn-reabrir");
+
+    let formPedido = document.getElementById("form_pedido");
+    let ikProveedor = document.getElementById("sel_proveedor");
+    let ikProducto = document.getElementById("sel_producto");
     let selDocumento = document.getElementById("sel_documento");
     let selDivisa = document.getElementById("sel_divisa");
     let txtTipoCambio = document.getElementById("txt_tipocambio");
     let txt_statusadministrativo = document.getElementById("txt_statusadministrativo")
     let txt_detalle_compra = document.getElementById("txt_detalle_compra");
+    
+    let tblActionBar = document.getElementById("tbl_action_bar");
     let btnAddRow = document.getElementById("btn-add-row");
     let btnDelRow = document.getElementById("btn-del-row");
+    let divTableProductos = document.getElementById("div_tbl_productos")
     let lblSubtotal = document.getElementById("lbl_subtotal");
     let lblDescuento = document.getElementById("lbl_descuento");
     let lblImpuesto = document.getElementById("lbl_impuesto");
@@ -180,6 +185,18 @@ document.addEventListener("DOMContentLoaded", () =>
         sumarImportes();
     }
 
+    function joinUnidades(...unidades) {
+        let obj = {};
+
+        for (let i = 0; i < unidades.length; i++) {
+            const u = unidades[i];
+            if (typeof u === "string" && u.trim() != "")
+                obj[u] = u;
+        }
+
+        return JSON.stringify(obj);
+    }
+
     //* ======================================== [ FORM EVENTS ] ========================================
 
     ikProveedor.addEventListener("change", function(data) {
@@ -194,18 +211,6 @@ document.addEventListener("DOMContentLoaded", () =>
     ikProducto.addEventListener("change", function(data) {
         let row = table.CurrentRowIndex();
         if (!tData[row]) tData[row] = {};
-
-        function joinUnidades(...unidades) {
-            let obj = {};
-
-            for (let i = 0; i < unidades.length; i++) {
-                const u = unidades[i];
-                if (typeof u === "string" && u.trim() != "")
-                    obj[u] = u;
-            }
-
-            return JSON.stringify(obj);
-        }
 
         let i = calcularImpuestos(data);
         let list_unidades = joinUnidades(data.unidada,data.unidadb,data.unidadc,data.unidadd,data.unidade);
@@ -282,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () =>
 
         switch (idocumento) {
             case cCOTIZACION:
-                console.log(idocumento, "cCOTIZACION");
+                // console.log(idocumento, "cCOTIZACION");
                 if (statusadministrativo === "")
                 {
                     show_btn_guardar = true;
@@ -310,7 +315,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 break;
             case cPEDIDO:
-                console.log(idocumento, "cPEDIDO");
+                // console.log(idocumento, "cPEDIDO");
                 if (statusadministrativo === "")
                 {
                     show_btn_guardar = true;
@@ -334,7 +339,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 break;
             case cREMISION:
-                console.log(idocumento, "cREMISION");
+                // console.log(idocumento, "cREMISION");
                 if (statusadministrativo === "")
                 {
                     show_btn_guardar = true;
@@ -361,7 +366,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 break;
             case cFACTURA:
-                console.log(idocumento, "cFACTURA");
+                // console.log(idocumento, "cFACTURA");
                 if (statusadministrativo === "")
                 {
                     show_btn_guardar = true;
@@ -388,7 +393,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 break;
             case cNOTA_DE_CREDITO:
-                console.log(idocumento, "cNOTA_DE_CREDITO");
+                // console.log(idocumento, "cNOTA_DE_CREDITO");
                 if (statusadministrativo === "")
                 {
                     show_btn_guardar = true;
@@ -416,7 +421,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 break;
         
             default:
-                console.log(idocumento, "DESCONOCIDO");
+                console.log(idocumento, "cDESCONOCIDO");
                 break;
         }
 
@@ -485,7 +490,7 @@ document.addEventListener("DOMContentLoaded", () =>
 
     btnGuardarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
-        txt_statusadministrativo.value = 1;
+        txt_statusadministrativo.value = EDO_ADMIN.cABIERTO;
         txt_detalle_compra.value = JSON.stringify(tData);
 
         formPedido.submit();
@@ -493,23 +498,40 @@ document.addEventListener("DOMContentLoaded", () =>
 
     btnCerrarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
-        txt_statusadministrativo.value = 2;
+        txt_statusadministrativo.value = EDO_ADMIN.cCERRADO;
         txt_detalle_compra.value = JSON.stringify(tData);
 
         formPedido.submit();
+    });
+
+    btnReAbrirDoc.addEventListener("click", function() {
+        txt_statusadministrativo.value = EDO_ADMIN.cABIERTO;
+        let elements = formPedido.elements;
+
+        let fd = new FormData();
+        fd.append("sys_recver",elements["sys_recver"].value);
+        fd.append("statusadministrativo",elements["statusadministrativo"].value);
+
+        let onSuccess = function(r) {
+            if (r.message) { alert(r.message); return false; }
+            window.location.href = "./";
+        }
+        let onFail = function(r) { alert(r.message) }
+
+        InduxsoftCrudlModel.InvokeService("./",fd,onSuccess,onFail,"PUT",false,false,"",true);
     });
 
     btnProcesarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
-        txt_statusadministrativo.value = 3;
+        txt_statusadministrativo.value = EDO_ADMIN.cPROCESADO;
         txt_detalle_compra.value = JSON.stringify(tData);
 
         formPedido.submit();
     });
 
-    btnCancelarDoc.addEventListener("click", function(){});
-
-    btnReAbrirDoc.addEventListener("click", function(){});
+    btnCancelarDoc.addEventListener("click", function() {
+        txt_statusadministrativo.value = EDO_ADMIN.cCANCELADO;
+    });
 
     //* ======================================== [ EDITABLE EVENTS ] ========================================
 
@@ -525,6 +547,9 @@ document.addEventListener("DOMContentLoaded", () =>
         if (coldef.field == "edt_unidad" && lastRowIndex != currentRowIndex)
         {
             lastRowIndex = currentRowIndex;
+            if (!producto.lunidades) {
+                producto["lunidades"] = joinUnidades(producto.unidada,producto.unidadb,producto.unidadc,producto.unidadd,producto.unidade);
+            }
             coldef.options = JSON.parse(producto.lunidades);
         }
     }

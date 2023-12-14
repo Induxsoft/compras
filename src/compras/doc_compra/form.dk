@@ -11,10 +11,10 @@ module "doc.pedido.dk"
     do @context.begin(@crud_context)
     // empty_rows = "[{},{},{},{},{},{},{},{},{},{}]"
 
-    ref infoProv = ifnull(@("&./info_proveedor"),record.create())
     ref listDivisas = ifnull(@('&./list_divisas'),list.create())
     ref listAlmacenes = ifnull(@('&./list_almacenes'),list.create())
     ref listDocumentos = ifnull(@('&./list_documentos'),list.create())
+    ref dtprov = ifnull(@("&./dtprov"),record.create())
     ref compra = ifnull(@("&./compra"),record.create())
     ref dcompra = ifnull(@('&./dcompra'),list.create())
 
@@ -102,28 +102,33 @@ module "doc.pedido.dk"
     // Estados administrativos para documentos : https://docs.induxsoft.net/es/productos/v12/devops/enums/cstatusadministrativos.md
     // ""=Nuevo | 0=NoAplica | 1=Abierto | 2=Cerrado | 3=Procesado | 99=Cancelado
     cur_statusadmin = trim(@@(compra,"$statusadministrativo"))
-
-    // show_btn_guardar = @false
-    // show_btn_cerrar = @false
-    // show_btn_procesar = @false
-    // show_btn_cancelar = @false
-    // show_btn_reabrir = @false
-
-    // if containsword(cur_statusadmin,",0,1") { show_btn_guardar = @true }
-    // if containsword(cur_statusadmin,",0,1") { show_btn_cerrar = @true }
-    // if containsword(cur_statusadmin,",0,1,2") { show_btn_procesar = @true }
-    // if containsword(cur_statusadmin,"0,1,2,3") { show_btn_cancelar = @true }
-    // if containsword(cur_statusadmin,"0,2") { show_btn_reabrir = @true }
+    enable_editing = ((cur_statusadmin == "") || (cur_statusadmin == "0") || (cur_statusadmin == "1") )
+    enable_delete = ((cur_statusadmin == "0") || (cur_statusadmin == "1"))
+    enable_cancel = ((cur_statusadmin == "1") || (cur_statusadmin == "2") || (cur_statusadmin == "3"))
 
     #$
     div(class="container")
     {
-        div(id="main_bar" class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top")
+        div
         {
-            div(class="col-4 d-flex align-items-center p-0")
-            {
-                h6(class="tex-no-break m-0"){$"Nuevo documento"}
-            }
+            style
+            {$'
+                .no-blur { outline: none !important; box-shadow: none !important; }
+                .disable-control {
+                    pointer-events: none;
+                    /* user-select: none; */
+                    /* opacity: 0.75; */
+                }
+                .disable-control * input, .disable-control * select, .disable-control * textarea {
+                    background-color: rgb(233, 236, 239);
+                    opacity: 1;
+                }
+            '}
+        }
+
+        div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top" id="main_action_bar")
+        {
+            div(class="col-4 d-flex align-items-center p-0") { h6(class="tex-no-break m-0"){$"Nuevo documento"} }
             div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
             {
                 a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
@@ -138,11 +143,11 @@ module "doc.pedido.dk"
             }
         }
 
-        form(action="./" method="POST" id="form_pedido")
+        form(class="#<ifstr(enable_editing,'','disable-control')>" action="./" method="POST" id="form_pedido")
         {
             nav
             {
-                div(class="nav nav-tabs" id="nav-tab" role="tablist")
+                div(class="nav nav-tabs mb-2" id="nav-tab" role="tablist")
                 {
                     button(class="nav-link active" id="nav-general-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-general" type="button" role="tab" "aria-controls"="nav-general" "aria-selected"="true"){$"General"}
                     button(class="nav-link" id="nav-mrdata-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-mrdata" type="button" role="tab" "aria-controls"="nav-mrdata" "aria-selected"="false"){$"Más datos"}
@@ -164,7 +169,7 @@ module "doc.pedido.dk"
                                 "data-key"="sys_pk"
                                 "data-search"="codigo"
                                 "data-text"="nombre"
-                                "data-value"="#<to.json(infoProv)>"
+                                "data-value"="#<to.json(dtprov)>"
                                 "data-source"="#<@URL_BUSCAR_PROVEEDOR>"
                                 columns="codigo,nombre,tipo"
                                 colcaptions="Código,Nombre,Tipo"
@@ -234,11 +239,16 @@ module "doc.pedido.dk"
                 }
             }
 
+            input(type="hidden" name="sys_pk" value="#<@@(compra,'#sys_pk')>" id="txt_sys_pk")
+            // input(type="hidden" name="sys_guid" value="#<@@(compra,'$sys_guid')>" id="txt_sys_guid")
+            input(type="hidden" name="sys_recver" value="#<@@(compra,'#sys_recver')>" id="txt_sys_recver")
             input(type="hidden" name="statusadministrativo" value="#<cur_statusadmin>" id="txt_statusadministrativo")
             input(type="hidden" name="_detalle" value="" id="txt_detalle_compra")
         }
 
-        div(class="d-flex justify-content-end align-items-center border gap-1 my-2")
+        div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
+
+        div(class="d-flex justify-content-end align-items-center border gap-1 px-2 my-2" id="tbl_action_bar")
         {
             small(class="flex-grow-1 text-muted"){$"Seleccione los productos en la cuadrícula"}
 
@@ -246,7 +256,7 @@ module "doc.pedido.dk"
             button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-del-row" title="Eliminar fila"){$"#<@ICON_REMOVE_ROW>"}
         }
 
-        div(class="")
+        div(class="#<ifstr(enable_editing,'','disable-control')>" id="div_tbl_productos")
         {
             "edit-table"(class="w-100" id="tbl_productos" data="#<to.json(dcompra)>")
             {
@@ -290,8 +300,6 @@ module "doc.pedido.dk"
                 #$
             }
         }
-
-        div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
 
         div(class="d-flex justify-content-between w-100 bg-light p-2 border")
         {
