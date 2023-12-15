@@ -541,4 +541,28 @@ model "erp.compras"
         @"appid" ref : "sys_app_catalog"
         @"cat" ref :"sys_app_category"
     }
+
+    entity "cfg_doc_compras"
+    {
+        @"documento" ref:"cdocumentos" key required
+        @"directa" bool
+        @"afecta" bool
+        @"consolida" bool
+        @"reserva" bool
+        @"inversa" bool
+        @"consigna" bool
+        @"fac_consigna" bool
+    }
+
+    entity "cfg_doc_compras_consolida"
+    {
+        @"documento" ref:"cdocumentos" required
+        @"acepta" ref:"cdocumentos" required
+
+        index "cfg_doc_compras_consolida_unique" unique
+        {
+            field "documento"
+            field "acepta"
+        }
+    }
 }
