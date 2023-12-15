@@ -84,6 +84,8 @@ module "model"
         INNER JOIN cfgimpuesto i ON i.sys_pk = p.impuestos
     WHERE d.fk_compra_detalle = @_entity_id;
     "
+    @create_exclude_fields="descuento1,descuento2,impuesto1,impuesto2,impuesto3,impuesto4,subtotal"
+    @update_exclude_fields=@create_exclude_fields
 
     doc.buscarProveedor::&db,&params
     {
@@ -193,24 +195,49 @@ module "model"
         }
     }
 
+    doc.actualizarTotales::&db,sys_pk
+    {
+        new p { @"sys_pk": sys_pk }
+
+        sql_totales = "SELECT SUM(IFNULL(d.descuento1,0)) descuento1, SUM(IFNULL(d.descuento2,0)) descuento2, SUM(IFNULL(d.impuesto1,0)) impuesto1, SUM(IFNULL(d.impuesto2,0)) impuesto2, SUM(IFNULL(d.impuesto3,0)) impuesto3, SUM(IFNULL(d.impuesto4,0)) impuesto4, SUM((IFNULL(d.cantidad,0) * IFNULL(d.precio,0))) subtotal FROM dcompra d WHERE d.fk_compra_detalle = @sys_pk;"
+        ref totales = dbr.rec(db,sql_totales,p)
+        
+        do dbr.update(db,"compra",totales,"sys_pk = @sys_pk",p)
+    }
+
     doc.agregar::&db,&params,&data
     {
         redir = @false
 
+        cNO_APLICA = @@(@EDO_ADMIN,"#cNO_APLICA")
+        cABIERTO = @@(@EDO_ADMIN,"#cABIERTO")
+        cCERRADO = @@(@EDO_ADMIN,"#cCERRADO")
+        cPROCESADO = @@(@EDO_ADMIN,"#cPROCESADO")
+        cCANCELADO = @@(@EDO_ADMIN,"#cCANCELADO")
+
+        nvo_status_admin = @@(data,"#statusadministrativo")
+        if nvo_status_admin == cCANCELADO { do rise_error(99,"Estado inválido.") }
+
         ref compra = record.copy(data,"*")
+        // 1 - $ | 2 - # | 3 - * | 0 - not exist
+        if field.typeof(compra,"_detalle") == 1 {
+            compra<"_detalle*"> : from.json(@@(compra,"_detalle"))
+        }
+
         using compra
         {
-            @"auditado": 0
-            @"contabilizado": 0
+            @"auditado": @false
+            @"contabilizado": @false
             @"descuento1": 0.0
             @"descuento2": 0.0
             @"directos": 0.0
+
+            @"formapago": 0
             @"impuesto1": 0.0
             @"impuesto2": 0.0
             @"impuesto3": 0.0
             @"impuesto4": 0.0
-            @"formapago": 0
-            // @"statusadministrativo": 0
+            
             @"statusentrega": 1
             @"statusfacturacion": 0
             @"statusfinanciero": 0
@@ -224,35 +251,41 @@ module "model"
                 @"joinfield": "fk_compra_detalle"
                 @"keyfield": "sys_pk"
                 @"table": "dcompra"
-                @"select_query": "SELECT * FROM dcompra WHERE fk_compra_detalle = @sys_pk"
+                @"select_query": "SELECT NULL"
                 @"fields": "cantidad,costototal,descuento1,descuento2,factor,impuesto1,impuesto2,impuesto3,impuesto4,notas,precio,status,tipocambio,unidad,xfacturar,iproducto"
             }
         }
 
-        // 1 - $ | 2 - # | 3 - * | 0 - not exist
-        if field.typeof(compra,"_detalle") == 1 {
-            compra<"_detalle*"> : from.json(@@(compra,"_detalle"))
-        }
-
-        nvo_status_admin = @@(compra,"#statusadministrativo")
-
-        if nvo_status_admin == 3 {
-            compra<"statusadministrativo"> : 2
-            @url_redir = @DOC_PROCESAR
+        if nvo_status_admin == cNO_APLICA { compra<"statusadministrativo"> : cABIERTO }
+        if nvo_status_admin == cPROCESADO {
+            compra<"statusadministrativo"> : cCERRADO
             redir = @true
         }
-        else if nvo_status_admin == 99 {
-            do rise_error(99,"Estado inválido.")
-        }
 
+        @use_transaction = @false
+        do dbr.begin(db)
         ref entity = entity.create(db,params,compra)
-        if redir { @url_redir = replace(@url_redir,"{_doc}",@@(entity,"#sys_pk")) }
+        // Actualizar totales
+        codeblock
+        {
+            do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
+        }
+        do dbr.commit(db)
+        
+        if redir && nvo_status_admin == cPROCESADO { @url_redir = replace(@DOC_PROCESAR,"{_doc}",@@(entity,"#sys_pk")) }
         return entity
 
         exception
         {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+
+            ref formData = record.copy(data,"*")
             code = last_error_code()
             error = last_error()
+
+            do record.clear(data)
+            data<"form*"> : formData
+            
             do doc.prepareView(db,params,data)
             do rise_error(code,error)
         }
@@ -261,21 +294,69 @@ module "model"
     doc.actualizar::&db,&params,&data
     {
         redir = @false
-        ref entity = @null
-        old_status_admin = dbr.num(db,"SELECT statusadministrativo FROM compra WHERE sys_pk = @_entity_id",params)
-        nvo_status_admin = @@(data,"#statusadministrativo")
-
+        @use_transaction = @false
+        
         cNO_APLICA = @@(@EDO_ADMIN,"#cNO_APLICA")
         cABIERTO = @@(@EDO_ADMIN,"#cABIERTO")
         cCERRADO = @@(@EDO_ADMIN,"#cCERRADO")
         cPROCESADO = @@(@EDO_ADMIN,"#cPROCESADO")
         cCANCELADO = @@(@EDO_ADMIN,"#cCANCELADO")
 
+        old_status_admin = dbr.num(db,"SELECT statusadministrativo FROM compra WHERE sys_pk = @_entity_id",params)
+        nvo_status_admin = @@(data,"#statusadministrativo")
+
+        ref entity = @null
+        ref compra = record.copy(data,"*")
+        // 1 - $ | 2 - # | 3 - * | 0 - not exist
+        if field.typeof(compra,"_detalle") == 1 {
+            compra<"_detalle*"> : from.json(@@(compra,"_detalle"))
+        }
+
+        using @childs
+        {
+            member "_detalle"
+            {
+                @"joinfield": "fk_compra_detalle"
+                @"keyfield": "sys_pk"
+                @"table": "dcompra"
+                @"select_query": "SELECT NULL"
+                @"fields": "sys_pk,sys_recver,cantidad,costototal,descuento1,descuento2,factor,impuesto1,impuesto2,impuesto3,impuesto4,notas,precio,status,tipocambio,unidad,xfacturar,iproducto"
+            }
+        }
+
         switch old_status_admin
         {
             case cNO_APLICA
-            {
-                do rise_error(0,"cNO_APLICA")
+            {   
+                if nvo_status_admin == cNO_APLICA || nvo_status_admin == cABIERTO || nvo_status_admin == cCERRADO {
+                    do dbr.begin(db)
+                    // Actualizar todos los campos
+                    ref entity = entity.update(db,params,compra)
+                    do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
+                    do dbr.commit(db)
+                }
+                else if nvo_status_admin == cPROCESADO {
+                    compra<"statusadministrativo"> : cCERRADO
+                    do dbr.begin(db)
+                    // Actualizar todos los campos y redirigir
+                    ref entity = entity.update(db,params,compra)
+                    do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
+                    do dbr.commit(db)
+
+                    redir = @true
+                    @url_redir = @DOC_PROCESAR
+                }
+                else if nvo_status_admin == cCANCELADO {
+                    compra<"statusadministrativo"> : cCERRADO
+                    do dbr.begin(db)
+                    // Actualizar todos los campos y redirigir
+                    ref entity = entity.update(db,params,compra)
+                    do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
+                    do dbr.commit(db)
+
+                    redir = @true
+                    @url_redir = @DOC_CANCELAR
+                }
                 break
             }
             case cABIERTO
@@ -283,20 +364,33 @@ module "model"
                 if nvo_status_admin == cNO_APLICA { do rise_error(2,"Estado inválido, no es posible editar el documento.") }
                 
                 if nvo_status_admin == cABIERTO || nvo_status_admin == cCERRADO {
+                    do dbr.begin(db)
                     // Actualizar todos los campos
-                    do rise_error(0,"Guardar y cerrar")
+                    ref entity = entity.update(db,params,compra)
+                    do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
+                    do dbr.commit(db)
                 }
                 else if nvo_status_admin == cPROCESADO {
+                    compra<"statusadministrativo"> : cCERRADO
+                    do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
-                    do rise_error(0,"Procesar")
+                    ref entity = entity.update(db,params,compra)
+                    do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
+                    do dbr.commit(db)
+
                     redir = @true
-                    @url_redir = DOC_PROCESAR
+                    @url_redir = @DOC_PROCESAR
                 }
                 else if nvo_status_admin == cCANCELADO {
+                    compra<"statusadministrativo"> : cCERRADO
+                    do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
-                    do rise_error(0,"Cancelar")
+                    ref entity = entity.update(db,params,compra)
+                    do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
+                    do dbr.commit(db)
+
                     redir = @true
-                    @url_redir = DOC_CANCELAR
+                    @url_redir = @DOC_CANCELAR
                 }
                 break
             }
@@ -305,13 +399,18 @@ module "model"
                 if nvo_status_admin == cNO_APLICA || nvo_status_admin == cCERRADO { do rise_error(2,"Estado inválido, no es posible editar el documento.") }
 
                 if nvo_status_admin == cABIERTO {
+                    @use_transaction = @true
+                    do _free(@childs)
+                    // Actualizar `statusadministrativo`
                     ref entity = entity.update(db,params,data)
                 }
                 else if nvo_status_admin == cPROCESADO {
+                    // Redirigir
                     redir = @true
                     @url_redir = @DOC_PROCESAR
                 }
                 else if nvo_status_admin == cCANCELADO {
+                    // Redirigir
                     redir = @true
                     @url_redir = @DOC_CANCELAR
                 }
@@ -320,12 +419,15 @@ module "model"
             case cPROCESADO
             {
                 if nvo_status_admin != cCANCELADO { do rise_error(2,"Estado inválido, no es posible editar el documento.") }
-
+                // Redirigir
                 redir = @true
                 @url_redir = @DOC_CANCELAR
                 break
             }
-            case cCANCELADO { do rise_error(99,"Documento cancelado, no es posible actualizar.") }
+            case cCANCELADO
+            {
+                do rise_error(99,"Documento cancelado, no es posible actualizar.")
+            }
             default { do rise_error(500,"Estado Inválido.") }
         }
 
@@ -334,6 +436,8 @@ module "model"
 
         exception
         {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+
             ref formData = record.copy(data,"*")
             code = last_error_code()
             error = last_error()
@@ -378,7 +482,7 @@ module "model"
 
     doc.read::&db,&params
     {
-        new data {}
+        ref data = entity.read(db,params)
         do doc.prepareView(db,params,data)
         return data
     }

@@ -174,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () =>
         producto["descuentos"] = i.descuentos;
         producto["impuestos"] = i.impuestos;
         producto["importe"] = i.total;
-        producto["costototal"] = i.total;
+        producto["costototal"] = i.costo;
         producto["descuento1"] = i.descuentos;
         producto["impuesto1"] = i.impuesto1;
         producto["impuesto2"] = i.impuesto2;
@@ -231,7 +231,7 @@ document.addEventListener("DOMContentLoaded", () =>
 
             // campos para el insert.
             cantidad: i.cantidad,
-            costototal: i.total,
+            costototal: i.costo,
             descuento1: i.descuentos,
             descuento2: 0,
             factor: 1,
@@ -509,6 +509,7 @@ document.addEventListener("DOMContentLoaded", () =>
         let elements = formPedido.elements;
 
         let fd = new FormData();
+        fd.append("sys_pk",elements["sys_pk"].value);
         fd.append("sys_recver",elements["sys_recver"].value);
         fd.append("statusadministrativo",elements["statusadministrativo"].value);
 
@@ -530,7 +531,11 @@ document.addEventListener("DOMContentLoaded", () =>
     });
 
     btnCancelarDoc.addEventListener("click", function() {
+        if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cCANCELADO;
+        txt_detalle_compra.value = JSON.stringify(tData);
+
+        formPedido.submit();
     });
 
     //* ======================================== [ EDITABLE EVENTS ] ========================================

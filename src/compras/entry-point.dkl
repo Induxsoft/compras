@@ -5,7 +5,6 @@ module "Controller configs"
 	#include "functions.dkh"
 	#include "serialize.dkh"
 	#include "dbr.dkh"
-	#include "dbext/dbr.events.dkl"
 	#include "crudl/crudl.dk"
 	#include "config.dk"
 
