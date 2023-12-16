@@ -1,0 +1,15 @@
+.disable-form {
+    pointer-events: none;
+    /* user-select: none; */
+    /* opacity: 0.75; */
+}
+.disable-form * input, .disable-form * select, .disable-form * textarea {
+    background-color: rgb(233, 236, 239);
+    opacity: 1;
+}
+.disable-ctrl {
+    pointer-events: none;
+    background-color: rgb(233, 236, 239);
+    opacity: 1;
+}
+.no-blur { outline: none !important; box-shadow: none !important; }

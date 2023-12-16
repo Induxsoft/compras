@@ -6,12 +6,25 @@ module "controller"
     {
         case "procesar"
         {
+            point @read to doc.read
+            point @update to doc.procesar
             @form_view = "doc.procesar.dk"
             break
         }
         case "cancelar"
         {
             @form_view = "doc.cancelar.dk"
+            break
+        }
+        default
+        {
+            point @list to NotImplemented
+            point @read to NotImplemented
+            point @blank to NotImplemented
+
+            point @create to NotImplemented
+            point @update to NotImplemented
+            point @delete to NotImplemented
             break
         }
     }

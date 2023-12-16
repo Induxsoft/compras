@@ -1,0 +1,98 @@
+#include "dkli.dkh"
+#!
+module "procesos.dkh:erp.compras.procesos"
+{
+    entradaInventario::&db,icompra,icategoria
+    {
+        start_transaction = @false
+
+        sql_compra = "SELECT c.sys_pk, c.referencia, c.tipocambio, c.ialmacen FROM compra WHERE (sys_pk = @id OR sys_guid = @id);"
+        sql_dcompra = "SELECT d.cantidad, d.costototal, d.iproducto, (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos FROM dcompra d WHERE d.fk_compra_detalle = @sys_pk;"
+        
+        new params { @"id": icompra }
+        ref compra = dbr.rec(db,sql_compra,params)
+        ref dcompra = dbr.list(db,sql_dcompra,compra)
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        new cardex
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"sys_recver": 0
+            @"referencia": @@(compra,"$referencia")
+            @"fecha*": now()
+            @"icategoria": icategoria
+        }
+        do dbr.insert(db,"cardex",cardex)
+        last_id = dbr.num(db,"select last_insert_id();",@null)
+
+        for i = 0; i < list.count(dcompra)
+        {
+            ref item = list.obj(dcompra,i)
+
+            new dcardex
+            {
+                @"sys_pk": 0
+                @"sys_guid": uuid()
+                @"sys_dtcreated*": now()
+                @"sys_timestamp*": now()
+                @"sys_recver": 0
+                @"ialmacen": @@(compra,"#ialmacen")
+                @"iproducto": @@(item,"#iproducto")
+                @"entradas": @@(item,"#cantidad")
+                @"cargos": @@(item,"#cargos")
+                @"cpromedio": @@(item,"#costototal")
+                @"tipocambio": @@(item,"#tipocambio")
+                @"fk_cardex_movimientos": last_id
+            }
+            do dbr.insert(db,"dcardex",dcardex)
+        }
+
+        if start_transaction { do dbr.commit(db) }
+
+        return last_id
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    liquidacionContado::&db,&info
+    {
+        icompra : info<"icompra">
+        icategoria : info<"icategoria">
+
+        // Generar movimiento de entrada de inventario y aplicar.
+        do erp.inventario.aplicar_mov(entradaInventario(db,sys_pk,icategoria),@false)
+        // Realizar retiro a la cuenta.
+        do erp.cxp.movimientos.retiro(db,info)
+        // Establecer los estados correspondientes.
+    }
+
+    liquidacionCredito::&db,&info
+    {
+        icompra : info<"icompra">
+        icategoria : info<"icategoria">
+        
+        // Generar movimiento de entrada de inventario y aplicar.
+        do erp.inventario.aplicar_mov(entradaInventario(db,sys_pk,icategoria),@false)
+        // Agregar documento por pagar (dcxp) y afectar el saldo del proveedor.
+        do erp.cxp.documentos.crear(db,info)
+        // Establecer los estados correspondientes.
+    }
+
+    liquidacionConsignado::&db,icompra,icategoria
+    {
+        // Generar movimiento de entrada de inventario y aplicar.
+        do erp.inventario.aplicar_mov(entradaInventario(db,icompra,icategoria),@false)
+        // Establecer los estados correspondientes.
+    }
+}

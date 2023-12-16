@@ -5,8 +5,9 @@ module "doc.pedido.dk"
     #include "functions.dkh"
     #include "serialize.dkh"
     #include "uielements.dkl"
-    #include "../icons.dk"
-    #include "../config.dk"
+    #include "../_lib/icons.dk"
+    #include "../_lib/config.dk"
+    #include "../_lib/lib.dk"
 
     do @context.begin(@crud_context)
     // empty_rows = "[{},{},{},{},{},{},{},{},{},{}]"
@@ -19,35 +20,6 @@ module "doc.pedido.dk"
     ref dcompra = ifnull(@('&./dcompra'),list.create())
 
     // do rise_error(0,to.json(@("&.")))
-
-    form::name,type,&obj
-    {
-        name = trim(str(name))
-
-        switch str(type)
-        {
-            case "tx"
-            {
-                text = trim(@@(obj,"$"+name))
-                if text == "" { text = trim(@("$input/"+name)) }
-                return text
-            }
-            case "nm"
-            {
-                value = @@(obj,"#"+name)
-                if value <= 0 { value = @("#input/"+name) }
-                return value
-            }
-            case "dt"
-            {
-                fecha = trim(@@(obj,"$"+name))
-                if fecha == "" { fecha = trim(@("$input/"+name)) }
-                if fecha == "" { fecha = date_str(now(),"yyyy-MM-dd") }
-                return fecha
-            }
-            default { return "" }
-        }
-    }
 
     new sel_documento
     {
@@ -338,7 +310,7 @@ module "doc.pedido.dk"
                 const DECIMAL_SEPARATOR = "#<@DECIMAL_SEPARATOR>";
                 const DECIMAL_PRECISION = #<@DECIMAL_PRECISION>;
             '}
-            script(src="/$/compras/js/compras.js"){""}
+            script(src="#<@JS_COMPRAS>"){""}
         }
     }
 }

@@ -1,8 +1,9 @@
 #include "dkli.dkh"
 #!
-module
+module "config.dk"
 {
-	// Formnato de presentación
+	//* ======================================== [ CONSTANTS ]
+	// Formato de presentación
 	@THOUSANDS_SEPARATOR = ","
 	@DECIMAL_SEPARATOR = "."
 	@DECIMAL_PRECISION = 2
@@ -24,6 +25,12 @@ module
 		@"cCANCELADO": 99
 	}
 
+	//* ======================================== [ _STATIC RESOURCES ]
+	@CSS_MAIN = "/$/compras/css/main.css"
+	@JS_COMPRAS = "/$/compras/js/compras.js"
+	@JS_PROCESOS = "/$/compras/js/procesos.js"
+
+	//* ======================================== [ _PACKAGE ]
 	@DOC_MENU = "/!/compras/"
 	@URL_BUSCAR_PROVEEDOR = "/!/compras/compras/?_view=buscar-proveedor&search=@search"
 	@URL_BUSCAR_PRODUCTO = "/!/compras/compras/?_view=buscar-producto&search=@search&zimpuesto=@zimpuesto"
