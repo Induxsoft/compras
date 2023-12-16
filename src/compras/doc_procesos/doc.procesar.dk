@@ -13,7 +13,8 @@ module "doc.procesar.dk"
     ref listDocumentos = ifnull(@('&./list_documentos'),list.create())
     ref listDocsRetiro = ifnull(@('&./list_doc_retiro'),list.create())
     ref listCuentasChq = ifnull(@("&./list_cuentaschq"),list.create())
-    ref listCategorias = ifnull(@("&./list_categorias"),list.create())
+    ref listCatEgreso = ifnull(@("&./list_cat_egreso"),list.create())
+    ref listCatMovinv = ifnull(@("&./list_cat_movinv"),list.create())
     ref listDivisas = ifnull(@('&./list_divisas'),list.create())
     ref formData = ifnull(@("&./form"),record.create())
     ref dtprov = ifnull(@("&./dtprov"),record.create())
@@ -28,9 +29,9 @@ module "doc.procesar.dk"
         @"id": "sel_documento"
         new member "attributes"
         {
-            @"class": "form-select form-select-sm rounded-0 disable-ctrl"
+            @"class": "form-select form-select-sm rounded-0"
             @"name": "documento"
-            @"required": ""
+            @"disabled": ""
         }
         @"value_field": "id"
         @"text_field": "const"
@@ -49,7 +50,7 @@ module "doc.procesar.dk"
         }
         @"value_field": "id"
         @"text_field": "const"
-        @"selected": form("documento","nm",@null)
+        @"selected": form("documento","nm",formData)
     }
 
     new sel_cuenta
@@ -69,13 +70,13 @@ module "doc.procesar.dk"
             @"data-codigo": "#<@@(row,'codigo')>"
             @"data-tcambio": "#<@@(row,'tcambio')>"
         }
-        @"selected": form("icuenta","nm",@null)
+        @"selected": form("icuenta","nm",formData)
     }
 
-    new sel_categoria
+    new sel_cat_egreso
     {
-        @"datatable*": listCategorias
-        @"id": "sel_categoria"
+        @"datatable*": listCatEgreso
+        @"id": "sel_cat_egreso"
         new member "attributes"
         {
             @"class": "form-select form-select-sm rounded-0"
@@ -84,7 +85,22 @@ module "doc.procesar.dk"
         }
         @"value_field": "sys_pk"
         @"text_field": "text"
-        @"selected": form("icategoria","nm",@null)
+        @"selected": form("icategoria","nm",formData)
+    }
+
+    new sel_cat_movinv
+    {
+        @"datatable*": listCatMovinv
+        @"id": "sel_cat_movinv"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "icategoria"
+            @"required": ""
+        }
+        @"value_field": "sys_pk"
+        @"text_field": "text"
+        @"selected": form("icategoria","nm",formData)
     }
 
     new sel_divisa
@@ -104,7 +120,7 @@ module "doc.procesar.dk"
             @"data-codigo": "#<@@(row,'codigo')>"
             @"data-tcambio": "#<@@(row,'tcambio')>"
         }
-        @"selected": form("idivisa","nm",@null)
+        @"selected": form("idivisa","nm",formData)
     }
 
     #$
@@ -135,6 +151,8 @@ module "doc.procesar.dk"
                     {
                         form(class="row" action="./" method="POST" id="form_liquidacion_contado")
                         {
+                            input(type="hidden" name="act" value="#<@@(@FORMAS_PAGO,'cCONTADO')>")
+
                             div(class="col-lg-8 col-md-10 col-sm-12")
                             {
                                 div(class="row")
@@ -142,7 +160,7 @@ module "doc.procesar.dk"
                                     div(class="col-lg-4 col-md-4")
                                     {
                                         label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
-                                        input(class="form-control form-control-sm rounded-0" type="text" name="proveedor" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" readonly="")
+                                        input(class="form-control form-control-sm rounded-0" type="text" name="beneficiario" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" readonly="")
                                     }
                                     div(class="col-lg-4 col-md-4")
                                     {
@@ -152,7 +170,7 @@ module "doc.procesar.dk"
                                     div(class="col-lg-4 col-md-4")
                                     {
                                         label(class="form-label" "for"="txt_fecha_aplicacion"){$"Fecha de aplicación:"}
-                                        input(class="form-control form-control-sm rounded-0" type="date" name="faplicacion" value="#<form('faplicacion','dt',@null)>" id="txt_faplicacion" required="")
+                                        input(class="form-control form-control-sm rounded-0" type="date" name="faplicacion" value="#<form('faplicacion','dt',formData)>" id="txt_faplicacion" required="")
                                     }
 
                                     div(class="col-lg-4 col-md-4")
@@ -171,22 +189,22 @@ module "doc.procesar.dk"
                                     }
                                     div(class="col-lg-4 col-md-4")
                                     {
-                                        label(class="form-label" "for"="sel_categoria"){$"Categoria:"}
+                                        label(class="form-label" "for"="sel_cat_egreso"){$"Categoria:"}
                                         ##
-                                        do uie.dbSelect(sel_categoria)
+                                        do uie.dbSelect(sel_cat_egreso)
                                         ##
                                     }
 
                                     div(class="col-12")
                                     {
                                         label(class="form-label" "for"="txt_concepto"){$"Concepto:"}
-                                        textarea(class="form-control" name="concepto" id="txt_concepto" required=""){$""}
+                                        textarea(class="form-control" name="concepto" id="txt_concepto" required=""){$"Liquidación del documento con referencia #<@@(compra,'$referencia')>"}
                                     }
 
                                     div(class="d-flex gap-2 align-items-center justify-content-end my-2")
                                     {
                                         label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(compra,'#total')>" readonly="")
+                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(compra,'#total')>" disabled="")
                                     }
                                 }
 
@@ -208,6 +226,8 @@ module "doc.procesar.dk"
                     {
                         form(class="row" action="./" method="POST" id="form_liquidacion_credito")
                         {
+                            input(type="hidden" name="act" value="#<@@(@FORMAS_PAGO,'cCREDITO')>")
+
                             div(class="col-lg-8 col-md-10 col-sm-12")
                             {
                                 div(class="row")
@@ -215,7 +235,7 @@ module "doc.procesar.dk"
                                     div(class="col-lg-4 col-md-4")
                                     {
                                         label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
-                                        input(class="form-control form-control-sm rounded-0" type="text" name="proveedor" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" readonly="")
+                                        input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
                                     }
                                     div(class="col-lg-4 col-md-4")
                                     {
@@ -225,7 +245,7 @@ module "doc.procesar.dk"
                                     div(class="col-lg-4 col-md-4")
                                     {
                                         label(class="form-label" "for"="txt_flimite"){$"Fecha limite de pago:"}
-                                        input(class="form-control form-control-sm rounded-0" type="date" name="flimite" value="#<form('flimite','dt',@null)>" id="txt_flimite" required="")
+                                        input(class="form-control form-control-sm rounded-0" type="date" name="flimite" value="#<form('flimite','dt',formData)>" id="txt_flimite" required="")
                                     }
 
                                     div(class="col-lg-4 col-md-4")
@@ -248,16 +268,24 @@ module "doc.procesar.dk"
                                         input(class="form-control form-control-sm rounded-0" type="number" name="tcambio" id="txt_tcambio" value="0" min="1" required="")
                                     }
 
+                                    div(class="col-lg-4 col-md-4")
+                                    {
+                                        label(class="form-label" "for"="sel_cat_movinv"){$"Categoria:"}
+                                        ##
+                                        do uie.dbSelect(sel_cat_movinv)
+                                        ##
+                                    }
+
                                     div(class="col-12")
                                     {
                                         label(class="form-label" "for"="txt_concepto"){$"Concepto:"}
-                                        textarea(class="form-control" name="concepto" id="txt_concepto" required=""){$""}
+                                        textarea(class="form-control" name="concepto" id="txt_concepto" required=""){$"Compra a crédito"}
                                     }
 
                                     div(class="d-flex gap-2 align-items-center justify-content-end my-2")
                                     {
                                         label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(compra,'#total')>" readonly="")
+                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(compra,'#total')>" disabled="")
                                     }
                                 }
 
@@ -279,6 +307,8 @@ module "doc.procesar.dk"
                     {
                         form(class="row" action="./" method="POST" id="form_liquidacion_consignado")
                         {
+                            input(type="hidden" name="act" value="#<@@(@FORMAS_PAGO,'cCONSIGNADO')>")
+
                             div(class="col-lg-8 col-md-10 col-sm-12")
                             {
                                 div(class="row")
@@ -286,12 +316,12 @@ module "doc.procesar.dk"
                                     div(class="col-lg-4 col-md-4")
                                     {
                                         label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
-                                        input(class="form-control form-control-sm rounded-0" type="text" name="proveedor" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" readonly="")
+                                        input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
                                     }
                                     div(class="col-lg-4 col-md-4")
                                     {
                                         label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
-                                        input(class="form-control form-control-sm rounded-0" type="text" name="referencia" value="#<@@(compra,'$referencia')>" id="txt_referencia" readonly="")
+                                        input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(compra,'$referencia')>" id="txt_referencia" disabled="")
                                     }
                                     div(class="col-lg-4 col-md-4")
                                     {
@@ -301,10 +331,18 @@ module "doc.procesar.dk"
                                         ##
                                     }
 
+                                    div(class="col-lg-4 col-md-4")
+                                    {
+                                        label(class="form-label" "for"="sel_cat_movinv"){$"Categoria:"}
+                                        ##
+                                        do uie.dbSelect(sel_cat_movinv)
+                                        ##
+                                    }
+
                                     div(class="d-flex gap-2 align-items-center justify-content-end my-2")
                                     {
                                         label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(compra,'#total')>" readonly="")
+                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(compra,'#total')>" disabled="")
                                     }
                                 }
 

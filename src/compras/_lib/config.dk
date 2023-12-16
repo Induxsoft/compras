@@ -24,6 +24,47 @@ module "config.dk"
 		@"cPROCESADO": 3
 		@"cCANCELADO": 99
 	}
+	// Estados de facturación para documentos
+	new @EDO_FAC
+	{
+		@"cNO_APLICA": 0
+		@"cPOR_FACTURAR": 1
+		@"cPARCIALMENTE_FACTURADO": 2
+		@"cFACTURADO": 3
+	}
+	// Estados de entrega para documentos
+	new @EDO_ENTREGA
+	{
+		@"cNO_APLICA": 0
+		@"cPOR_ENTREGAR": 1
+		@"cENTREGADO": 3
+	}
+	// Estados para el detalle de compra para documentos
+	new @EDO_DCOMPRA
+	{
+		@"cNO_APLICA": 0
+		@"cPOR_RECIBIR": 1
+		@"cRECIBIDO": 2
+		@"cFACTURADO": 3
+		@"cDEVUELTO": 4
+	}
+	// Estados financieros para documentos
+	new @EDO_FIN
+	{
+		@"cNO_APLICA": 0
+		@"cCON_ADEUDO": 1
+		@"cSALDADO": 2
+		@"cCONSIGNADO": 3
+	}
+	// Formas de pago para documentos
+	new @FORMAS_PAGO
+	{
+		@"cNO_APLICA": 0
+		@"cCONTADO": 1
+		@"cCREDITO": 2
+		@"cFINANCIADO": 3
+		@"cCONSIGNADO": 4
+	}
 
 	//* ======================================== [ _STATIC RESOURCES ]
 	@CSS_MAIN = "/$/compras/css/main.css"

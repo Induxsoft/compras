@@ -84,6 +84,7 @@ module "model"
         sql_doc_retiro = "SELECT doc.id, doc.const FROM cdocumentos doc INNER JOIN cfg_chq_docs cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.retiros,0) ORDER BY doc.id ASC;"
         sql_cuentaschq = "SELECT c.sys_pk, d.codigo, d.tcambio, CONCAT(c.nombre,' (',d.codigo,')') AS `text` FROM chequera c INNER JOIN divisa d ON d.sys_pk = c.idivisa WHERE NOT IFNULL(c.sys_deleted,0) ORDER BY c.sys_pk ASC;"
         sql_cat_egreso = "SELECT sys_pk, CONCAT('[',codigo,'] ',descripcion) AS `text` FROM categoria WHERE tipo = 2 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
+        sql_cat_movinv = "SELECT sys_pk, CONCAT('[',codigo,'] ',descripcion) AS `text` FROM categoria WHERE tipo = 3 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
         sql_divisas = "SELECT sys_pk, codigo, tcambio, CONCAT('[',codigo,'] ',descripcion) AS `text` FROM divisa ORDER BY sys_pk ASC;"
         
         switch @@(params,"$_view")
@@ -93,7 +94,8 @@ module "model"
                 data<"list_documentos*"> : dbr.list(db,sql_doc_compra,@null)
                 data<"list_doc_retiro*"> : dbr.list(db,sql_doc_retiro,@null)
                 data<"list_cuentaschq*"> : dbr.list(db,sql_cuentaschq,@null)
-                data<"list_categorias*"> : dbr.list(db,sql_cat_egreso,@null)
+                data<"list_cat_egreso*"> : dbr.list(db,sql_cat_egreso,@null)
+                data<"list_cat_movinv*"> : dbr.list(db,sql_cat_movinv,@null)
                 data<"list_divisas*"> : dbr.list(db,sql_divisas,@null)
 
                 if @@(params,"$_entity_id") != "_new" 
@@ -120,8 +122,12 @@ module "model"
 
     doc.read::&db,&params
     {
-        sql = "SELECT statusadministrativo FROM compra WHERE sys_pk = @_entity_id;"
-        cur_status_admin = dbr.num(db,sql,params)
+        sql = "SELECT statusadministrativo, documento FROM compra WHERE sys_pk = @_entity_id;"
+        ref compra = dbr.rec(db,sql,params)
+        cur_edo = @@(compra,"#statusadministrativo")
+        cur_doc = @@(compra,"#documento")
+
+        if cur_edo != @@(@EDO_ADMIN,"cCERRADO") { do rise_error(99,"Estado inválido, el documento no puede ser procesado.") }
 
         new data {}
         do doc.prepareView(db,params,data)
@@ -130,7 +136,60 @@ module "model"
 
     doc.procesar::&db,&params,&data
     {
-        return @true
+        do errordet(@true)
+
+        sbqry_importe = "((((((IFNULL(c.subtotal,0) - IFNULL(c.descuento1,0)) - IFNULL(c.descuento2,0)) + IFNULL(c.impuesto1,0)) + IFNULL(c.impuesto2,0)) + IFNULL(c.impuesto3,0)) + IFNULL(c.impuesto4,0)) AS total"
+        sql_get_compra = "SELECT c.sys_pk, c.documento, c.iproveedor, #<sbqry_importe> FROM compra c WHERE #<@keyfield> = @_entity_id"
+
+        switch @@(data,"#act")
+        {
+            case @@(@FORMAS_PAGO,"cCONTADO")
+            {
+                ref compra = dbr.rec(db,ftext(sql_get_compra),params)
+                new rec
+                {
+                    @"icompra": @@(compra,"#sys_pk")
+                    @"faplicacion": @@(data,"$faplicacion")
+                    @"beneficiario": @@(data,"$beneficiario")
+                    @"consiliado": @true
+                    @"importe": @@(compra,"#total")
+                    @"fecha": hoy("yyyy-MM-dd")
+                    @"concepto": @@(data,"$concepto")
+                    @"referencia": @@(data,"$referencia")
+                    @"documento": @@(compra,"#documento")
+                    @"icuenta": @@(data,"#icuenta")
+                    @"icategoria": @@(data,"icategoria")
+                }
+                do erp.compras.procesos.liquidacionContado(db,rec)
+                break
+            }
+            case @@(@FORMAS_PAGO,"cCREDITO")
+            {
+                ref compra = dbr.rec(db,ftext(sql_get_compra),params)
+                new rec
+                {
+                    @"icompra": @@(compra,"#sys_pk")
+                    @"flimite": @@(data,"$flimite")
+                    @"documento": @@(compra,"#documento")
+                    @"fecha": hoy("yyyy-MM-dd")
+                    @"importe": @@(compra,"#total")
+                    @"concepto": @@(data,"$concepto")
+                    @"referencia": @@(data,"$referencia")
+                    @"tcambio": @@(data,"#tcambio")
+                    @"iproveedor": @@(compra,"#iproveedor")
+                    @"icategoria": @@(data,"icategoria")
+                }
+                do erp.compras.procesos.liquidacionCredito(db,rec)
+                break
+            }
+            case @@(@FORMAS_PAGO,"cCONSIGNADO")
+            {
+                ref compra = dbr.rec(db,ftext(sql_get_compra),params)
+                do erp.compras.procesos.liquidacionConsignado(db,@@(compra,"#sys_pk"),@@(data,"#icategoria"))
+                break
+            }
+            default { do NotImplemented() }
+        }
 
         exception
         {

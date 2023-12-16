@@ -6,10 +6,12 @@ module "Controller configs"
 	#include "serialize.dkh"
 	#include "dbr.dkh"
 	#include "crudl/crudl.dk"
+	#include "../inventario/movimientos.dkh"
+	#include "../cxp/movimientos.dkh"
+	#include "../cxp/documentos.dkh"
+	#include "procesos.dkh"
 	#include "_lib/config.dk"
 	#include "_lib/lib.dk"
-	#include "../inventario/movimientos.dkh"
-	#include "procesos.dkh"
 
 	if @@(@http_context,"$session/user/ids") == "" {
 		@http_context<"response/headers/location"> : "/"
@@ -17,7 +19,7 @@ module "Controller configs"
 	}
 
 	@base_path="compras"
-	@path_root=path.concat(@@(@http_context,"$request/headers/DOCUMENT_ROOT"),"packs")
+	@path_root="" // Establezca una ruta de ser necesario
 	
 	// Enmascaramiento de enrutamiento (Ejemplos)
 	// Definición de patrones de rutas con base en parámetros GET (request/get)

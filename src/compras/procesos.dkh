@@ -6,12 +6,12 @@ module "procesos.dkh:erp.compras.procesos"
     {
         start_transaction = @false
 
-        sql_compra = "SELECT c.sys_pk, c.referencia, c.tipocambio, c.ialmacen FROM compra WHERE (sys_pk = @id OR sys_guid = @id);"
-        sql_dcompra = "SELECT d.cantidad, d.costototal, d.iproducto, (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos FROM dcompra d WHERE d.fk_compra_detalle = @sys_pk;"
+        sql_compra = "SELECT c.referencia, c.tipocambio, c.ialmacen FROM compra c WHERE c.sys_pk = @icompra;"
+        sql_dcompra = "SELECT d.cantidad, d.costototal, d.iproducto, (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos FROM dcompra d WHERE d.fk_compra_detalle = @icompra;"
         
-        new params { @"id": icompra }
+        new params { @"icompra": icompra }
         ref compra = dbr.rec(db,sql_compra,params)
-        ref dcompra = dbr.list(db,sql_dcompra,compra)
+        ref dcompra = dbr.list(db,sql_dcompra,params)
 
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
@@ -55,7 +55,6 @@ module "procesos.dkh:erp.compras.procesos"
         }
 
         if start_transaction { do dbr.commit(db) }
-
         return last_id
 
         exception
@@ -65,34 +64,110 @@ module "procesos.dkh:erp.compras.procesos"
         }
     }
 
-    liquidacionContado::&db,&info
+    liquidacionContado::&db,&data
     {
-        icompra : info<"icompra">
-        icategoria : info<"icategoria">
+        start_transaction = @false
+
+        icompra : data<"icompra">
+        icategoria : data<"icategoria">
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
 
         // Generar movimiento de entrada de inventario y aplicar.
-        do erp.inventario.aplicar_mov(entradaInventario(db,sys_pk,icategoria),@false)
+        do erp.inventario.aplicar_mov(db,erp.compras.procesos.entradaInventario(db,icompra,icategoria),@false)
         // Realizar retiro a la cuenta.
-        do erp.cxp.movimientos.retiro(db,info)
+        mov_sys_pk = erp.cxp.movimientos.retiro(db,data)
         // Establecer los estados correspondientes.
+        new params { @"icompra": icompra }
+        new status
+        {
+            @"formapago": 1
+            @"statusadministrativo": 3
+            @"statusentrega": 3
+            @"statusfacturacion": 1
+            @"statusfinanciero": 2
+            @"imovchequera": mov_sys_pk
+        }
+        do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
     }
 
-    liquidacionCredito::&db,&info
+    liquidacionCredito::&db,&data
     {
-        icompra : info<"icompra">
-        icategoria : info<"icategoria">
+        start_transaction = @false
+
+        icompra : data<"icompra">
+        icategoria : data<"icategoria">
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
         
         // Generar movimiento de entrada de inventario y aplicar.
-        do erp.inventario.aplicar_mov(entradaInventario(db,sys_pk,icategoria),@false)
+        do erp.inventario.aplicar_mov(db,erp.compras.procesos.entradaInventario(db,icompra,icategoria),@false)
         // Agregar documento por pagar (dcxp) y afectar el saldo del proveedor.
-        do erp.cxp.documentos.crear(db,info)
+        do erp.cxp.documentos.crear(db,data)
         // Establecer los estados correspondientes.
+        new params { @"icompra": icompra }
+        new status
+        {
+            @"formapago": 2
+            @"statusadministrativo": 3
+            @"statusentrega": 3
+            @"statusfacturacion": 1
+            @"statusfinanciero": 1
+        }
+        do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
     }
 
     liquidacionConsignado::&db,icompra,icategoria
     {
+        start_transaction = @false
+        
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
         // Generar movimiento de entrada de inventario y aplicar.
-        do erp.inventario.aplicar_mov(entradaInventario(db,icompra,icategoria),@false)
+        do erp.inventario.aplicar_mov(db,erp.compras.procesos.entradaInventario(db,icompra,icategoria),@false)
         // Establecer los estados correspondientes.
+        new params { @"icompra": icompra }
+        new status
+        {
+            @"formapago": 4
+            @"statusadministrativo": 3
+            @"statusentrega": 3
+            @"statusfacturacion": 1
+            @"statusfinanciero": 3
+        }
+        do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
     }
 }
