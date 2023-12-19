@@ -25,7 +25,7 @@ module "config.dk"
 		@"cCANCELADO": 99
 	}
 	// Estados de facturación para documentos
-	new @EDO_FAC
+	new @EDO_FACTURACION
 	{
 		@"cNO_APLICA": 0
 		@"cPOR_FACTURAR": 1
@@ -49,7 +49,7 @@ module "config.dk"
 		@"cDEVUELTO": 4
 	}
 	// Estados financieros para documentos
-	new @EDO_FIN
+	new @EDO_FINANCIERO
 	{
 		@"cNO_APLICA": 0
 		@"cCON_ADEUDO": 1

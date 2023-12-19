@@ -2,6 +2,8 @@
 #!
 module "procesos.dkh:erp.compras.procesos"
 {
+    #include "_lib/config.dk"
+
     entradaInventario::&db,icompra,icategoria
     {
         start_transaction = @false
@@ -84,11 +86,11 @@ module "procesos.dkh:erp.compras.procesos"
         new params { @"icompra": icompra }
         new status
         {
-            @"formapago": 1
-            @"statusadministrativo": 3
-            @"statusentrega": 3
-            @"statusfacturacion": 1
-            @"statusfinanciero": 2
+            @"formapago": @@(@FORMAS_PAGO,"cCONTADO")
+            @"statusadministrativo": @@(@EDO_ADMIN,"cPROCESADO")
+            @"statusentrega": @@(@EDO_ENTREGA,"cENTREGADO")
+            @"statusfacturacion": @@(@EDO_FACTURACION,"cPOR_FACTURAR")
+            @"statusfinanciero": @@(@EDO_FINANCIERO,"cSALDADO")
             @"imovchequera": mov_sys_pk
         }
         do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
@@ -122,11 +124,11 @@ module "procesos.dkh:erp.compras.procesos"
         new params { @"icompra": icompra }
         new status
         {
-            @"formapago": 2
-            @"statusadministrativo": 3
-            @"statusentrega": 3
-            @"statusfacturacion": 1
-            @"statusfinanciero": 1
+            @"formapago": @@(@FORMAS_PAGO,"cCREDITO")
+            @"statusadministrativo": @@(@EDO_ADMIN,"cPROCESADO")
+            @"statusentrega": @@(@EDO_ENTREGA,"cENTREGADO")
+            @"statusfacturacion": @@(@EDO_FACTURACION,"cPOR_FACTURAR")
+            @"statusfinanciero": @@(@EDO_FINANCIERO,"cCON_ADEUDO")
         }
         do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
 
@@ -154,11 +156,11 @@ module "procesos.dkh:erp.compras.procesos"
         new params { @"icompra": icompra }
         new status
         {
-            @"formapago": 4
-            @"statusadministrativo": 3
-            @"statusentrega": 3
-            @"statusfacturacion": 1
-            @"statusfinanciero": 3
+            @"formapago": @@(@FORMAS_PAGO,"cCONSIGNADO")
+            @"statusadministrativo": @@(@EDO_ADMIN,"cPROCESADO")
+            @"statusentrega": @@(@EDO_ENTREGA,"cENTREGADO")
+            @"statusfacturacion": @@(@EDO_FACTURACION,"cPOR_FACTURAR")
+            @"statusfinanciero": @@(@EDO_FINANCIERO,"cCONSIGNADO")
         }
         do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
 

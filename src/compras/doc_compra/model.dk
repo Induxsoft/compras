@@ -3,100 +3,10 @@
 module "model"
 {
     @table_name = "compra"
-    @read_query = "
-    SELECT
-        c.sys_pk,
-        c.sys_guid,
-        c.sys_recver,
-        IFNULL(c.descuento1,0) AS descuento1,
-        IFNULL(c.descuento2,0) AS descuento2,
-        c.documento,
-        DATE_FORMAT(c.fecha,'%Y-%m-%d') AS fecha,
-        DATE_FORMAT(c.fembarque,'%Y-%m-%d') AS fembarque,
-        DATE_FORMAT(c.fentrega,'%Y-%m-%d') AS fentrega,
-        c.formapago,
-        IFNULL(c.impuesto1,0) AS impuesto1,
-        IFNULL(c.impuesto2,0) AS impuesto2,
-        IFNULL(c.impuesto3,0) AS impuesto3,
-        IFNULL(c.impuesto4,0) AS impuesto4,
-        IFNULL(c.indirectos,0) AS indirectos,
-        IFNULL(c.notas,'') AS notas,
-        c.referencia,
-        c.statusadministrativo,
-        c.statusentrega,
-        c.statusfacturacion,
-        c.statusfinanciero,
-        IFNULL(c.subtotal,0) AS subtotal,
-        ((((((IFNULL(c.subtotal,0) - IFNULL(c.descuento1,0)) - IFNULL(c.descuento2,0)) + IFNULL(c.impuesto1,0)) + IFNULL(c.impuesto2,0)) + IFNULL(c.impuesto3,0)) + IFNULL(c.impuesto4,0)) AS total,
-        c.tipocambio,
-        DATE_FORMAT(c.vencimiento,'%Y-%m-%d') AS vencimiento,
-        c.ialmacen,
-        c.idivisa,
-        c.iproveedor,
-        c.aplicadoa,
-        c.imovcaja,
-        c.imovchequera
-    FROM compra c
-    WHERE #<@keyfield> = @_entity_id
-    "
-    @child_query = "
-    SELECT
-    -- Campos visibles en el editable
-        p.codigo AS edt_codigo,
-        p.descripcion AS edt_descripcion,
-        d.unidad AS edt_unidad,
-        d.precio AS edt_precio,
-        d.cantidad AS edt_cantidad,
-        (d.precio * d.cantidad) AS edt_subtotal,
-        (d.descuento1 + d.descuento2) AS edt_descuentos,
-        (d.impuesto1 + d.impuesto2 + d.impuesto3 + d.impuesto4) AS edt_impuestos,
-        (((((((IFNULL(d.costototal,0) * IFNULL(d.cantidad,0)) - IFNULL(d.descuento1,0)) - IFNULL(d.descuento2,0)) + IFNULL(d.impuesto1,0)) + IFNULL(d.impuesto2,0)) + IFNULL(d.impuesto3,0)) + IFNULL(d.impuesto4,0)) AS edt_importe,
-        d.notas AS edt_notas,
-    -- Campos para el insert
-        d.sys_pk,
-        d.sys_guid,
-        d.sys_recver,
-        d.cantidad,
-        d.costototal,
-        d.descuento1,
-        d.descuento2,
-        d.`factor`,
-        d.impuesto1,
-        d.impuesto2,
-        d.impuesto3,
-        d.impuesto4,
-        IFNULL(d.notas,'') AS notas,
-        d.precio,
-        d.`status`,
-        d.tipocambio,
-        d.unidad,
-        d.xfacturar,
-        d.iproducto,
-    -- Campos extras para operaciones
-        (d.precio * d.cantidad) AS subtotal,
-        (d.descuento1 + d.descuento2) AS descuentos,
-        (d.impuesto1 + d.impuesto2 + d.impuesto3 + d.impuesto4) AS impuestos,
-        (((((((IFNULL(d.costototal,0) * IFNULL(d.cantidad,0)) - IFNULL(d.descuento1,0)) - IFNULL(d.descuento2,0)) + IFNULL(d.impuesto1,0)) + IFNULL(d.impuesto2,0)) + IFNULL(d.impuesto3,0)) + IFNULL(d.impuesto4,0)) AS importe,
-        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i1compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i1_tasa,
-        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i1compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i2_tasa,
-        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i3compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i3_tasa,
-        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i4compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i4_tasa,
-        TRIM(p.unidad) AS unidada,
-        TRIM(IFNULL(p.unidadb,'')) AS unidadb,
-        TRIM(IFNULL(p.unidadc,'')) AS unidadc,
-        TRIM(IFNULL(p.unidadd,'')) AS unidadd,
-        TRIM(IFNULL(p.unidade,'')) AS unidade,
-        IFNULL(p.factorb,0) AS factorb,
-        IFNULL(p.factorc,0) AS factorc,
-        IFNULL(p.factord,0) AS factord,
-        IFNULL(p.factore,0) AS factore
-    FROM dcompra d
-        INNER JOIN producto p ON p.sys_pk = d.iproducto
-        INNER JOIN cfgimpuesto i ON i.sys_pk = p.impuestos
-    WHERE d.fk_compra_detalle = @_entity_id;
-    "
-    @create_exclude_fields="descuento1,descuento2,impuesto1,impuesto2,impuesto3,impuesto4,subtotal"
-    @update_exclude_fields=@create_exclude_fields
+    @read_query = @sql_compra
+    @child_query = @sql_dcompra
+    @create_exclude_fields = "descuento1,descuento2,impuesto1,impuesto2,impuesto3,impuesto4,subtotal"
+    @update_exclude_fields = @create_exclude_fields
 
     doc.buscarProveedor::&db,&params
     {
@@ -106,74 +16,21 @@ module "model"
         * 2 => -1 = cFrontera
         */
 
-        sql = "
-        SELECT 
-            pdr.sys_pk,
-            pdr.sys_guid,
-            pdr.codigo,
-            pdr.nombre,
-            tpp.descripcion AS tipo,
-            dvs.sys_pk AS idivisa,
-            dvs.codigo AS divisa,
-            dvs.tcambio,
-            pdr.tasaiva,
-            if(pdr.tasaiva=2,-1,1) AS zimpuesto,
-            zi.const AS zona_impuesto
-        FROM proveedor AS pdr
-            INNER JOIN tipoproveedor AS tpp ON tpp.sys_pk = pdr.tipo
-            INNER JOIN divisa AS dvs ON dvs.sys_pk = pdr.idivisa
-            INNER JOIN ctasasiva AS zi ON zi.id = pdr.tasaiva
-        WHERE
-        "
         if @@(params,"#iproveedor") > 0 {
-            sql = sql + " pdr.sys_pk = @iproveedor"
-            return dbr.rec(db,sql,params)
+            condition = "pdr.sys_pk = @iproveedor"
+            return dbr.rec(db,ftext(@sql_buscar_proveedor),params)
         }
         else if trim(@@(params,"$search")) != "" {
-            sql = sql + " (pdr.codigo LIKE CONCAT('%',@search,'%') OR pdr.nombre LIKE CONCAT('%',@search,'%'))"
-            return dbr.list(db,sql,params)
+            condition = "(pdr.codigo LIKE CONCAT('%',@search,'%') OR pdr.nombre LIKE CONCAT('%',@search,'%'))"
+            return dbr.list(db,ftext(@sql_buscar_proveedor),params)
         }
         return list.create()
     }
 
     doc.buscarProducto::&db,&params
     {
-        sql = "
-        SELECT
-            p.sys_pk,
-            p.sys_guid,
-            p.codigo,
-            p.descripcion,
-            TRIM(p.unidad) AS unidada,
-            TRIM(IFNULL(p.unidadb,'')) AS unidadb,
-            TRIM(IFNULL(p.unidadc,'')) AS unidadc,
-            TRIM(IFNULL(p.unidadd,'')) AS unidadd,
-            TRIM(IFNULL(p.unidade,'')) AS unidade,
-            IFNULL(p.factorb,0) AS factorb,
-            IFNULL(p.factorc,0) AS factorc,
-            IFNULL(p.factord,0) AS factord,
-            IFNULL(p.factore,0) AS factore,
-            p.costoultimo AS precio,
-            1 AS cantidad,
-            0 AS descuentos,
-            IFNULL(p.existencia,0) AS existencia,
-            dvs.codigo AS `divisa`,
-            dvs.tcambio AS tipocambio,
-            imp.nombre AS conf_impuestos,
-            IFNULL(imp.uf_tipoi1,'') AS i1_txt,
-            (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i1compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i1_tasa,
-            IFNULL(imp.uf_tipoi2,'') AS i2_txt,
-            (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i1compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i2_tasa,
-            IFNULL(imp.uf_tipoi3,'') AS i3_txt,
-            (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i3compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i3_tasa,
-            IFNULL(imp.uf_tipoi4,'') AS i4_txt,
-            (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i4compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i4_tasa
-        FROM producto AS p
-            INNER JOIN divisa AS dvs ON dvs.sys_pk = p.idivisa
-            INNER JOIN cfgimpuesto AS imp ON imp.sys_pk = p.impuestos
-        WHERE (p.codigo LIKE CONCAT('%',@search,'%') OR p.descripcion LIKE CONCAT('%',@search,'%'));"
-
-        return dbr.list(db,sql,params)
+        condition = "(p.codigo LIKE CONCAT('%',@search,'%') OR p.descripcion LIKE CONCAT('%',@search,'%'))"
+        return dbr.list(db,ftext(@sql_buscar_producto),params)
     }
 
     doc.prepareView::&db,&params,&data

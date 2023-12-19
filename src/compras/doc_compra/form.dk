@@ -81,26 +81,11 @@ module "doc.pedido.dk"
     #$
     div(class="container")
     {
-        div
-        {
-            style
-            {$'
-                .no-blur { outline: none !important; box-shadow: none !important; }
-                .disable-control {
-                    pointer-events: none;
-                    /* user-select: none; */
-                    /* opacity: 0.75; */
-                }
-                .disable-control * input, .disable-control * select, .disable-control * textarea {
-                    background-color: rgb(233, 236, 239);
-                    opacity: 1;
-                }
-            '}
-        }
+        link(href="#<@CSS_MAIN>" rel="stylesheet")
 
         div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top" id="main_action_bar")
         {
-            div(class="col-4 d-flex align-items-center p-0") { h6(class="tex-no-break m-0"){$"Nuevo documento"} }
+            div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Nuevo documento"} }
             div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
             {
                 a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
@@ -115,7 +100,7 @@ module "doc.pedido.dk"
             }
         }
 
-        form(class="#<ifstr(enable_editing,'','disable-control')>" action="./" method="POST" id="form_pedido")
+        form(class="#<ifstr(enable_editing,'','disable-form')>" action="./" method="POST" id="form_pedido")
         {
             nav
             {
@@ -220,7 +205,7 @@ module "doc.pedido.dk"
 
         div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
 
-        div(class="d-flex justify-content-end align-items-center border gap-1 px-2 my-2" id="tbl_action_bar")
+        div(class="d-flex justify-content-end align-items-center border gap-1 px-2 my-2 #<ifstr(enable_editing,'','disable-form')>" id="tbl_action_bar")
         {
             small(class="flex-grow-1 text-muted"){$"Seleccione los productos en la cuadrícula"}
 
@@ -228,7 +213,7 @@ module "doc.pedido.dk"
             button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-del-row" title="Eliminar fila"){$"#<@ICON_REMOVE_ROW>"}
         }
 
-        div(class="#<ifstr(enable_editing,'','disable-control')>" id="div_tbl_productos")
+        div(class="#<ifstr(enable_editing,'','disable-form')>" id="div_tbl_productos")
         {
             "edit-table"(class="w-100" id="tbl_productos" data="#<to.json(dcompra)>")
             {

@@ -18,13 +18,7 @@ module "controller"
         }
         default
         {
-            point @list to NotImplemented
-            point @read to NotImplemented
-            point @blank to NotImplemented
-
-            point @create to NotImplemented
-            point @update to NotImplemented
-            point @delete to NotImplemented
+            do NotImplemented()
             break
         }
     }

@@ -34,6 +34,8 @@ program
         cajero.csv,
         cclaseproducto.csv,
         cdocumentos.csv,
+        cfg_doc_compras.csv,
+        cfg_doc_compras_consolida.csv,
         cfgimpuesto.csv,
         cformacomisionproducto.csv,
         cformaspago.csv,

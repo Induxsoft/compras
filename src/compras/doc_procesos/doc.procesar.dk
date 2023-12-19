@@ -19,9 +19,10 @@ module "doc.procesar.dk"
     ref formData = ifnull(@("&./form"),record.create())
     ref dtprov = ifnull(@("&./dtprov"),record.create())
     ref compra = ifnull(@("&./compra"),record.create())
-    // ref dcompra = ifnull(@('&./dcompra'),list.create())
+    ref cfgdoc = ifnull(@("&./cfg_doc_compra"),record.create())
 
     // do rise_error(0,to.json(@("&.")))
+    show_form_consigna = parse.bool(@@(cfgdoc,"consigna"))
 
     new sel_documento
     {
@@ -130,7 +131,7 @@ module "doc.procesar.dk"
 
         div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top" id="main_action_bar")
         {
-            div(class="col-4 d-flex align-items-center p-0") { h6(class="tex-no-break m-0"){$"Procesar documento"} }
+            div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Procesar documento"} }
             div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
             {
                 a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
@@ -296,6 +297,8 @@ module "doc.procesar.dk"
                 }
             }
 
+            #! if show_form_consigna 
+            {#$
             div(class="accordion-item")
             {
                 h2(class="accordion-header" id="headingThree") {
@@ -351,6 +354,7 @@ module "doc.procesar.dk"
                         }
                     }
                 }
+            }
             }
         }
 

@@ -3,42 +3,7 @@
 module "model"
 {
     @table_name = "compra"
-    @read_query = "
-    SELECT
-        c.sys_pk,
-        c.sys_guid,
-        c.sys_recver,
-        IFNULL(c.descuento1,0) AS descuento1,
-        IFNULL(c.descuento2,0) AS descuento2,
-        c.documento,
-        DATE_FORMAT(c.fecha,'%Y-%m-%d') AS fecha,
-        DATE_FORMAT(c.fembarque,'%Y-%m-%d') AS fembarque,
-        DATE_FORMAT(c.fentrega,'%Y-%m-%d') AS fentrega,
-        c.formapago,
-        IFNULL(c.impuesto1,0) AS impuesto1,
-        IFNULL(c.impuesto2,0) AS impuesto2,
-        IFNULL(c.impuesto3,0) AS impuesto3,
-        IFNULL(c.impuesto4,0) AS impuesto4,
-        IFNULL(c.indirectos,0) AS indirectos,
-        IFNULL(c.notas,'') AS notas,
-        c.referencia,
-        c.statusadministrativo,
-        c.statusentrega,
-        c.statusfacturacion,
-        c.statusfinanciero,
-        IFNULL(c.subtotal,0) AS subtotal,
-        ((((((IFNULL(c.subtotal,0) - IFNULL(c.descuento1,0)) - IFNULL(c.descuento2,0)) + IFNULL(c.impuesto1,0)) + IFNULL(c.impuesto2,0)) + IFNULL(c.impuesto3,0)) + IFNULL(c.impuesto4,0)) AS total,
-        c.tipocambio,
-        DATE_FORMAT(c.vencimiento,'%Y-%m-%d') AS vencimiento,
-        c.ialmacen,
-        c.idivisa,
-        c.iproveedor,
-        c.aplicadoa,
-        c.imovcaja,
-        c.imovchequera
-    FROM compra c
-    WHERE #<@keyfield> = @_entity_id
-    "
+    @read_query = @sql_compra
 
     doc.buscarProveedor::&db,&params
     {
@@ -48,67 +13,40 @@ module "model"
         * 2 => -1 = cFrontera
         */
 
-        sql = "
-        SELECT 
-            pdr.sys_pk,
-            pdr.sys_guid,
-            pdr.codigo,
-            pdr.nombre,
-            tpp.descripcion AS tipo,
-            dvs.sys_pk AS idivisa,
-            dvs.codigo AS divisa,
-            dvs.tcambio,
-            pdr.tasaiva,
-            if(pdr.tasaiva=2,-1,1) AS zimpuesto,
-            zi.const AS zona_impuesto
-        FROM proveedor AS pdr
-            INNER JOIN tipoproveedor AS tpp ON tpp.sys_pk = pdr.tipo
-            INNER JOIN divisa AS dvs ON dvs.sys_pk = pdr.idivisa
-            INNER JOIN ctasasiva AS zi ON zi.id = pdr.tasaiva
-        WHERE
-        "
         if @@(params,"#iproveedor") > 0 {
-            sql = sql + " pdr.sys_pk = @iproveedor"
-            return dbr.rec(db,sql,params)
+            condition = "pdr.sys_pk = @iproveedor"
+            return dbr.rec(db,ftext(@sql_buscar_proveedor),params)
         }
         else if trim(@@(params,"$search")) != "" {
-            sql = sql + " (pdr.codigo LIKE CONCAT('%',@search,'%') OR pdr.nombre LIKE CONCAT('%',@search,'%'))"
-            return dbr.list(db,sql,params)
+            condition = "(pdr.codigo LIKE CONCAT('%',@search,'%') OR pdr.nombre LIKE CONCAT('%',@search,'%'))"
+            return dbr.list(db,ftext(@sql_buscar_proveedor),params)
         }
         return list.create()
     }
 
     doc.prepareView::&db,&params,&data
     {
-        sql_doc_compra = "SELECT doc.id, doc.const FROM cdocumentos doc INNER JOIN cfg_doc_compras cfg ON cfg.documento = doc.id ORDER BY doc.id ASC;"
-        sql_doc_retiro = "SELECT doc.id, doc.const FROM cdocumentos doc INNER JOIN cfg_chq_docs cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.retiros,0) ORDER BY doc.id ASC;"
-        sql_cuentaschq = "SELECT c.sys_pk, d.codigo, d.tcambio, CONCAT(c.nombre,' (',d.codigo,')') AS `text` FROM chequera c INNER JOIN divisa d ON d.sys_pk = c.idivisa WHERE NOT IFNULL(c.sys_deleted,0) ORDER BY c.sys_pk ASC;"
-        sql_cat_egreso = "SELECT sys_pk, CONCAT('[',codigo,'] ',descripcion) AS `text` FROM categoria WHERE tipo = 2 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
-        sql_cat_movinv = "SELECT sys_pk, CONCAT('[',codigo,'] ',descripcion) AS `text` FROM categoria WHERE tipo = 3 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
-        sql_divisas = "SELECT sys_pk, codigo, tcambio, CONCAT('[',codigo,'] ',descripcion) AS `text` FROM divisa ORDER BY sys_pk ASC;"
-        
         switch @@(params,"$_view")
         {
             case "procesar"
             {
-                data<"list_documentos*"> : dbr.list(db,sql_doc_compra,@null)
-                data<"list_doc_retiro*"> : dbr.list(db,sql_doc_retiro,@null)
-                data<"list_cuentaschq*"> : dbr.list(db,sql_cuentaschq,@null)
-                data<"list_cat_egreso*"> : dbr.list(db,sql_cat_egreso,@null)
-                data<"list_cat_movinv*"> : dbr.list(db,sql_cat_movinv,@null)
-                data<"list_divisas*"> : dbr.list(db,sql_divisas,@null)
+                data<"list_documentos*"> : dbr.list(db,@sql_doc_compra,@null)
+                data<"list_doc_retiro*"> : dbr.list(db,@sql_doc_retiro,@null)
+                data<"list_cuentaschq*"> : dbr.list(db,@sql_cuentaschq,@null)
+                data<"list_cat_egreso*"> : dbr.list(db,@sql_cat_egreso,@null)
+                data<"list_cat_movinv*"> : dbr.list(db,@sql_cat_movinv,@null)
+                data<"list_divisas*"> : dbr.list(db,@sql_divisas,@null)
 
                 if @@(params,"$_entity_id") != "_new" 
                 {
                     ref compra = entity.read(db,params)
+                    params<"documento"> : @@(compra,"#documento")
                     params<"iproveedor"> : @@(compra,"#iproveedor")
                     ref dtprov = doc.buscarProveedor(db,params)
-                    // params<"zimpuesto"> : @@(dtprov,"#zimpuesto")
-                    // ref dcompra = dbr.list(db,@child_query,params)
                     
                     data<"dtprov*"> : dtprov
                     data<"compra*"> : compra
-                    // data<"dcompra*"> : dcompra
+                    data<"cfg_doc_compra*"> : dbr.rec(db,@sql_cfg_doc_compra,params)
                 }
                 break
             }
@@ -127,7 +65,12 @@ module "model"
         cur_edo = @@(compra,"#statusadministrativo")
         cur_doc = @@(compra,"#documento")
 
-        if cur_edo != @@(@EDO_ADMIN,"cCERRADO") { do rise_error(99,"Estado inválido, el documento no puede ser procesado.") }
+        valid_doc = (cur_doc == @cREMISION || cur_doc == @cFACTURA || cur_doc == @cNOTA_DE_CREDITO)
+        valid_status = (cur_edo == @@(@EDO_ADMIN,"#cABIERTO") || cur_edo == @@(@EDO_ADMIN,"#cCERRADO"))
+
+        if cur_edo == @@(@EDO_ADMIN,"cCANCELADO") { do rise_error(99,"No es posible continuar, el documento se encuentra cancelado.") }
+        if not(valid_doc) { do rise_error(99,"No es posible procesar el tipo de documento seleccionado.") }
+        if not(valid_status) { do rise_error(99,"Estado inválido, el documento no puede ser procesado.") }
 
         new data {}
         do doc.prepareView(db,params,data)

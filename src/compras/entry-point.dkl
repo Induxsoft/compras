@@ -12,6 +12,7 @@ module "Controller configs"
 	#include "procesos.dkh"
 	#include "_lib/config.dk"
 	#include "_lib/lib.dk"
+	#include "_lib/query_list.dk"
 
 	if @@(@http_context,"$session/user/ids") == "" {
 		@http_context<"response/headers/location"> : "/"
