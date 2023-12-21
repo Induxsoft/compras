@@ -1,6 +1,6 @@
 .disable-form {
     pointer-events: none;
-    /* user-select: none; */
+    user-select: none;
     /* opacity: 0.75; */
 }
 .disable-form * input, .disable-form * select, .disable-form * textarea {
@@ -9,7 +9,16 @@
 }
 .disable-ctrl {
     pointer-events: none;
+    user-select: none;
     background-color: rgb(233, 236, 239);
     opacity: 1;
 }
 .no-blur { outline: none !important; box-shadow: none !important; }
+
+.nav-link.active {
+    border: none !important;
+    border-bottom: 2px solid #0B5ED7 !important;
+    text-decoration: none !important;
+    color: #000 !important;
+    background-color: #F0F8FF !important;
+}

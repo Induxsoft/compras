@@ -104,6 +104,7 @@ module "model"
                     @"icategoria": @@(data,"icategoria")
                 }
                 do erp.compras.procesos.liquidacionContado(db,rec)
+                @url_redir = @DOC_COMPRAS
                 break
             }
             case @@(@FORMAS_PAGO,"cCREDITO")
@@ -123,12 +124,14 @@ module "model"
                     @"icategoria": @@(data,"icategoria")
                 }
                 do erp.compras.procesos.liquidacionCredito(db,rec)
+                @url_redir = @DOC_COMPRAS
                 break
             }
             case @@(@FORMAS_PAGO,"cCONSIGNADO")
             {
                 ref compra = dbr.rec(db,ftext(sql_get_compra),params)
                 do erp.compras.procesos.liquidacionConsignado(db,@@(compra,"#sys_pk"),@@(data,"#icategoria"))
+                @url_redir = @DOC_COMPRAS
                 break
             }
             default { do NotImplemented() }
