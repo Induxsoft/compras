@@ -12,23 +12,21 @@ module "list.dk"
     #$
     div(class="container")
     {
-        h1(class="h4 text-primary"){$"Compras"}
+        div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
+        {
+            div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Compras"} }
+            div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
+            {
+                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
+                a(href="#<@DOC_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Agregar"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_PROCESAR>')"){$"Procesar"}
+                // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_CANCELAR>')"){$"Cancelar"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_CONSULTAR>')"){$"Consultar"}
+            }
+        }
 
         div
         {
-            div(class="bg-light my-1")
-            {
-                div(class="btn-group" role="group")
-                {
-                    a(href="#<@DOC_MENU>" class="btn btn-secondary btn-sm fw-bolder"){$"#<@ICON_ARROW_LEFT>"}
-                    a(href="#<@DOC_AGREGAR>" class="btn btn-light btn-sm fw-bolder"){$"Agregar"}
-                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@DOC_PROCESAR>')"){$"Procesar"}
-                    // button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@DOC_CANCELAR>')"){$"Cancelar"}
-                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@DOC_CONSULTAR>')"){$"Consultar"}
-                    a(href="./" class="btn btn-light btn-sm fw-bolder"){$"Refrescar"}
-                }
-            }
-
             "edit-table"(class="w-100" id="tbl_compras" data="#<to.json(@('&.'))>")
             {
                 "edit-thead"
