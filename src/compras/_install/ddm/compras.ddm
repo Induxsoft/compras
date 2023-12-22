@@ -57,6 +57,8 @@ model "erp.compras"
         @"uf_fechainhabilitacion" datetime
         @"uf_formaproduccion" int
     }
+    // Base de cálculo para intereses moratorios
+    entity "cbcimoratorios" : "EnumModel" {}
     // Enumeración de clases de productos
     entity "cclaseproducto" : "EnumModel" {}
     // Catálogo de tipos de documentos

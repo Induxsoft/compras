@@ -33,6 +33,7 @@ program
         caja.csv,
         cajero.csv,
         cclaseproducto.csv,
+        cbcimoratorios.csv,
         cdocumentos.csv,
         cfg_doc_compras.csv,
         cfg_doc_compras_consolida.csv,
