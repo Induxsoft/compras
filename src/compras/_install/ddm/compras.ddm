@@ -253,6 +253,43 @@ model "erp.compras"
         @"iproducto" int ref:"producto" ["sys_pk"] required
         @"fk_compra_detalle" int ref:"compra" ["sys_pk"] required
     }
+    // Documentos comerciales que afectan la cuenta por pagar de un proveedor
+    entity "dcxp" : "TableModel"
+    {
+        @"aplicable" bool               // true únicamente cuando representa un documento por pagar al que pueden aplicársele pagos parciales y se debe llevar control del saldo
+        @"aplicacion" date required     // Fecha de vencimiento o límite de pago o bien, fecha en la que el pago se considera aplicado
+        @"auditado" bool                // Si ya ha sido auditado (revisado)
+        @"basecm" ref:"cbcimoratorios"  // Base para calcular intereses moratorios tratándose de un doc por pagar
+        @"bonificaciones" decimal(18,8) // Bonificaciones o rebajar aplicadas (debe ser respaldado por otros documentos aplicados)
+        @"contabilizado" bool           // Si ya ha sido incluído en una póliza
+        @"debe" decimal(18,8)           // Importe del debe (importe del pago o rebaja)
+        @"documento" ref:"cdocumentos" required // Tipo de documento
+        @"fecha" date required          // Fecha del documento
+        @"fultmoratorios" date          // Última fecha en que se calcularon intereses moratorios
+        @"haber" decimal(18,8)          // Importe del haber (importe del documento por pagar o cargo)
+        @"intfinancieros" decimal(18,8) // Importe de los intereses financieros acumulados
+        @"intmoratorios" decimal(18,8)  // Importe de los intereses moratorios acumulados
+        @"notas" string(3200)           // Notas generales
+        @"pagos" decimal(18,8)          // Importe de los pagos realizados al documento
+        @"partida" string(32)           // Relación a una partida presupuestal
+        @"poliza" string(32)            // Relación a una póliza contable       
+        @"porimpuestocap" decimal(18,8)
+        @"porimpuestofin" decimal(18,8)
+        @"porimpuestomor" decimal(18,8)
+        @"referencia" string(50) required // Identificación del documento (serie y folio internos)
+        @"relacionadoa" int
+        @"tasamoratorios" decimal(18,8) // Porcentaje de interés mensual por mora
+        @"tipocambio" decimal(18,8)     // tipo de cambio en la divisa del proveedor al momento de la operación
+        @"xaplicar" decimal(18,8)       // Saldo restante por aplicar (si es un pago o bonificación)
+        @"icompra" int ref:"compra" ["sys_pk"]
+        @"imovcaja" int ref:"movcaja" ["sys_pk"]
+        @"imovchequera" int ref:"movcuenta" ["sys_pk"]
+        @"iproveedor" ref:"proveedor"  required // Relación a un proveedor
+        @"uuid_fiscal" string(45)       // UUID de un comprobante fiscal digital
+
+        // Saldo por pagar del documento por pagar
+        // Saldo = (Haber + intmoratorios - bonificaciones - pagos)
+    }
     // departamento
     entity "departamento" : "TableModel"
     {
