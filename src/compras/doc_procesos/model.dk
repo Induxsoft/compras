@@ -102,6 +102,7 @@ module "model"
                     @"documento": @@(compra,"#documento")
                     @"icuenta": @@(data,"#icuenta")
                     @"icategoria": @@(data,"icategoria")
+                    @"iproveedor": @@(compra,"#iproveedor")
                 }
                 do erp.compras.procesos.liquidacionContado(db,rec)
                 @url_redir = @DOC_COMPRAS
