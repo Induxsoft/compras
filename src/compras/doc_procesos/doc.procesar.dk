@@ -199,7 +199,7 @@ module "doc.procesar.dk"
                                     div(class="col-12")
                                     {
                                         label(class="form-label" "for"="txt_concepto"){$"Concepto:"}
-                                        textarea(class="form-control" name="concepto" id="txt_concepto" required=""){$"Liquidación del documento con referencia #<@@(compra,'$referencia')>"}
+                                        textarea(class="form-control rounded-0" name="concepto" id="txt_concepto" required=""){$"Liquidación del documento con referencia #<@@(compra,'$referencia')>"}
                                     }
 
                                     div(class="d-flex gap-2 align-items-center justify-content-end my-2")
@@ -280,7 +280,7 @@ module "doc.procesar.dk"
                                     div(class="col-12")
                                     {
                                         label(class="form-label" "for"="txt_concepto"){$"Concepto:"}
-                                        textarea(class="form-control" name="concepto" id="txt_concepto" required=""){$"Compra a crédito"}
+                                        textarea(class="form-control rounded-0" name="concepto" id="txt_concepto" required=""){$"Compra a crédito"}
                                     }
 
                                     div(class="d-flex gap-2 align-items-center justify-content-end my-2")

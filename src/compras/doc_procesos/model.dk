@@ -71,6 +71,9 @@ module "model"
         if cur_edo == @@(@EDO_ADMIN,"cCANCELADO") { do rise_error(99,"No es posible continuar, el documento se encuentra cancelado.") }
         if not(valid_doc) { do rise_error(99,"No es posible procesar el tipo de documento seleccionado.") }
         if not(valid_status) { do rise_error(99,"Estado inválido, el documento no puede ser procesado.") }
+        if not(AppExist(db,"movinv")) { do rise_error(500,"No es posible continuar, es necesario instalar la aplicacion `inventario`. Instale e intente nuevamente.") }
+        if not(AppExist(db,"efectivo")) { do rise_error(500,"No es posible continuar, es necesario instalar la aplicacion `efectivo`. Instale e intente nuevamente.") }
+        if not(AppExist(db,"cxp")) { do rise_error(500,"No es posible continuar, es necesario instalar la aplicacion `cxp`. Instale e intente nuevamente.") }
 
         new data {}
         do doc.prepareView(db,params,data)
@@ -79,7 +82,7 @@ module "model"
 
     doc.procesar::&db,&params,&data
     {
-        do errordet(@true)
+        do errordet(@false)
 
         sbqry_importe = "((((((IFNULL(c.subtotal,0) - IFNULL(c.descuento1,0)) - IFNULL(c.descuento2,0)) + IFNULL(c.impuesto1,0)) + IFNULL(c.impuesto2,0)) + IFNULL(c.impuesto3,0)) + IFNULL(c.impuesto4,0)) AS total"
         sql_get_compra = "SELECT c.sys_pk, c.documento, c.iproveedor, #<sbqry_importe> FROM compra c WHERE #<@keyfield> = @_entity_id"
@@ -92,6 +95,7 @@ module "model"
                 new rec
                 {
                     @"icompra": @@(compra,"#sys_pk")
+                    @"icategoria": @@(data,"icategoria")
                     @"faplicacion": @@(data,"$faplicacion")
                     @"beneficiario": @@(data,"$beneficiario")
                     @"consiliado": @true
@@ -101,7 +105,6 @@ module "model"
                     @"referencia": @@(data,"$referencia")
                     @"documento": @@(compra,"#documento")
                     @"icuenta": @@(data,"#icuenta")
-                    @"icategoria": @@(data,"icategoria")
                     @"iproveedor": @@(compra,"#iproveedor")
                 }
                 do erp.compras.procesos.liquidacionContado(db,rec)
@@ -114,6 +117,8 @@ module "model"
                 new rec
                 {
                     @"icompra": @@(compra,"#sys_pk")
+                    @"icategoria": @@(data,"icategoria")
+                    @"aplicable": @true
                     @"flimite": @@(data,"$flimite")
                     @"documento": @@(compra,"#documento")
                     @"fecha": hoy("yyyy-MM-dd")
@@ -122,7 +127,6 @@ module "model"
                     @"referencia": @@(data,"$referencia")
                     @"tcambio": @@(data,"#tcambio")
                     @"iproveedor": @@(compra,"#iproveedor")
-                    @"icategoria": @@(data,"icategoria")
                 }
                 do erp.compras.procesos.liquidacionCredito(db,rec)
                 @url_redir = @DOC_COMPRAS

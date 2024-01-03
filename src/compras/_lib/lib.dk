@@ -51,23 +51,52 @@ module "lib.dk"
             case "tx"
             {
                 text = trim(@("$input/"+name))
+                if text == "" { text = trim(@("$./form/"+name)) }
                 if text == "" { text = trim(@@(obj,"$"+name)) }
                 return text
             }
             case "nm"
             {
                 value = @("#input/"+name)
+                if value <= 0 { value = @("#./form/"+name) }
                 if value <= 0 { value = @@(obj,"#"+name) }
                 return value
+            }
+            case "ch"
+            {
+                bool = trim(@("$input/"+name))
+                if bool == "" { bool = trim(@("$./form/"+name)) }
+                if bool == "" { bool = trim(@@(obj,"$"+name)) }
+                
+                return ifstr(parse.bool(bool),"checked","")
+            }
+            case "rd"
+            {
+                bool = trim(@("$input/"+name))
+                if bool == "" { bool = trim(@("$./form/"+name)) }
+                if bool == "" { bool = trim(@@(obj,"$"+name)) }
+                
+                return ifstr(parse.bool(bool),"checked","")
             }
             case "dt"
             {
                 fecha = trim(@("$input/"+name))
+                if fecha == "" { fecha = trim(@("$./form/"+name)) }
                 if fecha == "" { fecha = trim(@@(obj,"$"+name)) }
                 if fecha == "" { fecha = date_str(now(),"yyyy-MM-dd") }
                 return fecha
             }
             default { return "" }
         }
+    }
+
+    function AppExist(&db,packId)
+    {
+        new p { @"id": packId }
+        ref InstalledApps = dbr.list(db,"SELECT * FROM sys_app_catalog WHERE pack_id = @id;",p)
+        exist = (list.count(InstalledApps) > 0)
+        return exist
+
+        exception{ return @false }
     }
 }

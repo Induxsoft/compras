@@ -15,6 +15,12 @@
 }
 .no-blur { outline: none !important; box-shadow: none !important; }
 
+.btn.btn-xs {
+    padding: .20rem .4rem;
+    font-size: .725rem;
+    border-radius: .1rem;
+}
+
 .nav-link.active {
     border: none !important;
     border-bottom: 2px solid #0B5ED7 !important;

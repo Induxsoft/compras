@@ -10,7 +10,7 @@ module "doc.pedido.dk"
     #include "../_lib/lib.dk"
 
     do @context.begin(@crud_context)
-    // empty_rows = "[{},{},{},{},{},{},{},{},{},{}]"
+    empty_rows = "[{},{},{},{},{},{},{},{},{},{}]"
 
     ref listDivisas = ifnull(@('&./list_divisas'),list.create())
     ref listAlmacenes = ifnull(@('&./list_almacenes'),list.create())
@@ -20,6 +20,7 @@ module "doc.pedido.dk"
     ref dcompra = ifnull(@('&./dcompra'),list.create())
 
     // do rise_error(0,to.json(@("&.")))
+    if list.count(dcompra) <= 0 { ref dcompra = from.json(empty_rows) }
 
     new sel_documento
     {
@@ -100,17 +101,17 @@ module "doc.pedido.dk"
             }
         }
 
+        nav
+        {
+            div(class="nav nav-tabs mb-2" id="nav-tab" role="tablist")
+            {
+                button(class="nav-link active" id="nav-general-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-general" type="button" role="tab" "aria-controls"="nav-general" "aria-selected"="true"){$"General"}
+                button(class="nav-link" id="nav-mrdata-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-mrdata" type="button" role="tab" "aria-controls"="nav-mrdata" "aria-selected"="false"){$"Más datos"}
+            }
+        }
+
         form(class="#<ifstr(enable_editing,'','disable-form')>" action="./" method="POST" id="form_pedido")
         {
-            nav
-            {
-                div(class="nav nav-tabs mb-2" id="nav-tab" role="tablist")
-                {
-                    button(class="nav-link active" id="nav-general-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-general" type="button" role="tab" "aria-controls"="nav-general" "aria-selected"="true"){$"General"}
-                    button(class="nav-link" id="nav-mrdata-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-mrdata" type="button" role="tab" "aria-controls"="nav-mrdata" "aria-selected"="false"){$"Más datos"}
-                }
-            }
-
             div(class="tab-content")
             {
                 div(class="tab-pane fade show active" id="nav-general" role="tabpanel" "aria-labelledby"="nav-general-tab")
@@ -233,7 +234,7 @@ module "doc.pedido.dk"
                         "edit-th"(type="Memo" field="edt_notas"){$"Notas"}
                     }
                 }
-                #!
+                /* #!
                 if list.count(dcompra) <= 0
                 {
                     #$
@@ -254,7 +255,7 @@ module "doc.pedido.dk"
                         }
                     }
                 }
-                #$
+                #$ */
             }
         }
 

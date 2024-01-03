@@ -2,8 +2,6 @@
 #!
 module "procesos.dkh:erp.compras.procesos"
 {
-    #include "_lib/config.dk"
-
     entradaInventario::&db,icompra,icategoria
     {
         start_transaction = @false
@@ -81,7 +79,7 @@ module "procesos.dkh:erp.compras.procesos"
         // Generar movimiento de entrada de inventario y aplicar.
         do erp.inventario.aplicar_mov(db,erp.compras.procesos.entradaInventario(db,icompra,icategoria),@false)
         // Realizar retiro a la cuenta.
-        mov_sys_pk = erp.cxp.movimientos.retiro(db,data)
+        mov_sys_pk = erp.efectivo.movimientos.retiro(db,data)
         // Establecer los estados correspondientes.
         new params { @"icompra": icompra }
         new status
@@ -119,7 +117,7 @@ module "procesos.dkh:erp.compras.procesos"
         // Generar movimiento de entrada de inventario y aplicar.
         do erp.inventario.aplicar_mov(db,erp.compras.procesos.entradaInventario(db,icompra,icategoria),@false)
         // Agregar documento por pagar (dcxp) y afectar el saldo del proveedor.
-        do erp.cxp.documentos.crear(db,data)
+        do erp.cxp.movimientos.crearCxP(db,data)
         // Establecer los estados correspondientes.
         new params { @"icompra": icompra }
         new status

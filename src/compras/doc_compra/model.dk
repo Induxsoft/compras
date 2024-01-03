@@ -75,6 +75,7 @@ module "model"
 
     doc.agregar::&db,&params,&data
     {
+        do errordet(@false)
         redir = @false
 
         cNO_APLICA = @@(@EDO_ADMIN,"#cNO_APLICA")
@@ -161,6 +162,7 @@ module "model"
 
     doc.actualizar::&db,&params,&data
     {
+        do errordet(@false)
         redir = @false
         @use_transaction = @false
         

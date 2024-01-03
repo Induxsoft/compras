@@ -66,6 +66,9 @@ module "config.dk"
 		@"cCONSIGNADO": 4
 	}
 
+	// Formato de moneda (dkl)
+	@FMT_MONEY = "$ "+"#"+@THOUSANDS_SEPARATOR+"0"+@DECIMAL_SEPARATOR+padright("",@DECIMAL_PRECISION,"0")
+
 	//* ======================================== [ _STATIC RESOURCES ]
 	@CSS_MAIN = "/$/compras/css/main.css"
 	@JS_COMPRAS = "/$/compras/js/compras.js"

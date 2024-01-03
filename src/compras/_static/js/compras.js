@@ -491,7 +491,8 @@ document.addEventListener("DOMContentLoaded", () =>
     btnGuardarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cABIERTO;
-        txt_detalle_compra.value = JSON.stringify(tData);
+        let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        txt_detalle_compra.value = JSON.stringify(_detalle);
 
         formPedido.submit();
     });
@@ -499,7 +500,8 @@ document.addEventListener("DOMContentLoaded", () =>
     btnCerrarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cCERRADO;
-        txt_detalle_compra.value = JSON.stringify(tData);
+        let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        txt_detalle_compra.value = JSON.stringify(_detalle);
 
         formPedido.submit();
     });
@@ -525,7 +527,8 @@ document.addEventListener("DOMContentLoaded", () =>
     btnProcesarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cPROCESADO;
-        txt_detalle_compra.value = JSON.stringify(tData);
+        let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        txt_detalle_compra.value = JSON.stringify(_detalle);
 
         formPedido.submit();
     });
@@ -533,7 +536,8 @@ document.addEventListener("DOMContentLoaded", () =>
     btnCancelarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cCANCELADO;
-        txt_detalle_compra.value = JSON.stringify(tData);
+        let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        txt_detalle_compra.value = JSON.stringify(_detalle);
 
         formPedido.submit();
     });
