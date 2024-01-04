@@ -154,7 +154,7 @@ module "doc.pedido.dk"
                             ##
 
                             label(class="form-label" "for"="txt_tipocambio"){$"Tipo de cambio:"}
-                            input(type="number" class="form-control form-control-sm rounded-0" name="tipocambio" min="1" id="txt_tipocambio" value="#<form('tipocambio','nm',compra)>" required="")
+                            input(type="number" class="form-control form-control-sm rounded-0" name="tipocambio" min="1" step="0.000001" id="txt_tipocambio" value="#<form('tipocambio','nm',compra)>" required="")
 
                             label(class="form-label" "for"="sel_almacen"){$"Almacén:"}
                             ##
@@ -176,7 +176,7 @@ module "doc.pedido.dk"
                             input(type="date" class="form-control form-control-sm rounded-0" name="fentrega" id="txt_fentrega" value="#<form('fentrega','dt',compra)>" required="")
 
                             label(class="form-label" "for"="txt_cindirectos"){$"Costos indirectos:"}
-                            input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" id="txt_cindirectos" value="#<form('indirectos','nm',compra)>" required="")
+                            input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" step="0.000001" id="txt_cindirectos" value="#<form('indirectos','nm',compra)>" required="")
                         }
                     }
                 }
