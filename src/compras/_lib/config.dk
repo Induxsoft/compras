@@ -15,6 +15,9 @@ module "config.dk"
 	@cFACTURA = 4
 	@cNOTA_DE_CREDITO = 5
 
+	// Número máximo de filas a mostrar en lista
+	@default_max_rows=250
+
 	// Estados administrativos para documentos
 	new @EDO_ADMIN
 	{
@@ -73,6 +76,7 @@ module "config.dk"
 	@CSS_MAIN = "/$/compras/css/main.css"
 	@JS_COMPRAS = "/$/compras/js/compras.js"
 	@JS_PROCESOS = "/$/compras/js/procesos.js"
+	@JS_FILTER = "/$/compras/js/filter.js"
 
 	//* ======================================== [ _PACKAGE ]
 	@DOC_MENU = "/!/compras/"

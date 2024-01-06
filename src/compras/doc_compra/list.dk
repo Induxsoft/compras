@@ -6,54 +6,121 @@ module "list.dk"
     #include "serialize.dkh"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
+    #include "../_lib/scape_special_charactes2.dk"
+    #include "../_lib/lib.dk"
     
     do @context.begin(@crud_context)
+    ref @http_context = @('&http')
+    ref get = @@(@http_context,"&request/get")
+    ref docs = @('&.')
+    do scape_special_charactes(docs,"referencia")
     
     #$
-    div(class="container")
+    div(class="container p-0")
     {
-        div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
+        div(id="main_bar" class="row container-section my-2 px-0 py-2 border-bottom")
         {
-            div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Compras"} }
-            div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
+            div(class="col-4 d-flex align-items-center p-0")
+            {
+                h5(class="tex-no-break m-0"){$"Compras"}
+            }
+            div(class="col-8 d-flex align-items-center justify-content-end p-0 gap-2")
             {
                 a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
                 a(href="#<@DOC_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Agregar"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_PROCESAR>')"){$"Procesar"}
+                // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_PROCESAR>')"){$"Procesar"}
                 // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_CANCELAR>')"){$"Cancelar"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_CONSULTAR>')"){$"Consultar"}
+                // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_CONSULTAR>')"){$"Consultar"}
+                button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Imprimir" onclick="window.print()"){$"#<@ICON_PRINTER>"}
+                a(href="/" target="_top" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Salir"){$"#<@ICON_X_LG>"}
             }
         }
-
-        div
+        div(id="work_area" class="container-section mt-1")
         {
-            "edit-table"(class="w-100" id="tbl_compras" data="#<to.json(@('&.'))>")
+            #! do print_date_filter(get, @null, @null)
+            #$ p{$"#<@('$error/message')>"}
+            
+            form(action="./" method="GET" id="form_search" class="d-flex mb-3 no-print")
             {
-                "edit-thead"
+                input(class="induxsoft-form-control flex-grow-1" type="text" name="s" placeholder="Buscar por referencia" id="input_search" value='#<@@(get,"$s")>')
+                button(class="btn btn-sm btn-primary induxsoft-corners d-flex gap-2 align-items-center") {
+                    $"Buscar"
+                    $"#<@ICON_SEARCH>"
+                }
+            }
+            div
+            {
+                #! lenght = list.count(docs)
+                if lenght <= 0
                 {
-                    "edit-tr"
-                    {
-                        "edit-th"(type="NoEditable" field="documento"){$"Documento"}
-                        "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
-                        "edit-th"(type="NoEditable" field="fecha"){$"Fecha"}
-                        "edit-th"(type="NoEditable" field="proveedor"){$"Proveedor"}
-                        "edit-th"(type="NoEditable" field="vencimiento"){$"Vencimiento"}
-                        "edit-th"(type="NoEditable" field="divisa"){$"Divisa"}
-                        "edit-th"(type="NoEditable" field="tipocambio"){$"Tipo de cambio"}
-                        "edit-th"(type="NoEditable" field="total"){$"Total"}
-                        "edit-th"(type="NoEditable" field="edo_financiero"){$"Estado financiero"}
-                        "edit-th"(type="NoEditable" field="forma_pago"){$"Forma de pago"}
-                        "edit-th"(type="NoEditable" field="edo_administrativo"){$"Estado administrativo"}
+                    message = ""
+                    if @@(@crud_context,"$parameters/s") == "" { message = "Sin registros." }
+                    else  { message = "Sin resultados." }
+
+                    #$ div(class="text-center") {
+                        h6(style="background-color: #F5F5F5; padding: 10rem 0;"){"#<message>"}
                     }
                 }
-                /* "edit-tbody"
+                #! else 
                 {
-                    // contenido...
-                } */
+                    #$ div(style="overflow:auto;max-height: 70vh;" class="mb-2" id="list_table_container")
+                    {
+                        table(class="table")
+                        {
+                            thead
+                            {
+                                tr
+                                {
+                                    th(class="h6"){$"Documento"}
+                                    th(class="h6"){$"Referencia"}
+                                    th(class="h6"){$"Fecha"}
+                                    th(class="h6"){$"Proveedor"}
+                                    th(class="h6"){$"Vencimiento"}
+                                    th(class="h6"){$"Divisa"}
+                                    th(class="h6"){$"Tipo de cambio"}
+                                    th(class="h6"){$"Total"}
+                                    th(class="h6"){$"Estado financiero"}
+                                    th(class="h6"){$"Forma de pago"}
+                                    th(class="h6"){$"Estado administrativo"}
+                                    th(class="h6 text-center no-print"){$"Acciones"}
+                                }
+                            }
+                            tbody
+                            {
+                                $""
+                                #! for i = 0; i < list.count(docs) {
+                                    ref doc = list.obj(docs, i)
+                                    #$ tr
+                                    {
+                                        td{$"#<@@(doc,'$documento')>"}
+                                        td{$"#<@@(doc,'$referencia')>"}
+                                        td{$"#<@@(doc,'$fecha')>"}
+                                        td{$"#<@@(doc,'$proveedor')>"}
+                                        td{$"#<@@(doc,'$vencimiento')>"}
+                                        td{$"#<@@(doc,'$divisa')>"}
+                                        td{$"#<@@(doc,'$tipocambio')>"}
+                                        td{$"#<@@(doc,'$total')>"}
+                                        td{$"#<@@(doc,'$edo_financiero')>"}
+                                        td{$"#<@@(doc,'$forma_pago')>"}
+                                        td{$"#<@@(doc,'$edo_administrativo')>"}
+                                        td(class="no-print")
+                                        {
+                                            div(class="d-flex gap-2 justify-content-center")
+                                            {
+                                                a(href="#<replace(@DOC_PROCESAR, '{_doc}', @@(doc,'sys_pk'))>" class="btn btn-sm btn-light"){$"Procesar"}
+                                                a(href="#<replace(@DOC_CONSULTAR, '{_doc}', @@(doc,'sys_pk'))>" class="btn btn-sm btn-light"){$"Consultar"}
+                                            }
+                                        }
+                                    }
+                                } 
+                            }
+                        }
+                    }
+                    #! a1 = ftext("Mostrando los primeros #<lenght> documentos ordenados por fecha.")
+                    #$ small(class="text-secondary"){$"#<a1>"}
+                }
             }
         }
-
-        p{$"#<@('$error/message')>"}
 
         script
         {$'

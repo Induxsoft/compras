@@ -334,7 +334,7 @@ module "model"
             dvs.codigo AS divisa,
             c.tipocambio,
             IFNULL(c.subtotal,0) AS subtotal,
-            ((((((c.subtotal - c.descuento1) - c.descuento2) + c.impuesto1) + c.impuesto2) + c.impuesto3) + c.impuesto4) AS total,
+            IFNULL((((((c.subtotal - c.descuento1) - c.descuento2) + c.impuesto1) + c.impuesto2) + c.impuesto3) + c.impuesto4,0) AS total,
             sf.const AS edo_financiero,
             fp.const AS forma_pago,
             sa.const AS edo_administrativo
