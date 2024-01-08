@@ -18,6 +18,10 @@ module "config.dk"
 	// Número máximo de filas a mostrar en lista
 	@default_max_rows=250
 
+	// Rutas estáticas (using include)
+	@PATH_DATE_FILTER = "compras/_lib/date_filter.dk"
+	@PATH_PRINT_LIST = "compras/_lib/print_list.dk"
+
 	// Estados administrativos para documentos
 	new @EDO_ADMIN
 	{
