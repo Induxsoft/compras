@@ -23,7 +23,7 @@ var filter =
         if (select_almacn) select_almacn.addEventListener('change', e => this.submit_filter());
         if (radios_submit) radios_submit.forEach(rad => rad.addEventListener('change', e => this.submit_filter()));
         if (month_options) month_options.forEach(opt => opt.addEventListener('change', e => this.submit_filter()));
-        if (input_search) input_search.addEventListener("keydown", (e) => { if (e.key === "Enter") this.submit_filter() });
+        if (input_search) input_search.addEventListener("keydown", (e) => { if (e.key === "Enter" && input_search.value.trim() != "") this.submit_filter() });
         if (btn_search)
         {
             let icon_cancel = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>';
@@ -41,7 +41,9 @@ var filter =
 
             btn_search.addEventListener("click", (event) => {
                 event.preventDefault();
-                if (btn_search.type == "submit") this.submit_filter();
+                if (btn_search.type == "submit") {
+                    if (input_search.value.trim() != "") this.submit_filter();
+                }
                 else
                 {
                     input_search.disabled = false;
