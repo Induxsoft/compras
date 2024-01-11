@@ -40,7 +40,7 @@ module
         // get=parámetros get de la solicitud http para rellenar los valores de los filtros
         // contentBefore=función que pinta contenido html adicional al inicio del encabezado del filtro
         // contentAfter=función que pinta contenido html adicional al final del encabezado del filtro
-        #$ form(action="./" method="GET" id="form_filter" class="no-print")
+        #$ div //form(action="./" method="GET" id="form_filter" class="no-print")
         {
             #! tab = field.dnum(get,"tab",1)
             #$ input(type="hidden" name="tab" value="#<tab>" id="input_tab_selected")

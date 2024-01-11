@@ -11,6 +11,8 @@ var filter =
         const select_almacn = document.querySelector('select[name="almc"]');
         const radios_submit = document.querySelectorAll('.submit');
         const month_options = document.querySelectorAll('#month_options_container input[name="month"]');
+        const input_search = document.getElementById("input_search");
+        const btn_search = document.getElementById("btn_search");
         
         if (opt_date_cont) this.date_range_events(opt_date_cont);
         if (btn_dr_cancel) btn_dr_cancel.addEventListener('click', e => this.edit_date_range(false));
@@ -21,6 +23,33 @@ var filter =
         if (select_almacn) select_almacn.addEventListener('change', e => this.submit_filter());
         if (radios_submit) radios_submit.forEach(rad => rad.addEventListener('change', e => this.submit_filter()));
         if (month_options) month_options.forEach(opt => opt.addEventListener('change', e => this.submit_filter()));
+        if (input_search) input_search.addEventListener("keydown", (e) => { if (e.key === "Enter") this.submit_filter() });
+        if (btn_search)
+        {
+            let icon_cancel = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>';
+            let icon_filter = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel" viewBox="0 0 16 16"><path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z"/></svg>';
+
+            if (input_search.value.trim() != "") {
+                input_search.disabled = true;
+                btn_search.type = "button";
+                btn_search.innerHTML = icon_cancel;
+            }
+            else {
+                input_search.disabled = false;
+                btn_search.type = "submit";
+            }
+
+            btn_search.addEventListener("click", (event) => {
+                event.preventDefault();
+                if (btn_search.type == "submit") this.submit_filter();
+                else
+                {
+                    input_search.disabled = false;
+                    btn_search.type = "submit";
+                    btn_search.innerHTML = icon_filter;
+                }
+            });
+        }
     },
     date_range_events(container)
     {

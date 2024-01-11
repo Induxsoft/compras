@@ -7,8 +7,10 @@ module "list.dk"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
     #include "../_lib/scape_special_charactes2.dk"
-    include @PATH_PRINT_LIST
-    include @PATH_DATE_FILTER
+    // include @PATH_PRINT_LIST
+    // include @PATH_DATE_FILTER
+    #include "../_lib/print_list.dk"
+    #include "../_lib/date_filter.dk"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
@@ -48,16 +50,18 @@ module "list.dk"
         @"gender": "a"
         @"order_by_text": ""
         @"include_date_filter": @true
+        // <a href="#<replace(@DOC_PROCESAR, "{_doc}", @@(row,"sys_pk"))>" class="btn btn-sm btn-light">Procesar</a>
         @"html_cell_actions": '
             <div class="d-flex gap-2 justify-content-center">
-                <a href="#<replace(@DOC_PROCESAR, "{_doc}", @@(row,"sys_pk"))>" class="btn btn-sm btn-light">Procesar</a>
-                <a href="#<replace(@DOC_CONSULTAR, "{_doc}", @@(row,"sys_pk"))>" class="btn btn-sm btn-light">Consultar</a>
+                <a href="#<replace(@DOC_CONSULTAR, "{_doc}", @@(row,"sys_pk"))>" class="btn btn-sm btn-light">Detalles</a>
             </div>
         '
     }
 
     #$ div
     {
+        link(href="#<@CSS_MAIN>" rel="stylesheet")
+        
         #! do print_list(get, data)
     }
 }

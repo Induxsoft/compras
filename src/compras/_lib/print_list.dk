@@ -115,22 +115,22 @@ module
             }
             div(id="work_area" class="container-section mt-1")
             {
-                #! if include_date_filter
-                {
-                    do print_date_filter(GET, @@(odf,"&contentBefore"), @@(odf,"&contentAfter"))
-                }
-                
-                #$ p{$"#<@('$error/message')>"}
+                p{$"#<@('$error/message')>"}
 
-                form(action="./" method="GET" id="form_search" class="d-flex mb-2 no-print")
+                form(action="./" method="GET" id="form_filter" class="no-print my-1")
                 {
-                    input(class="induxsoft-form-control flex-grow-1" type="text" name="s" placeholder="#<search_placeholder>" id="input_search" value='#<@@(GET,"$s")>')
-                    button(class="btn btn-sm btn-primary induxsoft-corners d-flex gap-2 align-items-center") {
-                        $"Buscar"
-                        $"#<@ICON_SEARCH>"
+                    #! if include_date_filter
+                    {
+                        do print_date_filter(GET, @@(odf,"&contentBefore"), @@(odf,"&contentAfter"))
                     }
-                    input(type="hidden" id="input_search_hidden")
-                    input(type="hidden" id="input_search_hidden2")
+                    #$
+
+                    div(class="input-group input-group-sm py-1")
+                    {
+                        input(class="form-control form-control-sm rounded-0 no-blur" type="text" name="s" placeholder="#<search_placeholder>" id="input_search" value='#<@@(GET,"$s")>')
+                        button(class="btn btn-sm btn-primary rounded-0 d-flex gap-2 align-items-center" type="submit" id="btn_search") {$"#<@ICON_FILTER>"}
+                    }
+
                     #! if not(isnull(search_options)) { that search_options } #$
                 }
                 div
