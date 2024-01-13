@@ -7,164 +7,96 @@ module
     #include "uielements.dbtable.dkl"
     #include "serialize.dkh"
 
-    // =============== INFO
-    // iconos usados: 
-    // - @ICON_ARROW_CLOCKWISE: botón de recargar
-    // - @ICON_PRINTER: botón de impresión
-    // - @ICON_X_LG: botón de salir
-    // - @ICON_SEARCH: botón de búsqueda 
-
-    // =============== FUNCIONES
-
-    cell_link_func::&params, &row, &cell
+    function uie.dbeditable(&table_definition)
     {
-        // params=Parámetros de la tabla (def_table)
-        // row=Datos (registro) de la fila
-        // cell=Información de la celda
-        new headers
-        {
-            @"style":"position: sticky !important; top:0 !important; background-color:#FFF;"
-            @"class":"h6"
-        }
-        if @@(cell,"element")=="th"
-        {
-            cell<"attributes*">:headers
-            if @@(cell,"column")=="_actions" { headers<"class">:"h6 text-center no-print" }
-        }
-        if @@(cell,"cell_type")!="data" &&  @@(cell,"cell_type")!="unknow" { return }
-        if @@(cell,"column")=="_actions" && trim(@html_cell_actions) != ''
-        {
-            cell<"text">:ftext(@html_cell_actions)
-        }
-    }
+        ref datatable = @@(table_definition, "&datatable")
+        ref columns = @@(table_definition, "&columns")
+        tableHeight = field.dstr(table_definition, "tableheight", "75vh")
+        tableLeyend = field.dstr(table_definition, "leyend", "Mostrando los primeros # registros ordenados por código")
 
-    point @cell_link to cell_link_func
-
-    // =============== PINTADO DE LA LISTA (TABLA)
-
-    function print_list(&GET, &data)
-    {
-        
-        /*
-            data
+        #$ div
+        {
+            div(style="overflow-y:auto;max-height: #<tableHeight>;" id="list_table_container")
             {
-                table_definition: definición de la tabla
-                header_options: funciones que pintan botones(acciones) adicionales en el encabezado
-                search_placeholder: texto del placeholder para el cuadro de búsqueda
-                title: título de la lista
-                gender: (a=femenino, o=masculino) Género del título 
-                order_by_text: Texto indicativo que describe el campo de ordenación de la lista
-                include_date_filter: (true-false) incluye el fitro de fechas, si es true se debe incluir el archivo filter.js al documento
-                html_cell_actions: Contenido html para las celdas de la columna _actions
-                search_options: referencia a una función que pinta contenidoo HTML después de la barra de búsqueda
-                odf: (Others date filter) Filtros personalizados de fechas
+                "edit-table"(style="width: 100%;" "hidde-selector"="true" data='#<to.json(datatable)>')
                 {
-                    contentBefore: referencia a una función que pinta contenido HTML antes de los filtros de fecha por defecto
-                    contentAfter: referencia a una función que pinta contenido HTML después de los filtros de fecha por defecto
-                }
-            }
-        */
-
-        if isnull(GET) { ref GET = record.create() }
-        do valide_data(data)
-
-        // Init data
-        ref table_definition = @@(data, "&table_definition")
-        ref header_options = @@(data, "&header_options")
-        search_placeholder = field.dstr(data,'search_placeholder','Buscar')
-        title = field.dstr(data, 'title', 'Lista')
-        gender = field.dstr(data, 'gender', 'o')
-        order_by_text = @@(data, "$order_by_text")
-        include_date_filter = parse.bool(field.dnum(data,"include_date_filter", 0))
-        @html_cell_actions = @@(data, "$html_cell_actions")
-        ref search_options = @@(data, "&search_options")
-        new odf 
-        {
-            @"contentBefore*": @null
-            @"contentAfter*": @null
-        }
-        using table_definition
-        {
-            @"before_cell*": @cell_link
-            @"build_array": @true
-            member @"attributes" { @"class":"table table-hover" }
-        }
-        if field.exist(data,"odf") && not(isnull(@@(data,"&odf")))
-        {
-            if field.exist(data,"odf/contentBefore"){ odf<"contentBefore*">: @@(data,"&odf/contentBefore") }
-            if field.exist(data,"odf/contentAfter"){ odf<"contentAfter*">: @@(data,"&odf/contentAfter") }
-        }
-
-        #$
-        div(class="container p-0")
-        {
-            div(id="main_bar" class="row container-section my-2 px-0 py-2 border-bottom")
-            {
-                div(class="col-4 d-flex align-items-center p-0")
-                {
-                    h5(class="tex-no-break m-0"){$"#<title>"}
-                }
-                div(class="col-8 d-flex align-items-center justify-content-end p-0 gap-2")
-                {
-                    a(href="#" onclick="window.location.reload();" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
-                    // Otros botones en el encabezado
-                    #! if not(isnull(header_options)) { that header_options } #$
-                    button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Imprimir" onclick="window.print()"){$"#<@ICON_PRINTER>"}
-                    a(href="/" target="_top" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Salir" id="btn_go_back"){$"#<@ICON_X_LG>"}
-                }
-            }
-            div(id="work_area" class="container-section mt-1")
-            {
-                p{$"#<@('$error/message')>"}
-
-                form(action="./" method="GET" id="form_filter" class="no-print my-1")
-                {
-                    #! if include_date_filter
+                    "edit-thead"
                     {
-                        do print_date_filter(GET, @@(odf,"&contentBefore"), @@(odf,"&contentAfter"))
-                    }
-                    #$
-
-                    div(class="input-group input-group-sm py-1")
-                    {
-                        input(class="form-control form-control-sm rounded-0 no-blur" type="text" name="s" placeholder="#<search_placeholder>" id="input_search" value='#<@@(GET,"$s")>')
-                        button(class="btn btn-sm btn-primary rounded-0 d-flex gap-2 align-items-center" type="submit" id="btn_search") {$"#<@ICON_FILTER>"}
-                    }
-
-                    #! if not(isnull(search_options)) { that search_options } #$
-                }
-                div
-                {
-                    div(style="overflow-y:auto;max-height: 75vh;" class="mb-2" id="list_table_container")
-                    {
-                        #! do uie.dbtable(table_definition)
-                    }
-                    
-                    lenght = @count(@@(table_definition,"&array_data"))
-                    
-                    if lenght <= 0
-                    {
-                        message = ""
-                        if field.exist(GET,"s") && @@(GET,"$s") == "" { message = "Sin registros." }
-                        else { message = "Sin resultados." }
-                        
-                        #$ div(class="text-center") {
-                            h6(style="background-color: #F5F5F5; padding: 10rem 0;"){"#<message>"}
+                        "edit-tr"
+                        {
+                            #! 
+                            ref cols = @@(table_definition,"&columns")
+                            go foreach.fobj(index:i, key:key, value:value) with(cols)
+                            {
+                                #$ "edit-th"("type"="NoEditable" "field"="#<key>"){$"#<@@(value,'caption')>"}
+                            }
                         }
                     }
-                    #! else 
-                    {
-                        txt = ftext("Mostrando l#<gender>s primer#<gender>s #<lenght> #<title> ordenad#<gender>s por #<order_by_text>.")
-                        #$ small(class="text-secondary"){$"#<a1>"}
-                    }
                 }
+            }
+            
+            #! lenght = list.count(datatable)
+            
+            if lenght <= 0
+            {
+                message = "Sin resultados"
+                // if field.exist(get,"s") && @@(get,"$s") == "" { message = "Sin registros." }
+                // else { message = "Sin resultados." }
+                
+                #$ div(class="text-center") { h6(style="background-color: #F5F5F5; padding: 10rem 0;"){"#<message>"} }
+            }
+            #! else {
+                #$ small(class="text-secondary"){$"#<replace(tableLeyend,'#',lenght)>"}
             }
         }
     }
 
-    #! function valide_data(&data)
+    #! function printMainBar(&buttons, title, printer)
     {
-        if isnull(data) { do rise_error() }
-        if isnull(@@(data, "&table_definition")) { do rise_error(0, "El campo 'data/table_definition' es requerido") }
+        // buttons: Referencia a una función que imprime otros botones en el encabezado
+        // title: Texto del encabezado
+        // printer: (true/false) Pinta el botón de impresión en el encabezado
+
+        #$ div(id="main_bar" class="row container-section my-2 px-0 py-2 border-bottom")
+        {
+            div(class="col-4 d-flex align-items-center p-0")
+            {
+                h5(class="tex-no-break m-0"){$"#<title>"}
+            }
+            div(class="col-8 d-flex align-items-center justify-content-end p-0 gap-2")
+            {
+                a(href="#" onclick="window.location.reload();" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
+                
+                #! if not(isnull(buttons)) { that buttons } 
+                
+                if isset("printer") && parse.bool(printer) 
+                {
+                    #$ button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Imprimir" onclick="window.print()"){$"#<@ICON_PRINTER>"}
+                }
+                a(href="/" target="_top" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Salir" id="btn_go_back"){$"#<@ICON_X_LG>"}
+            }
+        }
     }
+
+    // =============== ICONS
+    #! text @ICON_ARROW_CLOCKWISE
+    {$'
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
+            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+        </svg>
+    '}
+    text @ICON_PRINTER
+    {$'
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-printer" viewBox="0 0 16 16">
+            <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/>
+            <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1"/>
+        </svg>
+    '}
+    text @ICON_X_LG
+    {$'
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+        </svg>
+    '}
 }

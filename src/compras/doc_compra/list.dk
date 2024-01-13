@@ -6,21 +6,28 @@ module "list.dk"
     #include "serialize.dkh"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
-    #include "../_lib/scape_special_charactes2.dk"
-    // include @PATH_PRINT_LIST
-    // include @PATH_DATE_FILTER
     #include "../_lib/print_list.dk"
-    #include "../_lib/date_filter.dk"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
     ref get = @@(@http_context,"&request/get")
     ref docs = @('&.')
-    do scape_special_charactes(docs,"referencia")
+
+    for i = 0; i < list.count(docs)
+    {
+        ref doc = list.obj(docs,i)
+        link = replace(@DOC_CONSULTAR, "{_doc}", @@(doc,"sys_pk"))
+        doc<"_actions">: ftext('
+            <div class="d-flex gap-2 justify-content-center">
+                <a href="#<link>" style="cursor:pointer; text-decoration: none; padding: 4px 8px; background-color: #F5F5F5;">Detalles</a>
+            </div>
+        ')
+    }
 
     new table_definition
     {
         @"datatable*": docs
+        @"leyend": "Mostrando las primeras # compras ordenadas por fecha"
         member @"columns"
         {
             member @"documento" { @"caption":"Documento" }
@@ -39,29 +46,58 @@ module "list.dk"
     }
 
     ho:: { #$ a(href="#<@DOC_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Agregar"} #! }
-    point header_options to ho
-
-    new data
-    {
-        @"table_definition*": table_definition
-        @"header_options*": header_options
-        @"search_placeholder": "Buscar por referencia"
-        @"title": "Compras"
-        @"gender": "a"
-        @"order_by_text": ""
-        @"include_date_filter": @true
-        // <a href="#<replace(@DOC_PROCESAR, "{_doc}", @@(row,"sys_pk"))>" class="btn btn-sm btn-light">Procesar</a>
-        @"html_cell_actions": '
-            <div class="d-flex gap-2 justify-content-center">
-                <a href="#<replace(@DOC_CONSULTAR, "{_doc}", @@(row,"sys_pk"))>" class="btn btn-sm btn-light">Detalles</a>
-            </div>
-        '
-    }
+    point general_act to ho
 
     #$ div
     {
         link(href="#<@CSS_MAIN>" rel="stylesheet")
         
-        #! do print_list(get, data)
+        div(class="container p-0")
+        {
+            #! do printMainBar(general_act, "Compras", @true)
+
+            #$ div(id="work_area" class="container-section mt-1")
+            {
+                p{$"#<@('$error/message')>"}
+
+                form(action="./" method="GET" id="form_filter" class="no-print my-1")
+                {
+                    "filter-date-range"(
+                        "mode-field"="filter-mode"
+                        "year-field"="year"
+                        "month-field"="month"
+                        "range-field"="range"
+                        "from-field"="datefrom"
+                        "to-field"="dateto"
+                        "selection"='#<to.json(get)>'
+                        "lastdays-options"="15,30,45,60,90"
+                        "years-options"="2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024"
+                        "custom-range"="true"
+                        "form"="#form_filter"
+                        "auto-submit"="true"
+                        "label-months"="Ver por cada mes"
+                        "label-days"="Últ. @lastdays días"
+                        "label-custom"="Personalizado"
+                        "label-from"="Desde:"
+                        "label-to"="Hasta:"
+                        "month-names"="Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre"
+                    ){$""}
+                    script{$'console.log(#<to.json(get)>)'}
+                    div(class="input-group input-group-sm py-1 w-100")
+                    {
+                        "filter-text"(
+                            "id"="micontrol10"
+                            "text-field"="s"
+                            "placeholder"="Buscar por referencia"
+                            "form"="#form_filter"
+                            "value"="#<@@(get,'$s')>"
+                            "auto-submit"="true"
+                            "class"="w-100"
+                        ){$""}
+                    }
+                }
+                #! do uie.dbeditable(table_definition)
+            }
+        }
     }
 }
