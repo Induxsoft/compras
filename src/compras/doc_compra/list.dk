@@ -8,7 +8,7 @@ module "list.dk"
     #include "uielements.dkl"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
-    #include "../_lib/print_list.dk"
+    #include "uielements.v12.dkl"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
@@ -16,9 +16,9 @@ module "list.dk"
     ref get = @@(@http_context,"&request/get")
     ref docs = @('&./docs')
 
-    get<"filter-mode">: field.dstr(get, "filter-mode", "month")
-    get<"year">: field.dnum(get, "year", ndatetime.year(ndatetime.now()))
-    get<"month">: field.dnum(get, "month", ndatetime.month(ndatetime.now()))
+    get<"filter-mode">: ifstr(trim(@@(get,"filter-mode"))!="", @@(get,"filter-mode"), "month")
+    get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
+    get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
 
     new def_doc
     {
@@ -101,7 +101,7 @@ module "list.dk"
         
         div(class="container p-0")
         {
-            #! do printMainBar(general_act, "Compras", @true)
+            #! do uie.printMainBar(general_act, "Compras", @true)
 
             #$ div(id="work_area" class="container-section mt-1")
             {
@@ -111,14 +111,14 @@ module "list.dk"
                 {
                     div(class="d-flex align-items-center")
                     {
-                        // div
-                        // {
-                        //     select(class="induxsoft-form-select")
-                        //     {
-                        //         option{$"Emisión"}
-                        //         option{$"Vencimiento"}
-                        //     }
-                        // }
+                        div
+                        {
+                            select(class="induxsoft-form-select" name="tdate" onchange="document.querySelector('#form_filter').submit();")
+                            {
+                                option(value="0" "#<ifstr(@@(get,'$tdate')=='0','selected','')>"="true"){$"Emisión"}
+                                option(value="1" "#<ifstr(@@(get,'$tdate')=='1','selected','')>"="true"){$"Vencimiento"}
+                            }
+                        }
                         div(class="flex-grow-1")
                         {
                             "filter-date-range"(
@@ -178,7 +178,7 @@ module "list.dk"
                         }
                     }
                 }
-                #! do uie.dbeditable(table_definition)
+                #! do uie.dbeditable(table_definition,"")
             }
         }
     }

@@ -322,8 +322,8 @@ module "model"
 
     doc.list::&db,&params
     {
-        params<"year">: field.dnum(params, "year", ndatetime.year(ndatetime.now()))
-        params<"month">: field.dnum(params, "month", ndatetime.month(ndatetime.now()))
+        params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
+        params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))
 
         sql = "
         SELECT
@@ -348,11 +348,11 @@ module "model"
             INNER JOIN cformaspago AS fp ON fp.id = c.formapago
             INNER JOIN cstatusfinancieros AS sf ON sf.id = c.statusfinanciero
             INNER JOIN cstatusadministrativos AS sa ON sa.id = c.statusadministrativo
-        WHERE IF(IFNULL(@year,'')='', true, YEAR(c.fecha)=@year)
-            AND IF(IFNULL(@month,'')='', true, (YEAR(c.fecha)=IFNULL(@year,YEAR(NOW())) AND MONTH(c.fecha)=@month))
+        WHERE IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento))=@year)
+            AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento))=@month))
             AND IF(IFNULL(@s,'')='', true, c.referencia LIKE CONCAT('%',@s,'%') OR pdr.codigo LIKE CONCAT('%',@s,'%') OR pdr.nombre LIKE CONCAT('%',@s,'%'))
-            AND IF(IFNULL(@range,'-99')='-99', true, (DATE(c.fecha) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
-            AND IF(IFNULL(@datefrom,'')='', true, (DATE(c.fecha) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+            AND IF(IFNULL(@range,'-99')='-99', true, (DATE(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento)) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
+            AND IF(IFNULL(@datefrom,'')='', true, (DATE(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento)) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
             AND IF(IFNULL(@cdoc,'-1')='-1', true, doc.id = @cdoc)
             AND IF(IFNULL(@stat_finac,'-1')='-1', true, sf.id = @stat_finac)
             AND IF(IFNULL(@stat_admin,'-1')='-1', true, sa.id = @stat_admin)
