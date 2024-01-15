@@ -4,22 +4,69 @@ module "list.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "uielements.dkl"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
     #include "../_lib/print_list.dk"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
+    ref db = @("&database")
     ref get = @@(@http_context,"&request/get")
-    ref docs = @('&.')
+    ref docs = @('&./docs')
+
+    get<"filter-mode">: field.dstr(get, "filter-mode", "month")
+    get<"year">: field.dnum(get, "year", ndatetime.year(ndatetime.now()))
+    get<"month">: field.dnum(get, "month", ndatetime.month(ndatetime.now()))
+
+    new def_doc
+    {
+        @"datatable*": @('&./cdocumentos')
+        member "attributes"
+        {
+            @"name": "cdoc"
+            @"class": "induxsoft-form-select"
+            @"onchange": "document.querySelector('#form_filter').submit();"
+        }
+        @"text_field": "const"
+        @"value_field": "id"
+        @"selected": field.dstr(get, "cdoc", "-1")
+    }
+    new def_status_finc
+    {
+        @"datatable*": @('&./cstatusFinc')
+        member "attributes"
+        {
+            @"name": "stat_finac"
+            @"class": "induxsoft-form-select"
+            @"onchange": "document.querySelector('#form_filter').submit();"
+        }
+        @"text_field": "const"
+        @"value_field": "id"
+        @"selected": field.dstr(get, "stat_finac", "-1")
+    }
+    new def_status_admin
+    {
+        @"datatable*": @('&./cstatusAdmn')
+        member "attributes"
+        {
+            @"name": "stat_admin"
+            @"class": "induxsoft-form-select"
+            @"onchange": "document.querySelector('#form_filter').submit();"
+        }
+        @"text_field": "const"
+        @"value_field": "id"
+        @"selected": field.dstr(get, "stat_admin", "-1")
+    }
 
     for i = 0; i < list.count(docs)
     {
         ref doc = list.obj(docs,i)
         link = replace(@DOC_CONSULTAR, "{_doc}", @@(doc,"sys_pk"))
         doc<"_actions">: ftext('
-            <div class="d-flex gap-2 justify-content-center">
-                <a href="#<link>" style="cursor:pointer; text-decoration: none; padding: 4px 8px; background-color: #F5F5F5;">Detalles</a>
+            <div class="d-flex gap-2 justify-content-center no-print">
+                <a href="#<link>" style="cursor:pointer; text-decoration: none; padding: 4px 8px; background-color: #F5F5F5; color: #000;">Detalles</a>
             </div>
         ')
     }
@@ -62,38 +109,73 @@ module "list.dk"
 
                 form(action="./" method="GET" id="form_filter" class="no-print my-1")
                 {
-                    "filter-date-range"(
-                        "mode-field"="filter-mode"
-                        "year-field"="year"
-                        "month-field"="month"
-                        "range-field"="range"
-                        "from-field"="datefrom"
-                        "to-field"="dateto"
-                        "selection"='#<to.json(get)>'
-                        "lastdays-options"="15,30,45,60,90"
-                        "years-options"="2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024"
-                        "custom-range"="true"
-                        "form"="#form_filter"
-                        "auto-submit"="true"
-                        "label-months"="Ver por cada mes"
-                        "label-days"="Últ. @lastdays días"
-                        "label-custom"="Personalizado"
-                        "label-from"="Desde:"
-                        "label-to"="Hasta:"
-                        "month-names"="Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre"
-                    ){$""}
-                    script{$'console.log(#<to.json(get)>)'}
-                    div(class="input-group input-group-sm py-1 w-100")
+                    div(class="d-flex align-items-center")
                     {
-                        "filter-text"(
-                            "id"="micontrol10"
-                            "text-field"="s"
-                            "placeholder"="Buscar por referencia"
-                            "form"="#form_filter"
-                            "value"="#<@@(get,'$s')>"
-                            "auto-submit"="true"
-                            "class"="w-100"
-                        ){$""}
+                        // div
+                        // {
+                        //     select(class="induxsoft-form-select")
+                        //     {
+                        //         option{$"Emisión"}
+                        //         option{$"Vencimiento"}
+                        //     }
+                        // }
+                        div(class="flex-grow-1")
+                        {
+                            "filter-date-range"(
+                                "mode-field"="filter-mode"
+                                "year-field"="year"
+                                "month-field"="month"
+                                "range-field"="range"
+                                "from-field"="datefrom"
+                                "to-field"="dateto"
+                                "selection"='#<to.json(get)>'
+                                "lastdays-options"="15,30,45,60,90"
+                                "years-options"="2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024"
+                                "custom-range"="true"
+                                "form"="#form_filter"
+                                "auto-submit"="true"
+                                "label-months"="Ver por cada mes"
+                                "label-days"="Últ. @lastdays días"
+                                "label-custom"="Personalizado"
+                                "label-from"="Desde:"
+                                "label-to"="Hasta:"
+                                "month-names"="Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre"
+                            ){$""}
+                        }
+                    }
+
+                    div(class="py-1 w-100 d-flex gap-2 flex-wrap align-items-center")
+                    {
+                        div(class="d-flex gap-2")
+                        {
+                            div
+                            {
+                                #! do uie.dbSelect(def_doc) 
+                                #$
+                            }
+                            div
+                            {
+                                #! do uie.dbSelect(def_status_finc) 
+                                #$
+                            }
+                            div
+                            {
+                                #! do uie.dbSelect(def_status_admin) 
+                                #$
+                            }
+                        }
+                        div(class="flex-grow-1")
+                        {
+                            #$ "filter-text"(
+                                "id"="micontrol10"
+                                "text-field"="s"
+                                "placeholder"="Buscar por referencia"
+                                "form"="#form_filter"
+                                "value"="#<@@(get,'$s')>"
+                                "auto-submit"="true"
+                                "class"="w-100"
+                            ){$""}
+                        }
                     }
                 }
                 #! do uie.dbeditable(table_definition)

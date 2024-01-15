@@ -28,7 +28,8 @@ module
                             ref cols = @@(table_definition,"&columns")
                             go foreach.fobj(index:i, key:key, value:value) with(cols)
                             {
-                                #$ "edit-th"("type"="NoEditable" "field"="#<key>"){$"#<@@(value,'caption')>"}
+                                class = ifstr(key!="_actions","","no-print")
+                                #$ "edit-th"("type"="NoEditable" "field"="#<key>" class="#<class>"){$"#<@@(value,'caption')>"}
                             }
                         }
                     }

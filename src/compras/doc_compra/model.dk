@@ -322,6 +322,9 @@ module "model"
 
     doc.list::&db,&params
     {
+        params<"year">: field.dnum(params, "year", ndatetime.year(ndatetime.now()))
+        params<"month">: field.dnum(params, "month", ndatetime.month(ndatetime.now()))
+
         sql = "
         SELECT
             c.sys_pk,
@@ -347,13 +350,32 @@ module "model"
             INNER JOIN cstatusadministrativos AS sa ON sa.id = c.statusadministrativo
         WHERE IF(IFNULL(@year,'')='', true, YEAR(c.fecha)=@year)
             AND IF(IFNULL(@month,'')='', true, (YEAR(c.fecha)=IFNULL(@year,YEAR(NOW())) AND MONTH(c.fecha)=@month))
-            AND IF(IFNULL(@s,'')='', true, c.referencia LIKE CONCAT('%',@s,'%'))
+            AND IF(IFNULL(@s,'')='', true, c.referencia LIKE CONCAT('%',@s,'%') OR pdr.codigo LIKE CONCAT('%',@s,'%') OR pdr.nombre LIKE CONCAT('%',@s,'%'))
             AND IF(IFNULL(@range,'-99')='-99', true, (DATE(c.fecha) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
             AND IF(IFNULL(@datefrom,'')='', true, (DATE(c.fecha) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+            AND IF(IFNULL(@cdoc,'-1')='-1', true, doc.id = @cdoc)
+            AND IF(IFNULL(@stat_finac,'-1')='-1', true, sf.id = @stat_finac)
+            AND IF(IFNULL(@stat_admin,'-1')='-1', true, sa.id = @stat_admin)
         ORDER BY c.fecha
         LIMIT #<@default_max_rows>;"
 
-        return dbr.list(db, ftext(sql), params)
+        sql_cdocumentos = "SELECT d.id, d.const FROM cdocumentos d INNER JOIN cfg_doc_compras dc ON d.id=dc.documento ORDER BY d.id;"
+        sql_cstatusAdmn = "SELECT id, const FROM cstatusadministrativos ORDER BY id;"
+        sql_cstatusFinc = "SELECT id, const FROM cstatusfinancieros ORDER BY id;"
+
+        ref cdocumentos = dbr.list(db, sql_cdocumentos, @null)
+        ref cstatusAdmn = dbr.list(db, sql_cstatusAdmn, @null)
+        ref cstatusFinc = dbr.list(db, sql_cstatusFinc, @null)
+
+        new response
+        {
+            @"docs*": dbr.list(db, ftext(sql), params)
+            @"cdocumentos*": prepare_filter(cdocumentos)
+            @"cstatusAdmn*": prepare_filter(cstatusAdmn)
+            @"cstatusFinc*": prepare_filter(cstatusFinc)
+        }
+
+        return response
     }
 
     doc.read::&db,&params
@@ -368,5 +390,16 @@ module "model"
         new data {}
         do doc.prepareView(db,params,data)
         return data
+    }
+
+    prepare_filter::list
+    {
+        new record
+        {
+            @"id": "-1"
+            @"const": "Todos"
+        }
+        do list.ins(list, 0, record)
+        return list
     }
 }
