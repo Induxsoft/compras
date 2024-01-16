@@ -65,8 +65,8 @@ module "list.dk"
         ref doc = list.obj(docs,i)
         link = replace(@DOC_CONSULTAR, "{_doc}", @@(doc,"sys_pk"))
         doc<"_actions">: ftext('
-            <div class="d-flex gap-2 justify-content-center no-print">
-                <a href="#<link>" style="cursor:pointer; text-decoration: none; padding: 4px 8px; background-color: #F5F5F5; color: #000;">Detalles</a>
+            <div class="no-print" style="display:flex;justify-content:center;align-items: center; gap: 6px;">
+                <a href="#<link>" style="cursor:pointer; text-decoration: none; padding: 0px 8px; background-color: #F5F5F5; color: #000;">Detalles</a>
             </div>
         ')
     }
@@ -99,15 +99,15 @@ module "list.dk"
     {
         link(href="#<@CSS_MAIN>" rel="stylesheet")
         
-        div(class="container p-0")
+        div(class="container-fluid p-0")
         {
             #! do uie.printMainBar(general_act, "Compras", @true, "")
 
-            #$ div(id="work_area" class="container-section mt-1")
+            #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
             {
                 p{$"#<@('$error/message')>"}
 
-                form(action="./" method="GET" id="form_filter" class="no-print my-1")
+                form(action="./" method="GET" id="form_filter" class="no-print mb-1")
                 {
                     div(class="d-flex align-items-center")
                     {
@@ -178,7 +178,7 @@ module "list.dk"
                         }
                     }
                 }
-                #! do uie.dbeditable(table_definition,"")
+                #! do uie.dbeditable(table_definition,"table_compras")
             }
         }
     }
