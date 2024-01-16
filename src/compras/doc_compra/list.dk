@@ -101,7 +101,7 @@ module "list.dk"
         
         div(class="container p-0")
         {
-            #! do uie.printMainBar(general_act, "Compras", @true)
+            #! do uie.printMainBar(general_act, "Compras", @true, "")
 
             #$ div(id="work_area" class="container-section mt-1")
             {
