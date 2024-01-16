@@ -169,7 +169,7 @@ module "list.dk"
                             #$ "filter-text"(
                                 "id"="micontrol10"
                                 "text-field"="s"
-                                "placeholder"="Buscar por referencia"
+                                "placeholder"="Referencia del documento, nombre, código o RFC del proveedor"
                                 "form"="#form_filter"
                                 "value"="#<@@(get,'$s')>"
                                 "auto-submit"="true"

@@ -350,7 +350,7 @@ module "model"
             INNER JOIN cstatusadministrativos AS sa ON sa.id = c.statusadministrativo
         WHERE IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento))=@year)
             AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento))=@month))
-            AND IF(IFNULL(@s,'')='', true, c.referencia LIKE CONCAT('%',@s,'%') OR pdr.codigo LIKE CONCAT('%',@s,'%') OR pdr.nombre LIKE CONCAT('%',@s,'%'))
+            AND IF(IFNULL(@s,'')='', true, c.referencia LIKE CONCAT('%',@s,'%') OR pdr.codigo LIKE CONCAT('%',@s,'%') OR pdr.nombre LIKE CONCAT('%',@s,'%') OR pdr.rfc LIKE CONCAT('%',@s,'%'))
             AND IF(IFNULL(@range,'-99')='-99', true, (DATE(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento)) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
             AND IF(IFNULL(@datefrom,'')='', true, (DATE(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento)) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
             AND IF(IFNULL(@cdoc,'-1')='-1', true, doc.id = @cdoc)
