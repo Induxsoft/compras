@@ -71,7 +71,7 @@ module "model"
         if cur_edo == @@(@EDO_ADMIN,"cCANCELADO") { do rise_error(99,"No es posible continuar, el documento se encuentra cancelado.") }
         if not(valid_doc) { do rise_error(99,"No es posible procesar el tipo de documento seleccionado.") }
         if not(valid_status) { do rise_error(99,"Estado inválido, el documento no puede ser procesado.") }
-        if not(AppExist(db,"movinv")) { do rise_error(500,"No es posible continuar, es necesario instalar la aplicacion `inventario`. Instale e intente nuevamente.") }
+        if not(AppExist(db,"inventario")) { do rise_error(500,"No es posible continuar, es necesario instalar la aplicacion `inventario`. Instale e intente nuevamente.") }
         if not(AppExist(db,"efectivo")) { do rise_error(500,"No es posible continuar, es necesario instalar la aplicacion `efectivo`. Instale e intente nuevamente.") }
         if not(AppExist(db,"cxp")) { do rise_error(500,"No es posible continuar, es necesario instalar la aplicacion `cxp`. Instale e intente nuevamente.") }
 
