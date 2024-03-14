@@ -201,11 +201,11 @@ document.addEventListener("DOMContentLoaded", () =>
         if (!detalle) return ok;
 
         detalle.forEach(d=>{
-            if (ok && Number(d.reqlote??0) && (d.edt_lote??'').trim() == ''){
+            if (!compras_lotes_inhab && ok && Number(d.reqlote??0) && (d.edt_lote??'').trim() == ''){
                 ok = false;
                 alert(`No se puede continuar, el producto: ${d.edt_codigo}-${d.edt_descripcion} requiere un número de lote`);
             }
-            if (ok && Number(d.reqserie??0) && (d.edt_serie??'').trim() == ''){
+            if (!compras_lotes_inhab && ok && Number(d.reqserie??0) && (d.edt_serie??'').trim() == ''){
                 ok = false;
                 alert(`No se puede continuar, el producto: ${d.edt_codigo}-${d.edt_descripcion} requiere un número de serie`);
             }

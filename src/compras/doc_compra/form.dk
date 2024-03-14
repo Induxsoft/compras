@@ -316,6 +316,9 @@ module "doc.pedido.dk"
                 const THOUSANDS_SEPARATOR = "#<@THOUSANDS_SEPARATOR>";
                 const DECIMAL_SEPARATOR = "#<@DECIMAL_SEPARATOR>";
                 const DECIMAL_PRECISION = #<@DECIMAL_PRECISION>;
+
+                const compras_lotes_inhab = #<@compras_lotes_inhab>;
+                const compras_series_inhab = #<@compras_series_inhab>;
             '}
             script(src="#<@JS_COMPRAS>"){""}
         }
