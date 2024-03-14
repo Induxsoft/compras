@@ -93,7 +93,8 @@ module "query_list.dk"
         IFNULL(p.factord,0) AS factord,
         IFNULL(p.factore,0) AS factore,
         p.reqlote,
-        p.reqserie
+        p.reqserie,
+        IFNULL(d.sys_info,'') sys_info
     FROM dcompra d
         INNER JOIN producto p ON p.sys_pk = d.iproducto
         INNER JOIN cfgimpuesto i ON i.sys_pk = p.impuestos
@@ -150,7 +151,9 @@ module "query_list.dk"
         IFNULL(imp.uf_tipoi3,'') AS i3_txt,
         (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i3compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i3_tasa,
         IFNULL(imp.uf_tipoi4,'') AS i4_txt,
-        (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i4compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i4_tasa
+        (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i4compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i4_tasa,
+        IFNULL(p.reqlote,0) reqlote,
+        IFNULL(p.reqserie,0) reqserie
     FROM producto AS p
         INNER JOIN divisa AS dvs ON dvs.sys_pk = p.idivisa
         INNER JOIN cfgimpuesto AS imp ON imp.sys_pk = p.impuestos

@@ -52,7 +52,7 @@ module "model"
                     params<"iproveedor"> : @@(compra,"#iproveedor")
                     ref dtprov = doc.buscarProveedor(db,params)
                     params<"zimpuesto"> : @@(dtprov,"#zimpuesto")
-                    ref dcompra = dbr.list(db,@child_query,params)
+                    ref dcompra = doc.searchSerieLote(db,dbr.list(db,@child_query,params))
                     
                     data<"dtprov*"> : dtprov
                     data<"compra*"> : compra
@@ -121,7 +121,7 @@ module "model"
                 @"keyfield": "sys_pk"
                 @"table": "dcompra"
                 @"select_query": "SELECT NULL"
-                @"fields": "cantidad,costototal,descuento1,descuento2,factor,impuesto1,impuesto2,impuesto3,impuesto4,notas,precio,status,tipocambio,unidad,xfacturar,iproducto"
+                @"fields": "sys_info,cantidad,costototal,descuento1,descuento2,factor,impuesto1,impuesto2,impuesto3,impuesto4,notas,precio,status,tipocambio,unidad,xfacturar,iproducto"
             }
         }
 
@@ -133,7 +133,7 @@ module "model"
 
         @use_transaction = @false
         do dbr.begin(db)
-        do doc.addSerieLote(db,data)
+        do doc.addSerieLote(db,compra)
         ref entity = entity.create(db,params,compra)
         // Actualizar totales
         codeblock
@@ -191,7 +191,7 @@ module "model"
                 @"keyfield": "sys_pk"
                 @"table": "dcompra"
                 @"select_query": "SELECT NULL"
-                @"fields": "sys_pk,sys_recver,cantidad,costototal,descuento1,descuento2,factor,impuesto1,impuesto2,impuesto3,impuesto4,notas,precio,status,tipocambio,unidad,xfacturar,iproducto"
+                @"fields": "sys_pk,sys_recver,sys_info,cantidad,costototal,descuento1,descuento2,factor,impuesto1,impuesto2,impuesto3,impuesto4,notas,precio,status,tipocambio,unidad,xfacturar,iproducto"
             }
         }
 
@@ -202,6 +202,7 @@ module "model"
                 if nvo_status_admin == cNO_APLICA || nvo_status_admin == cABIERTO || nvo_status_admin == cCERRADO {
                     do dbr.begin(db)
                     // Actualizar todos los campos
+                    do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
                     do dbr.commit(db)
@@ -210,7 +211,7 @@ module "model"
                     compra<"statusadministrativo"> : cCERRADO
                     do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
-                    do doc.addSerieLote(db,data)
+                    do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
                     do dbr.commit(db)
@@ -222,6 +223,7 @@ module "model"
                     compra<"statusadministrativo"> : cCERRADO
                     do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
+                    do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
                     do dbr.commit(db)
@@ -238,6 +240,7 @@ module "model"
                 if nvo_status_admin == cABIERTO || nvo_status_admin == cCERRADO {
                     do dbr.begin(db)
                     // Actualizar todos los campos
+                    do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
                     do dbr.commit(db)
@@ -246,7 +249,7 @@ module "model"
                     compra<"statusadministrativo"> : cCERRADO
                     do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
-                    do doc.addSerieLote(db,data)
+                    do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
                     do dbr.commit(db)
@@ -258,6 +261,7 @@ module "model"
                     compra<"statusadministrativo"> : cCERRADO
                     do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
+                    do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
                     do dbr.commit(db)
@@ -275,6 +279,7 @@ module "model"
                     @use_transaction = @true
                     do _free(@childs)
                     // Actualizar `statusadministrativo`
+                    do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,data)
                 }
                 else if nvo_status_admin == cPROCESADO {
@@ -408,64 +413,99 @@ module "model"
 
     doc.addSerieLote::&db,&detalle
     {
-        // ref products = @@(detalle,"&_detalle")
-        // if isnull(products) return
+        ref products = @@(detalle,"&_detalle")
+        if isnull(products) { return }
         
-        // for i = 0; i < list.count(products)
-        // {
-        //     ref prod = list.obj(products,i)
-        //     ref data = record.create()
-        //     sys_info = ""
+        for i = 0; i < list.count(products)
+        {
+            ref prod = list.obj(products,i)
+            ref data = record.create()
+            sys_info = ""
 
-        //     //=============== LOTES
-        //     if @@(prod,"$edt_lote") != ""
-        //     {
-        //         ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,0,1) used_error, numero FROM lote WHERE numero=@edt_lote LIMIT;")
-        //         if not(isnull(exist))
-        //         {
-        //             if @@(exist,"#used_error") { do rise_error(99,"El lote:"+@@(exist,"numero")+" del producto"+@@(prod,"$edt_descripcion")+" ya está asignado a un producto diferente, indique un nuevo lote para este producto") }
-        //             else { data<"lote">: @@(exist,"#sys_pk") }
-        //         }
-        //         else 
-        //         {
-        //             new prm{ @"id":uuid() }
-        //             new lote
-        //             {
-        //                 @"sys_guid": @@(prm,"id")
-        //                 @"sys_timestamp*": dbr.sql("NOW()")
-        //                 @"numero":  @@(prod,"edt_lote")
-        //                 @"iproducto": @@(prod,"iproducto")
-        //                 @"fcaducidad": @@(prod,"$edt_fcad")
-        //             }
-        //             if @@(lote,"$fcaducidad") == "" { lote<"fcaducidad*">: @null }
-        //             do dbr.insert(db,"lote",lote)
-        //             data<"lote">: dbr.num(db,"SELECT sys_pk FROM lote WHERE sys_guid=@id", prm)
-        //         }
-        //     }
-            
-        //     //=============== SERIES
-        //     ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,0,1) used_error, numero FROM serie WHERE numero=@edt_serie LIMIT;")
-        //     if not(isnull(exist))
-        //     {
-        //         if @@(exist,"#used_error") { do rise_error(99,"La serie:"+@@(exist,"numero")+" del producto"+@@(prod,"$edt_descripcion")+" ya está asignado a un producto diferente, indique una nueva serie para este producto") }
-        //         else { data<"serie">: @@(exist,"#sys_pk") }
-        //     }
-        //     else 
-        //     {
-        //         new prm{ @"id":uuid() }
-        //         new serie
-        //         {
-        //             @"sys_guid": @@(prm,"id")
-        //             @"sys_timestamp*": dbr.sql("NOW()")
-        //             @"numero":  @@(prod,"edt_lote")
-        //             @"status": 1
-        //             @"iproducto": @@(prod,"iproducto")
-        //         }
-        //         do dbr.insert(db,"serie",serie)
-        //         data<"serie">: dbr.num(db,"SELECT sys_pk FROM serie WHERE sys_guid=@id", prm)
-        //     }
+            //=============== LOTES
+            if @@(prod,"$edt_lote") != ""
+            {
+                ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,0,1) used_error, numero FROM lote WHERE numero=@edt_lote LIMIT 1;",prod)
+                if not(isnull(exist))
+                {
+                    if @@(exist,"#used_error") { do rise_error(99,"El lote:"+@@(exist,"numero")+" del producto"+@@(prod,"$edt_descripcion")+" ya está asignado a un producto diferente, indique un nuevo lote para este producto") }
+                    else { data<"lote">: @@(exist,"#sys_pk") }
+                }
+                else 
+                {
+                    new prm{ @"id":uuid() }
+                    new lote
+                    {
+                        @"sys_guid": @@(prm,"id")
+                        @"sys_timestamp*": dbr.sql("NOW()")
+                        @"numero":  @@(prod,"edt_lote")
+                        @"iproducto": @@(prod,"iproducto")
+                        @"fcaducidad": @@(prod,"$edt_fcad")
+                    }
+                    if @@(lote,"$fcaducidad") == "" { lote<"fcaducidad*">: @null }
+                    do dbr.insert(db,"lote",lote)
+                    data<"lote">: dbr.num(db,"SELECT sys_pk FROM lote WHERE sys_guid=@id", prm)
+                }
+            }
+            //=============== SERIES
+            if @@(prod,"$edt_serie") != ""
+            {
+                ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,0,1) used_error, numero FROM serie WHERE numero=@edt_serie LIMIT 1;",prod)
+                if not(isnull(exist))
+                {
+                    if @@(exist,"#used_error") { do rise_error(99,"La serie:"+@@(exist,"numero")+" del producto"+@@(prod,"$edt_descripcion")+" ya está asignado a un producto diferente, indique una nueva serie para este producto") }
+                    else { data<"serie">: @@(exist,"#sys_pk") }
+                }
+                else 
+                {
+                    new prm{ @"id":uuid() }
+                    new serie
+                    {
+                        @"sys_guid": @@(prm,"id")
+                        @"sys_timestamp*": dbr.sql("NOW()")
+                        @"numero": @@(prod,"$edt_serie")
+                        @"status": 1
+                        @"iproducto": @@(prod,"iproducto")
+                    }
+                    if @@(data,"$lote") != "" { serie<"ilote">: @@(data,"#lote") }
+                    do dbr.insert(db,"serie",serie)
+                    data<"serie">: dbr.num(db,"SELECT sys_pk FROM serie WHERE sys_guid=@id", prm)
+                }
+            }
 
-        //     if field.exist(data,"lote") || field.exist(data,"serie") { sys_info = to.json(data) }
-        // }
+            if field.exist(data,"lote") || field.exist(data,"serie") { sys_info = to.json(data) }
+            prod<"sys_info">: sys_info
+        }
+    }
+    doc.searchSerieLote::&db,&dcompra
+    {
+        if isnull(dcompra){ return dcompra }
+
+        for i = 0; i < list.count(dcompra)
+        {
+            ref detalle = list.obj(dcompra,i)
+            if trim(@@(detalle,"$sys_info")) != ""
+            {
+                ref info = from.json(@@(detalle,"$sys_info"))
+                if trim(@@(info,"$lote")) != "" {
+                    ref lote = dbr.rec(db,"SELECT numero,IFNULL(fcaducidad,'') caduci FROM lote WHERE sys_pk=@lote",info)
+                    if not(isnull(lote))
+                    {
+                        detalle<"edt_lote">:@@(lote,"numero")
+                        detalle<"edt_fcad">:@@(lote,"caduci")
+                    }
+                }
+                if trim(@@(info,"$serie")) != "" {
+                    ref serie = dbr.rec(db,"SELECT numero FROM serie WHERE sys_pk=@serie",info)
+                    if not(isnull(serie))
+                    {
+                        detalle<"edt_serie">:@@(serie,"numero")
+                    }
+                }
+                exception {}
+            }
+        }
+
+        return dcompra
     }
 }

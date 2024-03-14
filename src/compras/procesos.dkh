@@ -2,12 +2,47 @@
 #!
 module "procesos.dkh:erp.compras.procesos"
 {
+
+    asignarLoteSerie::&db,&item,&dcardex
+    {
+        if trim(@@(item,"$sys_info")) != ""
+        {
+            // Lote
+            ref info = from.json(@@(item,"$sys_info"))
+            if trim(@@(info,"$lote")) != ""
+            { 
+                dcardex<"ilote">:@@(info,"#lote")
+                // CLoteXAlmacen
+                new prm{
+                    @"lote": @@(dcardex,"$ilote")
+                    @"almacen": @@(dcardex,"$ialmacen")
+                }
+                if isnull(dbr.rec(db, "SELECT sys_pk FROM clotexalmacen WHERE fk_lote_exisxalmacen=@lote AND ialmacen=@almacen LIMIT 1;", prm))
+                {
+                    new clxa
+                    {
+                        @"sys_guid":uuid()
+                        @"sys_timestamp*": dbr.sql("NOW()")
+                        @"cantidad": 0
+                        @"ialmacen": @@(dcardex,"ialmacen")
+                        @"fk_lote_exisxalmacen": @@(dcardex,"ilote")
+                    }
+                    do dbr.insert(db,"clotexalmacen",clxa)
+                }
+            }
+            // Serie
+            if trim(@@(info,"$serie")) != "" { dcardex<"iserie">:@@(info,"#serie")}
+
+            do dbr.execute(db,"UPDATE dcompra SET sys_info='' WHERE sys_pk=@sys_pk",item)
+            //excepcion{}
+        }
+    }
     entradaInventario::&db,icompra,icategoria
     {
         start_transaction = @false
 
         sql_compra = "SELECT c.referencia, c.tipocambio, c.ialmacen FROM compra c WHERE c.sys_pk = @icompra;"
-        sql_dcompra = "SELECT d.sys_pk, d.cantidad, d.costototal, d.iproducto, (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos FROM dcompra d WHERE d.fk_compra_detalle = @icompra;"
+        sql_dcompra = "SELECT d.sys_pk, IFNULL(d.sys_info,'') sys_info, d.cantidad, d.costototal, d.iproducto, (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos FROM dcompra d WHERE d.fk_compra_detalle = @icompra;"
         
         new params { @"icompra": icompra }
         ref compra = dbr.rec(db,sql_compra,params)
@@ -49,9 +84,12 @@ module "procesos.dkh:erp.compras.procesos"
                 @"cargos": @@(item,"#cargos")
                 @"cpromedio": @@(item,"#costototal")
                 @"tipocambio": @@(item,"#tipocambio")
+                @"ilote*": @null
+                @"iserie*": @null
                 @"rcompra": @@(item,"#sys_pk")
                 @"fk_cardex_movimientos": last_id
             }
+            do erp.compras.procesos.asignarLoteSerie(db,item,dcardex)
             do dbr.insert(db,"dcardex",dcardex)
         }
 

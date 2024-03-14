@@ -196,6 +196,22 @@ document.addEventListener("DOMContentLoaded", () =>
 
         return JSON.stringify(obj);
     }
+    function validarReqLoteSerie(detalle) {
+        let ok = true;
+        if (!detalle) return ok;
+
+        detalle.forEach(d=>{
+            if (ok && Number(d.reqlote??0) && (d.edt_lote??'').trim() == ''){
+                ok = false;
+                alert(`No se puede continuar, el producto: ${d.edt_codigo}-${d.edt_descripcion} requiere un número de lote`);
+            }
+            if (ok && Number(d.reqserie??0) && (d.edt_serie??'').trim() == ''){
+                ok = false;
+                alert(`No se puede continuar, el producto: ${d.edt_codigo}-${d.edt_descripcion} requiere un número de serie`);
+            }
+        });
+        return ok;
+    }
 
     //* ======================================== [ FORM EVENTS ] ========================================
 
@@ -269,6 +285,8 @@ document.addEventListener("DOMContentLoaded", () =>
             factord: data.factord,
             factore: data.factore,
             lunidades: list_unidades,
+            reqlote: data.reqlote,
+            reqserie: data.reqserie,
         }
         tData[row] = producto;
 
@@ -495,6 +513,7 @@ document.addEventListener("DOMContentLoaded", () =>
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cABIERTO;
         let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        if (!validarReqLoteSerie(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
         formPedido.submit();
@@ -504,6 +523,7 @@ document.addEventListener("DOMContentLoaded", () =>
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cCERRADO;
         let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        if (!validarReqLoteSerie(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
         formPedido.submit();
@@ -531,6 +551,7 @@ document.addEventListener("DOMContentLoaded", () =>
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cPROCESADO;
         let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        if (!validarReqLoteSerie(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
         formPedido.submit();
@@ -712,7 +733,14 @@ document.addEventListener("DOMContentLoaded", () =>
             let value = Number(e.text.trim());
             producto[field] = value;
             if (field == "edt_precio") producto["precio"] = value;
-            if (field == "edt_cantidad") producto["cantidad"] = value;
+            if (field == "edt_cantidad"){
+                producto["cantidad"] = value;
+                if (producto.reqserie && producto.cantidad > 1){
+                    alert('La cantidad para este producto con serie requerida debe ser 1, para agregar más series del mismo producto insertelo en una nueva fila');
+                    producto["cantidad"] = 1;
+                    e.text = 1;
+                }
+            }
             if (field == "edt_descuentos") producto["descuentos"] = value;
             actualizarProducto(producto,currentRowIndex);
         }

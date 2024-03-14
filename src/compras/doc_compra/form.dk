@@ -19,6 +19,11 @@ module "doc.pedido.dk"
     ref compra = ifnull(@("&./compra"),record.create())
     ref dcompra = ifnull(@('&./dcompra'),list.create())
 
+    if @('$error/message') != ""
+    {
+        ref dcompra = from.json(form('_detalle','tx',@null))
+    }
+
     // do rise_error(0,to.json(@("&.")))
     if list.count(dcompra) <= 0 { ref dcompra = from.json(empty_rows) }
 
