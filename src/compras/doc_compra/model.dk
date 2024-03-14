@@ -133,6 +133,7 @@ module "model"
 
         @use_transaction = @false
         do dbr.begin(db)
+        do doc.addSerieLote(db,data)
         ref entity = entity.create(db,params,compra)
         // Actualizar totales
         codeblock
@@ -209,6 +210,7 @@ module "model"
                     compra<"statusadministrativo"> : cCERRADO
                     do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
+                    do doc.addSerieLote(db,data)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
                     do dbr.commit(db)
@@ -244,6 +246,7 @@ module "model"
                     compra<"statusadministrativo"> : cCERRADO
                     do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
+                    do doc.addSerieLote(db,data)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
                     do dbr.commit(db)
@@ -401,5 +404,68 @@ module "model"
         }
         do list.ins(list, 0, record)
         return list
+    }
+
+    doc.addSerieLote::&db,&detalle
+    {
+        // ref products = @@(detalle,"&_detalle")
+        // if isnull(products) return
+        
+        // for i = 0; i < list.count(products)
+        // {
+        //     ref prod = list.obj(products,i)
+        //     ref data = record.create()
+        //     sys_info = ""
+
+        //     //=============== LOTES
+        //     if @@(prod,"$edt_lote") != ""
+        //     {
+        //         ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,0,1) used_error, numero FROM lote WHERE numero=@edt_lote LIMIT;")
+        //         if not(isnull(exist))
+        //         {
+        //             if @@(exist,"#used_error") { do rise_error(99,"El lote:"+@@(exist,"numero")+" del producto"+@@(prod,"$edt_descripcion")+" ya está asignado a un producto diferente, indique un nuevo lote para este producto") }
+        //             else { data<"lote">: @@(exist,"#sys_pk") }
+        //         }
+        //         else 
+        //         {
+        //             new prm{ @"id":uuid() }
+        //             new lote
+        //             {
+        //                 @"sys_guid": @@(prm,"id")
+        //                 @"sys_timestamp*": dbr.sql("NOW()")
+        //                 @"numero":  @@(prod,"edt_lote")
+        //                 @"iproducto": @@(prod,"iproducto")
+        //                 @"fcaducidad": @@(prod,"$edt_fcad")
+        //             }
+        //             if @@(lote,"$fcaducidad") == "" { lote<"fcaducidad*">: @null }
+        //             do dbr.insert(db,"lote",lote)
+        //             data<"lote">: dbr.num(db,"SELECT sys_pk FROM lote WHERE sys_guid=@id", prm)
+        //         }
+        //     }
+            
+        //     //=============== SERIES
+        //     ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,0,1) used_error, numero FROM serie WHERE numero=@edt_serie LIMIT;")
+        //     if not(isnull(exist))
+        //     {
+        //         if @@(exist,"#used_error") { do rise_error(99,"La serie:"+@@(exist,"numero")+" del producto"+@@(prod,"$edt_descripcion")+" ya está asignado a un producto diferente, indique una nueva serie para este producto") }
+        //         else { data<"serie">: @@(exist,"#sys_pk") }
+        //     }
+        //     else 
+        //     {
+        //         new prm{ @"id":uuid() }
+        //         new serie
+        //         {
+        //             @"sys_guid": @@(prm,"id")
+        //             @"sys_timestamp*": dbr.sql("NOW()")
+        //             @"numero":  @@(prod,"edt_lote")
+        //             @"status": 1
+        //             @"iproducto": @@(prod,"iproducto")
+        //         }
+        //         do dbr.insert(db,"serie",serie)
+        //         data<"serie">: dbr.num(db,"SELECT sys_pk FROM serie WHERE sys_guid=@id", prm)
+        //     }
+
+        //     if field.exist(data,"lote") || field.exist(data,"serie") { sys_info = to.json(data) }
+        // }
     }
 }

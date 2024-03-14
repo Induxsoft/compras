@@ -228,6 +228,9 @@ document.addEventListener("DOMContentLoaded", () =>
             edt_impuestos: i.impuestos,
             edt_importe: i.total,
             edt_notas: "",
+            edt_lote: "",
+            edt_fcad: "",
+            edt_serie: "",
 
             // campos para el insert.
             cantidad: i.cantidad,

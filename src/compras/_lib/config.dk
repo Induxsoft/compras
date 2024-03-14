@@ -22,6 +22,10 @@ module "config.dk"
 	@PATH_DATE_FILTER = "compras/_lib/date_filter.dk"
 	@PATH_PRINT_LIST = "compras/_lib/print_list.dk"
 
+	// Captura de documento de compra, no capturar lotes o series
+	@compras_lotes_inhab = @false
+	@compras_series_inhab = @false
+
 	// Estados administrativos para documentos
 	new @EDO_ADMIN
 	{

@@ -86,6 +86,8 @@ model "erp.compras"
     entity "ctiposcomisionesproducto" : "EnumModel" {}
     // Enumeración de tipo de productos
     entity "ctipoproducto" : "EnumModel" {}
+    // Enumeración de estados de series
+    entity "cstatusseries" : "EnumModel" {}
     // caja
     entity "caja" : "TableModel"
     {
@@ -553,6 +555,40 @@ model "erp.compras"
         @"website" string(150) 
         @"idivisa" int ref:"divisa" ["sys_pk"] required
         @"tipo" int ref:"tipoproveedor" ["sys_pk"] required
+    }
+
+    entity "cardex" : "TableModel"
+    {
+        @"referencia" string(255) unique required
+        @"icategoria" ref:"categoria" required
+    }
+    // Contiene cada partida del movimiento (la entrada o salida de un producto)
+    entity "dcardex" : "TableModel"
+    {
+        @"ialmacen" ref:"almacen" required
+        @"iproducto" ref:"producto" required
+        @"rcompra" ref:"dcompra"
+        @"fk_cardex_movimientos" ref:"cardex" required
+    }
+    // Contiene identificadores de grupos de productos de características similares o iguales
+    entity "lote" : "TableModel"
+    {
+        @"entradas" decimal(18,8)
+        @"existencia" decimal(18,8)
+        @"fcaducidad" date
+        @"fentrada" date
+        @"numero" string(50) unique required
+        @"iproducto" ref:"producto" required
+    }
+    // Contiene información e identificación de un producto
+    entity "serie" : "TableModel"
+    {
+        @"fentrada" date 
+        @"fventa" date 
+        @"notas" string(4096) 
+        @"numero" string(50) unique required
+        @"status" ref:"cstatusseries" required
+        @"iproducto" ref:"producto" required
     }
     // Información de la aplicación
     entity "sys_app_catalog"

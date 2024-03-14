@@ -240,6 +240,13 @@ module "doc.pedido.dk"
                         "edit-th"(type="Number" field="edt_descuentos" textalign="end"){$"Descuentos"}
                         "edit-th"(type="NoEditable" field="edt_impuestos" textalign="end"){$"Impuestos"}
                         "edit-th"(type="NoEditable" field="edt_importe" textalign="end"){$"Importe"}
+                        #! if not(@compras_lotes_inhab) {
+                            #$ "edit-th"(type="Text" field="edt_lote"){$"Lote"}
+                            "edit-th"(type="Date" field="edt_fcad"){$"Caducidad"}
+                        }
+                        #! if not(@compras_series_inhab) {
+                            #$ "edit-th"(type="Text" field="edt_serie"){$"Serie"}
+                        }
                         "edit-th"(type="Memo" field="edt_notas"){$"Notas"}
                     }
                 }
