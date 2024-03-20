@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () =>
     let btnProcesarDoc = document.getElementById("btn-procesar");
     let btnCancelarDoc = document.getElementById("btn-cancelar");
     let btnReAbrirDoc = document.getElementById("btn-reabrir");
+    let btnAddDoc = document.getElementById('btn-add-doc');
 
     let formPedido = document.getElementById("form_pedido");
     let ikProveedor = document.getElementById("sel_proveedor");
@@ -205,7 +206,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 ok = false;
                 alert(`No se puede continuar, el producto: ${d.edt_codigo}-${d.edt_descripcion} requiere un número de lote`);
             }
-            if (!compras_lotes_inhab && ok && Number(d.reqserie??0) && (d.edt_serie??'').trim() == ''){
+            if (!compras_series_inhab && ok && Number(d.reqserie??0) && (d.edt_serie??'').trim() == ''){
                 ok = false;
                 alert(`No se puede continuar, el producto: ${d.edt_codigo}-${d.edt_descripcion} requiere un número de serie`);
             }
@@ -305,6 +306,7 @@ document.addEventListener("DOMContentLoaded", () =>
         let show_btn_reabrir = false;
         let show_btn_procesar = false;
         let show_btn_cancelar = false;
+        let show_btn_insert_doc = false;
 
         switch (idocumento) {
             case cCOTIZACION:
@@ -341,6 +343,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 {
                     show_btn_guardar = true;
                     show_btn_cerrar = true;
+                    show_btn_insert_doc = true;
                 }
                 else if (statusadministrativo == EDO_ADMIN.cNO_APLICA){}
                 else if (statusadministrativo == EDO_ADMIN.cABIERTO)
@@ -348,6 +351,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     show_btn_guardar = true;
                     show_btn_cerrar = true;
                     show_btn_cancelar = true;
+                    show_btn_insert_doc = true;
                 }
                 else if (statusadministrativo == EDO_ADMIN.cCERRADO)
                 {
@@ -451,6 +455,7 @@ document.addEventListener("DOMContentLoaded", () =>
         btnReAbrirDoc.classList.toggle("d-none",!show_btn_reabrir);
         btnProcesarDoc.classList.toggle("d-none",!show_btn_procesar);
         btnCancelarDoc.classList.toggle("d-none",!show_btn_cancelar);
+        btnAddDoc.classList.toggle('d-none',!show_btn_insert_doc);
     });
     trigger(selDocumento,"change");
 

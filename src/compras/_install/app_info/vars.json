@@ -1,0 +1,49 @@
+[
+    {
+        "id": "compras",
+        "caption": "Compras",
+        "help": "Variables del paquete: compras",
+        "vars": [
+            {
+                "varname": "compras_lotes_inhab",
+                "vardefault": "1",
+                "varvalue": "1",
+                "varcaption": "Requerir lotes",
+                "varhelp": "Muestra los campos de llenado de lotes",
+                "vartype": "bool",
+                "varinput": {
+                    "control": "select",
+                    "source":{
+                        "type":"list",
+                        "values":[
+                            {"val":"1", "text":"Si"},
+                            {"val":"0", "text":"No"}
+                        ],
+                        "showfield":"text",
+                        "keyfield":"val"
+                    }
+                }
+            },
+            {
+                "varname": "compras_series_inhab",
+                "vardefault": "1",
+                "varvalue": "1",
+                "varcaption": "Requerir series",
+                "varhelp": "Muestra los campos de llenado de series",
+                "vartype": "bool",
+                "varinput": {
+                    "control": "select",
+                    "source":{
+                        "type":"list",
+                        "values":[
+                            {"val":"1", "text":"Si"},
+                            {"val":"0", "text":"No"}
+                        ],
+                        "showfield":"text",
+                        "keyfield":"val"
+                    }
+                }
+            }
+        ]
+    }
+]

@@ -5,6 +5,8 @@ module "doc.pedido.dk"
     #include "functions.dkh"
     #include "serialize.dkh"
     #include "uielements.dkl"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
     #include "../_lib/lib.dk"
@@ -18,6 +20,9 @@ module "doc.pedido.dk"
     ref dtprov = ifnull(@("&./dtprov"),record.create())
     ref compra = ifnull(@("&./compra"),record.create())
     ref dcompra = ifnull(@('&./dcompra'),list.create())
+
+    @compras_lotes_inhab = not(parse.bool(dbr.vars.getd(@('&database'),"compras_lotes_inhab",@compras_lotes_inhab)))
+	@compras_series_inhab = not(parse.bool(dbr.vars.getd(@('&database'),"compras_series_inhab",@compras_series_inhab)))
 
     if @('$error/message') != ""
     {
@@ -224,6 +229,10 @@ module "doc.pedido.dk"
         {
             small(class="flex-grow-1 text-muted"){$"Seleccione los productos en la cuadrícula"}
 
+            button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow d-none" id="btn-add-doc" title="Insertar documento"){
+                $"#<@ICON_DOCUMENT>"
+                $"Insertar doc."
+            }
             button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-add-row" title="Agregar fila"){$"#<@ICON_ADD_ROW>"}
             button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-del-row" title="Eliminar fila"){$"#<@ICON_REMOVE_ROW>"}
         }
