@@ -34,6 +34,8 @@ module "config.dk"
 		@"cCERRADO": 2
 		@"cPROCESADO": 3
 		@"cCANCELADO": 99
+
+		@"Facturado": -1
 	}
 	// Estados de facturación para documentos
 	new @EDO_FACTURACION
@@ -90,6 +92,8 @@ module "config.dk"
 	@DOC_MENU = "/!/compras/"
 	@URL_BUSCAR_PROVEEDOR = "/!/compras/compras/?_view=buscar-proveedor&search=@search"
 	@URL_BUSCAR_PRODUCTO = "/!/compras/compras/?_view=buscar-producto&search=@search&zimpuesto=@zimpuesto"
+	@URL_BUSCAR_DOCUMENTO = "/!/compras/compras/?_view=buscar-documento&search=@search&current=@current&proveedor=@proveedor"
+	@URL_DETALLE_DOCUMENTO = "/!/compras/compras/?_view=detalle-documento-insert&doc=@doc"
 
 	//#region doc_compra
 	@DOC_COMPRAS = "/!/compras/compras/"

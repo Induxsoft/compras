@@ -99,4 +99,14 @@ module "lib.dk"
 
         exception{ return @false }
     }
+
+    function getStatusTextFromCompra(config,value)
+    {
+        text = ""
+        go foreach.fnum(index:i, key:key, value:value) with(config)
+        {
+            if @@(config,key) == value { text = key }
+        }
+        return text
+    }
 }

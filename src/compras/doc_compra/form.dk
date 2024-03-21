@@ -14,6 +14,8 @@ module "doc.pedido.dk"
     do @context.begin(@crud_context)
     empty_rows = "[{},{},{},{},{},{},{},{},{},{}]"
 
+    init_insert = @('$parameters/insert')
+
     ref listDivisas = ifnull(@('&./list_divisas'),list.create())
     ref listAlmacenes = ifnull(@('&./list_almacenes'),list.create())
     ref listDocumentos = ifnull(@('&./list_documentos'),list.create())
@@ -27,6 +29,7 @@ module "doc.pedido.dk"
     if @('$error/message') != ""
     {
         ref dcompra = from.json(form('_detalle','tx',@null))
+        exception{}
     }
 
     // do rise_error(0,to.json(@("&.")))
@@ -104,7 +107,8 @@ module "doc.pedido.dk"
                 button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-guardar" title="Guardar"){$"#<@ICON_SAVE>"}
                 button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-cerrar" title="Guardar y cerrar"){$"#<@ICON_LOCK>"}
                 button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-reabrir" title="Re-abrir"){$"#<@ICON_UNLOCK>"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-procesar"){$"#<@ICON_FILE_CHECK> Procesar"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action d-flex gap-2 align-items-center" id="btn-procesar"){$"#<@ICON_FILE_CHECK>" p(id="btn-procesar-text" class="p-0 m-0"){$"Procesar"}}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-facturar"){$"Facturar"}
                 button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-cancelar"){$"#<@ICON_TRASH> Cancelar"}
 
                 a(href="#<@DOC_COMPRAS>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
@@ -126,6 +130,13 @@ module "doc.pedido.dk"
             {
                 div(class="tab-pane fade show active" id="nav-general" role="tabpanel" "aria-labelledby"="nav-general-tab")
                 {
+                    div(class="d-flex gap-3")
+                    {
+                        small{$"Edo. admin: #<form('edo_admin','tx',compra)>"}
+                        small{$"| Edo. entrega: #<form('edo_entrega','tx',compra)>"}
+                        small{$"| Edo. facturación: #<form('edo_facturacion','tx',compra)>"}
+                        small{$"| Edo. financiero: #<form('edo_financiero','tx',compra)>"}
+                    }
                     div(class="row")
                     {
                         div(class="col-lg-7 col-md-12 col-sm-12")
@@ -235,6 +246,21 @@ module "doc.pedido.dk"
             }
             button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-add-row" title="Agregar fila"){$"#<@ICON_ADD_ROW>"}
             button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-del-row" title="Eliminar fila"){$"#<@ICON_REMOVE_ROW>"}
+
+            "input-key"(
+                "id"="sel_doc_insert"
+                "data-key"="sys_pk"
+                "data-search"="referencia"
+                "data-text"="referencia"
+                "data-source"="#<@URL_BUSCAR_DOCUMENTO>"
+                "columns"="documento,fecha,referencia"
+                "colcaptions"="Documento,Fecha,Referencia"
+                "box-title-text"="Seleccione un documento"
+                "box-placeholder-text"="Buscar documento"
+                "box-nodata-text"="No se encontraron documentos"
+                "control-styles"="#container{ display: none !important; }"
+                "hidden-input"="false"
+            ){$""}
         }
 
         div(class="#<ifstr(enable_editing,'','disable-form')>" id="div_tbl_productos")
@@ -249,6 +275,8 @@ module "doc.pedido.dk"
                         "edit-th"(type="Text" field="edt_descripcion" button="true"){$"Descripción"}
                         "edit-th"(type="Select" field="edt_unidad" options="{}"){$"Unidad"}
                         "edit-th"(type="Number" field="edt_precio" textalign="end"){$"Precio"}
+                        "edit-th"(type="NoEditable" field="edt_origen"){$"Origen"}
+                        "edit-th"(type="NoEditable" field="edt_cotizado" textalign="center"){$"Cotizado"}
                         "edit-th"(type="Number" field="edt_cantidad" textalign="center"){$"Cantidad"}
                         "edit-th"(type="NoEditable" field="edt_subtotal" textalign="end"){$"Subtotal"}
                         "edit-th"(type="Number" field="edt_descuentos" textalign="end"){$"Descuentos"}
@@ -328,6 +356,9 @@ module "doc.pedido.dk"
 
                 const compras_lotes_inhab = #<@compras_lotes_inhab>;
                 const compras_series_inhab = #<@compras_series_inhab>;
+
+                const url_detalle_doc = "#<@URL_DETALLE_DOCUMENTO>";
+                const init_insert = "#<init_insert>";
             '}
             script(src="#<@JS_COMPRAS>"){""}
         }

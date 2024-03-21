@@ -8,10 +8,13 @@ document.addEventListener("DOMContentLoaded", () =>
     let btnCancelarDoc = document.getElementById("btn-cancelar");
     let btnReAbrirDoc = document.getElementById("btn-reabrir");
     let btnAddDoc = document.getElementById('btn-add-doc');
+    let btnFacturar = document.getElementById('btn-facturar');
+    let btnProcesarText = document.getElementById('btn-procesar-text');
 
     let formPedido = document.getElementById("form_pedido");
     let ikProveedor = document.getElementById("sel_proveedor");
     let ikProducto = document.getElementById("sel_producto");
+    let ikDocInsert = document.getElementById("sel_doc_insert");
     let selDocumento = document.getElementById("sel_documento");
     let selDivisa = document.getElementById("sel_divisa");
     let txtTipoCambio = document.getElementById("txt_tipocambio");
@@ -35,6 +38,8 @@ document.addEventListener("DOMContentLoaded", () =>
     btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); });
     table.setInputKey("edt_codigo",ikProducto);
     table.setInputKey("edt_descripcion", ikProducto);
+
+    if (init_insert!="") sumarImportes();
 
     function trigger(element,event) {
         if (element) {
@@ -213,22 +218,26 @@ document.addEventListener("DOMContentLoaded", () =>
         });
         return ok;
     }
-
-    //* ======================================== [ FORM EVENTS ] ========================================
-
-    ikProveedor.addEventListener("change", function(data) {
-        if (!data) return;    
-        let URL_BUSCAR_PRODUCTO = InduxsoftCrudlModel.UrlReplace(ikProducto.getAttribute("data-source"),data);
-        
-        selDivisa.value = data.idivisa;
-        txtTipoCambio.value = data.tcambio;
-        ikProducto.setAttribute("data-source",URL_BUSCAR_PRODUCTO);
-    });
-
-    ikProducto.addEventListener("change", function(data) {
-        let row = table.CurrentRowIndex();
-        if (!tData[row]) tData[row] = {};
-
+    function setURLInsertDoc(currentDoc)
+    {
+        let URL_BUSCAR_DOCUMENT = InduxsoftCrudlModel.UrlReplace(ikDocInsert.getAttribute("data-source"),{ current:currentDoc });
+        ikDocInsert.setAttribute("data-source",URL_BUSCAR_DOCUMENT);
+    }
+    function getDetalleFromDoc(doc)
+    {
+        const url = url_detalle_doc.replace('@doc',doc);
+        InduxsoftCrudlModel.InvokeService(url, null,
+            success => { 
+                success.forEach(prod => agregarProducto(prod,false));
+                sumarImportes();
+                table._printRows();
+            },
+            failure => { alert(failure.message??JSON.stringify(failure)) },
+            "GET", false
+        );
+    }
+    function agregarProducto(data,currentRow=true)
+    {
         let i = calcularImpuestos(data);
         let list_unidades = joinUnidades(data.unidada,data.unidadb,data.unidadc,data.unidadd,data.unidade);
         
@@ -240,6 +249,8 @@ document.addEventListener("DOMContentLoaded", () =>
             edt_unidad: data.unidada,
             edt_precio: i.costo,
             edt_cantidad: i.cantidad,
+            edt_origen: (data.edt_origen??''),
+            edt_cotizado: (data.edt_cotizado??''),
             edt_subtotal: i.subtotal,
             edt_descuentos: i.descuentos,
             edt_impuestos: i.impuestos,
@@ -289,13 +300,47 @@ document.addEventListener("DOMContentLoaded", () =>
             reqlote: data.reqlote,
             reqserie: data.reqserie,
         }
-        tData[row] = producto;
+        let row = 0;
+        if (currentRow)
+        {
+            row = table.CurrentRowIndex();
+            if (!tData[row]) tData[row] = {};
+            tData[row] = producto;
+        }
+        else
+        {
+            tData.unshift(producto);
+        }
 
-        table.UpdateRow(row);
+        //table.UpdateRow(row);
+    }
+
+    //* ======================================== [ FORM EVENTS ] ========================================
+
+    ikProveedor.addEventListener("change", function(data) {
+        if (!data) return;
+
+        let URL_BUSCAR_PRODUCTO = InduxsoftCrudlModel.UrlReplace(ikProducto.getAttribute("data-source"),data);
+        let URL_BUSCAR_DOCUMENT = InduxsoftCrudlModel.UrlReplace(ikDocInsert.getAttribute("data-source"),{ proveedor:data.sys_pk });
+        
+        selDivisa.value = data.idivisa;
+        txtTipoCambio.value = data.tcambio;
+        ikProducto.setAttribute("data-source",URL_BUSCAR_PRODUCTO);
+        ikDocInsert.setAttribute("data-source",URL_BUSCAR_DOCUMENT);
+    });
+
+    ikProducto.addEventListener("change", function(data) {
+        if (!data) return;
+        let row = table.CurrentRowIndex();
+        agregarProducto(data);
+        table._printRows();
         table.NavTo(row,2);
         sumarImportes();
     });
-
+    ikDocInsert.addEventListener('change', function(data) {
+        if (!data) return;
+        getDetalleFromDoc(data.sys_pk)
+    });
     selDocumento.addEventListener("change", function() {
         // let option = selDocumento.options[selDocumento.selectedIndex];
         let idocumento = Number(selDocumento.value);
@@ -307,10 +352,16 @@ document.addEventListener("DOMContentLoaded", () =>
         let show_btn_procesar = false;
         let show_btn_cancelar = false;
         let show_btn_insert_doc = false;
+        let show_btn_facturar = false;
+        btnProcText = "Procesar";
+
+        setURLInsertDoc(idocumento);
 
         switch (idocumento) {
             case cCOTIZACION:
                 // console.log(idocumento, "cCOTIZACION");
+                show_btn_procesar = true;
+                btnProcText = "Hacer pedido";
                 if (statusadministrativo === "")
                 {
                     show_btn_guardar = true;
@@ -338,6 +389,8 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 break;
             case cPEDIDO:
+                show_btn_procesar = true;
+                btnProcText = "Recibir";
                 // console.log(idocumento, "cPEDIDO");
                 if (statusadministrativo === "")
                 {
@@ -388,6 +441,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 else if (statusadministrativo == EDO_ADMIN.cPROCESADO)
                 {
                     show_btn_cancelar = true;
+                    show_btn_facturar = true;
                 }
                 break;
             case cFACTURA:
@@ -456,6 +510,8 @@ document.addEventListener("DOMContentLoaded", () =>
         btnProcesarDoc.classList.toggle("d-none",!show_btn_procesar);
         btnCancelarDoc.classList.toggle("d-none",!show_btn_cancelar);
         btnAddDoc.classList.toggle('d-none',!show_btn_insert_doc);
+        btnFacturar.classList.toggle('d-none',!show_btn_facturar);
+        btnProcesarText.textContent = btnProcText;
     });
     trigger(selDocumento,"change");
 
@@ -562,6 +618,14 @@ document.addEventListener("DOMContentLoaded", () =>
         formPedido.submit();
     });
 
+    btnFacturar.addEventListener("click", function(){
+        if (!formPedido.reportValidity()) return;
+        txt_statusadministrativo.value = EDO_ADMIN.Facturado;
+        let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        txt_detalle_compra.value = JSON.stringify(_detalle);
+        formPedido.submit();
+    });
+
     btnCancelarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cCANCELADO;
@@ -569,6 +633,14 @@ document.addEventListener("DOMContentLoaded", () =>
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
         formPedido.submit();
+    });
+
+    btnAddDoc.addEventListener("click", function() {
+        if (ikProveedor.getValue().sys_pk == undefined){
+            alert("Debe seleccionar un proveedor para continuar");
+            return;
+        }
+        ikDocInsert.searchText("%", false);
     });
 
     //* ======================================== [ EDITABLE EVENTS ] ========================================

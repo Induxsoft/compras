@@ -32,6 +32,54 @@ module "model"
         condition = "(p.codigo LIKE CONCAT('%',@search,'%') OR p.descripcion LIKE CONCAT('%',@search,'%'))"
         return dbr.list(db,ftext(@sql_buscar_producto),params)
     }
+    doc.detalleDocumentoInsert::&db,&params
+    {
+        return dbr.list(db,@sql_dcompra_insert,params)
+    }
+    doc.buscarDocumento::&db,&params
+    {
+        doctypes = doc.getDocTypesFromCurrentdoc(params)
+        sql = "
+            SELECT c.sys_pk, cd.const documento, DATE_FORMAT(c.fecha,'%Y-%m-%d') fecha, c.referencia
+            FROM compra c
+                INNER JOIN cdocumentos cd ON c.documento = cd.id
+            WHERE c.statusadministrativo != 3
+                AND c.statusadministrativo != 99
+                AND c.iproveedor = @proveedor
+                AND IF(IFNULL(@search,'%')='%', true, c.referencia LIKE CONCAT('%',@search,'%'))
+                #<doctypes>
+            ORDER BY c.fecha
+            LIMIT #<@default_max_rows>;
+        "
+        return dbr.list(db,ftext(sql),params)
+    }
+    doc.getDocTypesFromCurrentdoc::&params
+    {
+        doctypes = ""
+        currentDoc = @@(params,"$current")
+
+        if trim(currentDoc) == "" { return doctypes }
+
+        switch parse.num(currentDoc)
+        {
+            case @cPEDIDO
+            {
+                doctypes = ftext(" AND c.documento = #<@cCOTIZACION> ")
+                break
+            }
+            case @cREMISION
+            {
+                doctypes = ftext(" AND c.documento = #<@cPEDIDO> ")
+                break
+            }
+            case @cFACTURA
+            {
+                doctypes = ftext(" AND (c.documento = #<@cPEDIDO> OR c.documento = #<@cREMISION>) ")
+                break
+            }
+        }
+        return doctypes
+    }
 
     doc.prepareView::&db,&params,&data
     {
@@ -57,6 +105,12 @@ module "model"
                     data<"dtprov*"> : dtprov
                     data<"compra*"> : compra
                     data<"dcompra*"> : dcompra
+                }
+                if trim(@@(params,"$insert")) != ""
+                {
+                    new prm { @"_entity_id":@@(params,"#insert") }
+                    data<"dcompra*"> : dbr.list(db,@sql_dcompra_init,prm)
+                    data<"dtprov*"> : dbr.rec(db,@sql_buscar_proveedor_by_doc,prm)
                 }
                 break
             }
@@ -142,7 +196,15 @@ module "model"
         }
         do dbr.commit(db)
         
-        if redir && nvo_status_admin == cPROCESADO { @url_redir = replace(@DOC_PROCESAR,"{_doc}",@@(entity,"#sys_pk")) }
+        if redir && nvo_status_admin == cPROCESADO { 
+            // if @@(data,"#documento") == @cCOTIZACION {
+            //     @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cPEDIDO)
+            // }
+            // else {
+            //     @url_redir = replace(@DOC_PROCESAR,"{_doc}",@@(entity,"#sys_pk")) 
+            // }
+            do doc.check_redirs(compra,entity,replace(@DOC_PROCESAR,"{_doc}",@@(entity,"#sys_pk")))
+        }
         return entity
 
         exception
@@ -172,6 +234,7 @@ module "model"
         cCERRADO = @@(@EDO_ADMIN,"#cCERRADO")
         cPROCESADO = @@(@EDO_ADMIN,"#cPROCESADO")
         cCANCELADO = @@(@EDO_ADMIN,"#cCANCELADO")
+        FACTURADO = @@(@EDO_ADMIN,"#Facturado")
 
         old_status_admin = dbr.num(db,"SELECT statusadministrativo FROM compra WHERE sys_pk = @_entity_id",params)
         nvo_status_admin = @@(data,"#statusadministrativo")
@@ -253,9 +316,8 @@ module "model"
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
                     do dbr.commit(db)
-
                     redir = @true
-                    @url_redir = @DOC_PROCESAR
+                    do doc.check_redirs(compra,entity,@DOC_PROCESAR)
                 }
                 else if nvo_status_admin == cCANCELADO {
                     compra<"statusadministrativo"> : cCERRADO
@@ -285,7 +347,8 @@ module "model"
                 else if nvo_status_admin == cPROCESADO {
                     // Redirigir
                     redir = @true
-                    @url_redir = @DOC_PROCESAR
+                    //@url_redir = @DOC_PROCESAR
+                    do doc.check_redirs(compra,compra,@DOC_PROCESAR)
                 }
                 else if nvo_status_admin == cCANCELADO {
                     // Redirigir
@@ -296,10 +359,19 @@ module "model"
             }
             case cPROCESADO
             {
-                if nvo_status_admin != cCANCELADO { do rise_error(2,"Estado inválido, no es posible editar el documento.") }
-                // Redirigir
-                redir = @true
-                @url_redir = @DOC_CANCELAR
+                if nvo_status_admin != cCANCELADO && nvo_status_admin != FACTURADO { do rise_error(2,"Estado inválido, no es posible editar el documento.") }
+                if nvo_status_admin == cCANCELADO
+                {
+                    // Redirigir
+                    redir = @true
+                    @url_redir = @DOC_CANCELAR
+                }
+                if nvo_status_admin == FACTURADO
+                {
+                    redir = @true
+                    do doc.check_redirs(compra,compra,@DOC_CANCELAR)
+                }
+                
                 break
             }
             case cCANCELADO
@@ -325,6 +397,22 @@ module "model"
             
             do doc.prepareView(db,params,data)
             do rise_error(code,error)
+        }
+    }
+
+    doc.check_redirs::&compra,&entity,urlprocesar
+    {
+        if @@(compra,"#documento") == @cCOTIZACION {
+            @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cPEDIDO)
+        }
+        else if @@(compra,"#documento") == @cPEDIDO {
+            @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cREMISION)
+        }
+        else if @@(compra,"#documento") == @cREMISION && urlprocesar == @DOC_CANCELAR {
+            @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cFACTURA)
+        }
+        else {
+            @url_redir = urlprocesar
         }
     }
 
@@ -396,6 +484,11 @@ module "model"
     doc.blank::&db,&params
     {
         new data {}
+        if trim(@@(params,"$doc")) != ""
+        {
+            using data { @"compra*": record.create() }
+            data<"compra/documento">: @@(params,"#doc") //dbr.num(db,"SELECT id FROM cdocumentos WHERE const=@doc",params)
+        }
         do doc.prepareView(db,params,data)
         return data
     }

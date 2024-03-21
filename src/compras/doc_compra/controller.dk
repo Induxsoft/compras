@@ -23,5 +23,15 @@ module "controller"
             point @list to doc.buscarProducto
             break
         }
+        case "buscar-documento"
+        {
+            point @list to doc.buscarDocumento
+            break
+        }
+        case "detalle-documento-insert"
+        {
+            point @list to doc.detalleDocumentoInsert
+            break
+        }
     }
 }
