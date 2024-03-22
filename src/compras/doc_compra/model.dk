@@ -137,6 +137,7 @@ module "model"
         cCERRADO = @@(@EDO_ADMIN,"#cCERRADO")
         cPROCESADO = @@(@EDO_ADMIN,"#cPROCESADO")
         cCANCELADO = @@(@EDO_ADMIN,"#cCANCELADO")
+        Recibir = @@(@EDO_ADMIN,"#Recibir")
 
         nvo_status_admin = @@(data,"#statusadministrativo")
         if nvo_status_admin == cCANCELADO { do rise_error(99,"Estado inválido.") }
@@ -166,7 +167,7 @@ module "model"
             @"statusfinanciero": 0
             @"subtotal": 0.0
         }
-        
+        do doc.setFieldsDetalle(@@(compra,"&_detalle"))
         using @childs
         {
             member "_detalle"
@@ -175,7 +176,7 @@ module "model"
                 @"keyfield": "sys_pk"
                 @"table": "dcompra"
                 @"select_query": "SELECT NULL"
-                @"fields": "sys_info,cantidad,costototal,descuento1,descuento2,factor,impuesto1,impuesto2,impuesto3,impuesto4,notas,precio,status,tipocambio,unidad,xfacturar,iproducto"
+                @"fields": "sys_info,cantidad,costototal,descuento1,descuento2,factor,impuesto1,impuesto2,impuesto3,impuesto4,notas,precio,status,tipocambio,unidad,xfacturar,iproducto,doc_partida,documento"
             }
         }
 
@@ -189,6 +190,7 @@ module "model"
         do dbr.begin(db)
         do doc.addSerieLote(db,compra)
         ref entity = entity.create(db,params,compra)
+        do doc.setAplicadoAFromDetalle(db,@@(compra,"&_detalle"),entity)
         // Actualizar totales
         codeblock
         {
@@ -204,6 +206,10 @@ module "model"
             //     @url_redir = replace(@DOC_PROCESAR,"{_doc}",@@(entity,"#sys_pk")) 
             // }
             do doc.check_redirs(compra,entity,replace(@DOC_PROCESAR,"{_doc}",@@(entity,"#sys_pk")))
+        }
+        if nvo_status_admin == Recibir
+        {
+            @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cREMISION)
         }
         return entity
 
@@ -225,7 +231,7 @@ module "model"
 
     doc.actualizar::&db,&params,&data
     {
-        do errordet(@false)
+        // do errordet(@false)
         redir = @false
         @use_transaction = @false
         
@@ -235,6 +241,7 @@ module "model"
         cPROCESADO = @@(@EDO_ADMIN,"#cPROCESADO")
         cCANCELADO = @@(@EDO_ADMIN,"#cCANCELADO")
         FACTURADO = @@(@EDO_ADMIN,"#Facturado")
+        Recibir = @@(@EDO_ADMIN,"#Recibir")
 
         old_status_admin = dbr.num(db,"SELECT statusadministrativo FROM compra WHERE sys_pk = @_entity_id",params)
         nvo_status_admin = @@(data,"#statusadministrativo")
@@ -254,10 +261,23 @@ module "model"
                 @"keyfield": "sys_pk"
                 @"table": "dcompra"
                 @"select_query": "SELECT NULL"
-                @"fields": "sys_pk,sys_recver,sys_info,cantidad,costototal,descuento1,descuento2,factor,impuesto1,impuesto2,impuesto3,impuesto4,notas,precio,status,tipocambio,unidad,xfacturar,iproducto"
+                @"fields": "sys_pk,sys_recver,sys_info,cantidad,costototal,descuento1,descuento2,factor,impuesto1,impuesto2,impuesto3,impuesto4,notas,precio,status,tipocambio,unidad,xfacturar,iproducto,doc_partida,documento"
             }
         }
 
+        do doc.setAplicadoAFromDetalle(db,@@(compra,"&_detalle"),compra)
+        
+        if @@(compra,"#documento") == @cPEDIDO && nvo_status_admin == cPROCESADO && not(isnull(@@(compra,"&_detalle"))) {
+            ref detalle = @@(compra,"&_detalle")
+            for i = 0; i < list.count(detalle)
+            {
+                ref det = list.obj(detalle,i)
+                if not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
+                    do rise_error(0, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$edt_descripcion"))
+                }
+            }
+        }
+        
         switch old_status_admin
         {
             case cNO_APLICA
@@ -355,6 +375,11 @@ module "model"
                     redir = @true
                     @url_redir = @DOC_CANCELAR
                 }
+                else if nvo_status_admin == Recibir
+                {
+                    redir = @true
+                    @url_redir = @DOC_AGREGAR + "?insert="+@@(compra,"$sys_pk")+"&doc="+str(@cREMISION)
+                }
                 break
             }
             case cPROCESADO
@@ -371,6 +396,11 @@ module "model"
                     redir = @true
                     do doc.check_redirs(compra,compra,@DOC_CANCELAR)
                 }
+                if nvo_status_admin == Recibir
+                {
+                    redir = @true
+                    @url_redir = @DOC_AGREGAR + "?insert="+@@(compra,"$sys_pk")+"&doc="+str(@cREMISION)
+                }
                 
                 break
             }
@@ -379,6 +409,12 @@ module "model"
                 do rise_error(99,"Documento cancelado, no es posible actualizar.")
             }
             default { do rise_error(500,"Estado Inválido.") }
+        }
+
+        if nvo_status_admin == cPROCESADO && @@(compra,"#documento") == @cPEDIDO
+        {
+            redir = @false
+            @url_redir = ""
         }
 
         if redir { @url_redir = replace(@url_redir,"{_doc}",@@(params,"#_entity_id")) }
@@ -405,9 +441,9 @@ module "model"
         if @@(compra,"#documento") == @cCOTIZACION {
             @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cPEDIDO)
         }
-        else if @@(compra,"#documento") == @cPEDIDO {
-            @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cREMISION)
-        }
+        // else if @@(compra,"#documento") == @cPEDIDO {
+        //     @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cREMISION)
+        // }
         else if @@(compra,"#documento") == @cREMISION && urlprocesar == @DOC_CANCELAR {
             @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cFACTURA)
         }
@@ -600,5 +636,37 @@ module "model"
         }
 
         return dcompra
+    }
+    doc.setFieldsDetalle::&detalle
+    {
+        if isnull(detalle){ return }
+
+        for i = 0; i < list.count(detalle)
+        {
+            ref det = list.obj(detalle,i)
+            det<"xfacturar">:@@(det,"#cantidad")
+        }
+    }
+    doc.setAplicadoAFromDetalle::&db,&detalle,&entity
+    {
+        if isnull(detalle){ return }
+        ref docs = record.create()
+        
+        for i = 0; i < list.count(detalle)
+        {
+            ref det = list.obj(detalle,i)
+            if trim(@@(det,"$documento")) != "" { docs<@@(det,"$documento")>:"" }
+        }
+        
+        new prm { @"current_doc": @@(entity,"#sys_pk") }
+        
+        go foreach.fstr(index:i, key:key, value:value) with(docs)
+        {
+            if trim(key) != ""
+            {
+                prm<"inserted_doc">: key
+                do dbr.execute(db, "UPDATE compra SET aplicadoa=@current_doc WHERE sys_pk=@inserted_doc", prm)
+            }
+        }
     }
 }

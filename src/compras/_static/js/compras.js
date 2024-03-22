@@ -32,12 +32,15 @@ document.addEventListener("DOMContentLoaded", () =>
 
     var table = document.getElementById("tbl_productos");
     var tData = table.DataArray;
+    var tColumns = table.Columns;
     var tEvents = table.EdiTable.Const.Events;
 
     btnAddRow.addEventListener("click", () => { table.AddRow(); });
     btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); });
     table.setInputKey("edt_codigo",ikProducto);
     table.setInputKey("edt_descripcion", ikProducto);
+
+    table.onTdPaint = (td,idxRow,idxCol,field) => { colorearTabla(td,idxRow,idxCol,field) }
 
     if (init_insert!="") sumarImportes();
 
@@ -228,13 +231,17 @@ document.addEventListener("DOMContentLoaded", () =>
         const url = url_detalle_doc.replace('@doc',doc);
         InduxsoftCrudlModel.InvokeService(url, null,
             success => { 
-                success.forEach(prod => agregarProducto(prod,false));
+                success.forEach(prod => { if (detalleNoRepetido(prod)) agregarProducto(prod,false) });
                 sumarImportes();
                 table._printRows();
             },
             failure => { alert(failure.message??JSON.stringify(failure)) },
             "GET", false
         );
+    }
+    function detalleNoRepetido(detalle)
+    {
+        return (tData.find(d => d.doc_partida == detalle.doc_partida) === undefined);
     }
     function agregarProducto(data,currentRow=true)
     {
@@ -277,6 +284,8 @@ document.addEventListener("DOMContentLoaded", () =>
             unidad: data.unidada,
             xfacturar: 1.0,
             iproducto: data.sys_pk,
+            doc_partida: (data.doc_partida??null),
+            documento: (data.documento??null),
 
             // campos extras para operaciones.
             subtotal: i.subtotal,
@@ -299,6 +308,7 @@ document.addEventListener("DOMContentLoaded", () =>
             lunidades: list_unidades,
             reqlote: data.reqlote,
             reqserie: data.reqserie,
+            doc_partida: (data.doc_partida??null)
         }
         let row = 0;
         if (currentRow)
@@ -313,6 +323,15 @@ document.addEventListener("DOMContentLoaded", () =>
         }
 
         //table.UpdateRow(row);
+    }
+    function colorearTabla(td,idxRow,idxCol,field)
+    {
+        let obj = tData[idxRow];
+        if (obj && obj.doc_partida)
+        {
+            td.style.backgroundColor = '#F0F8FF';
+            td.style.color = '#000';
+        }
     }
 
     //* ======================================== [ FORM EVENTS ] ========================================
@@ -355,6 +374,8 @@ document.addEventListener("DOMContentLoaded", () =>
         let show_btn_facturar = false;
         btnProcText = "Procesar";
 
+        let cotiColumn = tColumns.find(col => col.field == 'edt_cotizado');
+
         setURLInsertDoc(idocumento);
 
         switch (idocumento) {
@@ -390,7 +411,6 @@ document.addEventListener("DOMContentLoaded", () =>
                 break;
             case cPEDIDO:
                 show_btn_procesar = true;
-                btnProcText = "Recibir";
                 // console.log(idocumento, "cPEDIDO");
                 if (statusadministrativo === "")
                 {
@@ -410,6 +430,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 {
                     show_btn_reabrir = true;
                     show_btn_cancelar = true;
+                    btnProcText = "Recibir";
                 }
                 else if (statusadministrativo == EDO_ADMIN.cPROCESADO)
                 {
@@ -611,6 +632,7 @@ document.addEventListener("DOMContentLoaded", () =>
     btnProcesarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cPROCESADO;
+        if (btnProcesarText.textContent == 'Recibir') txt_statusadministrativo.value = EDO_ADMIN.Recibir;
         let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
         if (!validarReqLoteSerie(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
@@ -640,7 +662,7 @@ document.addEventListener("DOMContentLoaded", () =>
             alert("Debe seleccionar un proveedor para continuar");
             return;
         }
-        ikDocInsert.searchText("%", false);
+        ikDocInsert.searchText("", false);
     });
 
     //* ======================================== [ EDITABLE EVENTS ] ========================================

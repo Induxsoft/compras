@@ -41,8 +41,8 @@ module "procesos.dkh:erp.compras.procesos"
     {
         start_transaction = @false
 
-        sql_compra = "SELECT c.referencia, c.tipocambio, c.ialmacen FROM compra c WHERE c.sys_pk = @icompra;"
-        sql_dcompra = "SELECT d.sys_pk, IFNULL(d.sys_info,'') sys_info, d.cantidad, d.costototal, d.iproducto, (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos FROM dcompra d WHERE d.fk_compra_detalle = @icompra;"
+        sql_compra = "SELECT c.referencia, c.tipocambio, c.ialmacen, c.documento FROM compra c WHERE c.sys_pk = @icompra;"
+        sql_dcompra = "SELECT d.sys_pk, IFNULL(d.sys_info,'') sys_info, d.cantidad, d.costototal, d.iproducto, (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos, IFNULL(d.xfacturar,0) xfacturar, IFNULL(d.doc_partida,-99) doc_partida, p.descripcion producto FROM dcompra d INNER JOIN producto p ON d.iproducto = p.sys_pk WHERE d.fk_compra_detalle = @icompra;"
         
         new params { @"icompra": icompra }
         ref compra = dbr.rec(db,sql_compra,params)
@@ -70,7 +70,18 @@ module "procesos.dkh:erp.compras.procesos"
         for i = 0; i < list.count(dcompra)
         {
             ref item = list.obj(dcompra,i)
-
+            if @@(item,"#doc_partida") != -99
+            {
+                if not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",item)){
+                    action = "recibir"
+                    operation = "pedida"
+                    if @@(compra,"#documento") == @cFACTURA {
+                        action = "facturar"
+                        operation = "recibida"
+                    }
+                    do rise_error(0, ftext("No se puede #<action> más de la cantidad #<operation> del producto: ")+@@(item,"$producto"))
+                }
+            }
             new dcardex
             {
                 @"sys_pk": 0

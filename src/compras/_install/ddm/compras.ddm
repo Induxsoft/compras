@@ -254,6 +254,7 @@ model "erp.compras"
         @"unidad" string(10) required
         @"xfacturar" decimal(18,8)
         @"documento" int ref:"compra" ["sys_pk"]
+        @"doc_partida" ref:"dcompra"
         @"iproducto" int ref:"producto" ["sys_pk"] required
         @"fk_compra_detalle" int ref:"compra" ["sys_pk"] required
     }

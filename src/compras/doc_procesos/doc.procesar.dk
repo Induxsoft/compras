@@ -358,6 +358,9 @@ module "doc.procesar.dk"
             }
         }
 
-        div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
+        div(class="d-flex gap-2 mt-2 align-items-center"){ 
+            span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} 
+            #! if @('$error/message') != "" { #$ a(href="#<@DOC_COMPRAS>#<@@(compra,'sys_pk')>/" class="btn btn-sm btn-secondary"){$"Editar documento"} }
+        }
     }
 }

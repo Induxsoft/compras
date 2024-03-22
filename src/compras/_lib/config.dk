@@ -36,6 +36,7 @@ module "config.dk"
 		@"cCANCELADO": 99
 
 		@"Facturado": -1
+		@"Recibir":-2
 	}
 	// Estados de facturación para documentos
 	new @EDO_FACTURACION

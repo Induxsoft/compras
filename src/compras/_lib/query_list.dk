@@ -54,6 +54,8 @@ module "query_list.dk"
         d.unidad AS edt_unidad,
         d.precio AS edt_precio,
         d.cantidad AS edt_cantidad,
+        c.referencia AS edt_origen,
+        CONCAT(ROUND(d2.cantidad - ifnull(d2.xfacturar,d2.cantidad),0),'/',ROUND(d2.cantidad,0)) edt_cotizado,
         (d.precio * d.cantidad) AS edt_subtotal,
         (d.descuento1 + d.descuento2) AS edt_descuentos,
         (d.impuesto1 + d.impuesto2 + d.impuesto3 + d.impuesto4) AS edt_impuestos,
@@ -82,6 +84,8 @@ module "query_list.dk"
         d.unidad,
         d.xfacturar,
         d.iproducto,
+        d.documento,
+        d.doc_partida,
     -- Campos extras para operaciones
         (d.precio * d.cantidad) AS subtotal,
         (d.descuento1 + d.descuento2) AS descuentos,
@@ -106,6 +110,8 @@ module "query_list.dk"
     FROM dcompra d
         INNER JOIN producto p ON p.sys_pk = d.iproducto
         INNER JOIN cfgimpuesto i ON i.sys_pk = p.impuestos
+        LEFT JOIN dcompra d2 ON d.doc_partida = d2.sys_pk
+        LEFT JOIN compra c ON d.documento = c.sys_pk
         LEFT JOIN dcardex dc ON dc.rcompra = d.sys_pk
         LEFT JOIN lote l ON dc.ilote = l.sys_pk
         LEFT JOIN serie s ON dc.iserie = s.sys_pk
@@ -119,8 +125,9 @@ module "query_list.dk"
         d.unidad AS edt_unidad,
         d.precio AS edt_precio,
         c.referencia AS edt_origen,
-        d.cantidad AS edt_cotizado,
-        d.cantidad AS edt_cantidad,
+    --  d.cantidad AS edt_cotizado,
+        CONCAT(ROUND(d.cantidad - ifnull(d.xfacturar,d.cantidad),0),'/',ROUND(d.cantidad,0)) edt_cotizado,
+        ifnull(d.xfacturar,d.cantidad) AS edt_cantidad,
         (d.precio * d.cantidad) AS edt_subtotal,
         (d.descuento1 + d.descuento2) AS edt_descuentos,
         (d.impuesto1 + d.impuesto2 + d.impuesto3 + d.impuesto4) AS edt_impuestos,
@@ -154,10 +161,10 @@ module "query_list.dk"
         (d.descuento1 + d.descuento2) AS descuentos,
         (d.impuesto1 + d.impuesto2 + d.impuesto3 + d.impuesto4) AS impuestos,
         (((((((IFNULL(d.costototal,0) * IFNULL(d.cantidad,0)) - IFNULL(d.descuento1,0)) - IFNULL(d.descuento2,0)) + IFNULL(d.impuesto1,0)) + IFNULL(d.impuesto2,0)) + IFNULL(d.impuesto3,0)) + IFNULL(d.impuesto4,0)) AS importe,
-        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i1compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i1_tasa,
-        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i1compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i2_tasa,
-        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i3compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i3_tasa,
-        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i4compra, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i4_tasa,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i1compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i1_tasa,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i1compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i2_tasa,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i3compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i3_tasa,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(i.i4compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i4_tasa,
         TRIM(p.unidad) AS unidada,
         TRIM(IFNULL(p.unidadb,'')) AS unidadb,
         TRIM(IFNULL(p.unidadc,'')) AS unidadc,
@@ -169,9 +176,12 @@ module "query_list.dk"
         IFNULL(p.factore,0) AS factore,
         p.reqlote,
         p.reqserie,
-        IFNULL(d.sys_info,'') sys_info
+        IFNULL(d.sys_info,'') sys_info,
+        d.sys_pk doc_partida,
+        c.sys_pk documento
     FROM dcompra d
         INNER JOIN compra c ON d.fk_compra_detalle = c.sys_pk
+        INNER JOIN proveedor prv ON c.iproveedor = prv.sys_pk
         INNER JOIN producto p ON p.sys_pk = d.iproducto
         INNER JOIN cfgimpuesto i ON i.sys_pk = p.impuestos
         LEFT JOIN dcardex dc ON dc.rcompra = d.sys_pk
@@ -179,48 +189,50 @@ module "query_list.dk"
         LEFT JOIN serie s ON dc.iserie = s.sys_pk
     WHERE d.fk_compra_detalle = @_entity_id;
     "
-    // @sql_dcompra_insert = "
-    // SELECT
-    //     p.sys_pk,
-    //     p.sys_guid,
-    //     p.codigo,
-    //     p.descripcion,
-    //     TRIM(p.unidad) AS unidada,
-    //     TRIM(IFNULL(p.unidadb,'')) AS unidadb,
-    //     TRIM(IFNULL(p.unidadc,'')) AS unidadc,
-    //     TRIM(IFNULL(p.unidadd,'')) AS unidadd,
-    //     TRIM(IFNULL(p.unidade,'')) AS unidade,
-    //     IFNULL(p.factorb,0) AS factorb,
-    //     IFNULL(p.factorc,0) AS factorc,
-    //     IFNULL(p.factord,0) AS factord,
-    //     IFNULL(p.factore,0) AS factore,
-    //     p.costoultimo AS precio,
-    //     c.referencia AS edt_origen,
-    //     dc.cantidad AS edt_cotizado,
-    //     1 AS cantidad,
-    //     0 AS descuentos,
-    //     IFNULL(p.existencia,0) AS existencia,
-    //     dvs.codigo AS `divisa`,
-    //     dvs.tcambio AS tipocambio,
-    //     imp.nombre AS conf_impuestos,
-    //     IFNULL(imp.uf_tipoi1,'') AS i1_txt,
-    //     (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i1compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i1_tasa,
-    //     IFNULL(imp.uf_tipoi2,'') AS i2_txt,
-    //     (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i1compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i2_tasa,
-    //     IFNULL(imp.uf_tipoi3,'') AS i3_txt,
-    //     (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i3compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i3_tasa,
-    //     IFNULL(imp.uf_tipoi4,'') AS i4_txt,
-    //     (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i4compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i4_tasa,
-    //     IFNULL(p.reqlote,0) reqlote,
-    //     IFNULL(p.reqserie,0) reqserie
-    // FROM producto AS p
-    //     INNER JOIN divisa AS dvs ON dvs.sys_pk = p.idivisa
-    //     INNER JOIN cfgimpuesto AS imp ON imp.sys_pk = p.impuestos
-    //     INNER JOIN dcompra dc ON dc.iproducto = p.sys_pk
-    //     INNER JOIN compra c ON dc.fk_compra_detalle = c.sys_pk
-    //     INNER JOIN proveedor prv ON c.iproveedor = prv.sys_pk
-    // WHERE dc.fk_compra_detalle = @doc;
-    // "
+    @sql_dcompra_insert = "
+    SELECT
+        p.sys_pk,
+        p.sys_guid,
+        p.codigo,
+        p.descripcion,
+        TRIM(p.unidad) AS unidada,
+        TRIM(IFNULL(p.unidadb,'')) AS unidadb,
+        TRIM(IFNULL(p.unidadc,'')) AS unidadc,
+        TRIM(IFNULL(p.unidadd,'')) AS unidadd,
+        TRIM(IFNULL(p.unidade,'')) AS unidade,
+        IFNULL(p.factorb,0) AS factorb,
+        IFNULL(p.factorc,0) AS factorc,
+        IFNULL(p.factord,0) AS factord,
+        IFNULL(p.factore,0) AS factore,
+        p.costoultimo AS precio,
+        c.referencia AS edt_origen,
+        CONCAT(ROUND(dc.cantidad - ifnull(dc.xfacturar,dc.cantidad),0),'/',ROUND(dc.cantidad,0)) edt_cotizado,
+        ifnull(dc.xfacturar,dc.cantidad) AS cantidad,
+        0 AS descuentos,
+        IFNULL(p.existencia,0) AS existencia,
+        dvs.codigo AS `divisa`,
+        dvs.tcambio AS tipocambio,
+        imp.nombre AS conf_impuestos,
+        IFNULL(imp.uf_tipoi1,'') AS i1_txt,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i1compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i1_tasa,
+        IFNULL(imp.uf_tipoi2,'') AS i2_txt,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i1compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i2_tasa,
+        IFNULL(imp.uf_tipoi3,'') AS i3_txt,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i3compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i3_tasa,
+        IFNULL(imp.uf_tipoi4,'') AS i4_txt,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i4compra, '|', if(prv.tasaiva=2,-1,1)),'%',''), DECIMAL) / 100) AS i4_tasa,
+        IFNULL(p.reqlote,0) reqlote,
+        IFNULL(p.reqserie,0) reqserie,
+        dc.sys_pk doc_partida,
+        c.sys_pk documento
+    FROM producto AS p
+        INNER JOIN divisa AS dvs ON dvs.sys_pk = p.idivisa
+        INNER JOIN cfgimpuesto AS imp ON imp.sys_pk = p.impuestos
+        INNER JOIN dcompra dc ON dc.iproducto = p.sys_pk
+        INNER JOIN compra c ON dc.fk_compra_detalle = c.sys_pk
+        INNER JOIN proveedor prv ON c.iproveedor = prv.sys_pk
+    WHERE dc.fk_compra_detalle = @doc;
+    "
     @sql_buscar_proveedor = "
     SELECT 
         pdr.sys_pk,
