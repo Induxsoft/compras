@@ -32,17 +32,18 @@ document.addEventListener("DOMContentLoaded", () =>
 
     var table = document.getElementById("tbl_productos");
     var tData = table.DataArray;
-    var tColumns = table.Columns;
     var tEvents = table.EdiTable.Const.Events;
 
     btnAddRow.addEventListener("click", () => { table.AddRow(); });
-    btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); });
+    btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); toggleColumns(); });
     table.setInputKey("edt_codigo",ikProducto);
     table.setInputKey("edt_descripcion", ikProducto);
 
     table.onTdPaint = (td,idxRow,idxCol,field) => { colorearTabla(td,idxRow,idxCol,field) }
-
-    if (init_insert!="") sumarImportes();
+    
+    sumarImportes();
+    toggleColumns();
+    table._printRows();
 
     function trigger(element,event) {
         if (element) {
@@ -308,7 +309,8 @@ document.addEventListener("DOMContentLoaded", () =>
             lunidades: list_unidades,
             reqlote: data.reqlote,
             reqserie: data.reqserie,
-            doc_partida: (data.doc_partida??null)
+            doc_partida: (data.doc_partida??null),
+            pendientes: data.pendientes
         }
         let row = 0;
         if (currentRow)
@@ -321,7 +323,7 @@ document.addEventListener("DOMContentLoaded", () =>
         {
             tData.unshift(producto);
         }
-
+        toggleColumns();
         //table.UpdateRow(row);
     }
     function colorearTabla(td,idxRow,idxCol,field)
@@ -329,9 +331,15 @@ document.addEventListener("DOMContentLoaded", () =>
         let obj = tData[idxRow];
         if (obj && obj.doc_partida)
         {
-            td.style.backgroundColor = '#F0F8FF';
-            td.style.color = '#000';
+            td.style.backgroundColor = '#888';
+            td.style.color = '#FFF';
         }
+    }
+    function toggleColumns()
+    {
+        const showColumns = tData.find(r => (r.edt_origen??'') != '');
+        table.hideColumn('edt_origen', !showColumns);
+        table.hideColumn('edt_cotizado', !showColumns);
     }
 
     //* ======================================== [ FORM EVENTS ] ========================================
@@ -374,8 +382,6 @@ document.addEventListener("DOMContentLoaded", () =>
         let show_btn_facturar = false;
         btnProcText = "Procesar";
 
-        let cotiColumn = tColumns.find(col => col.field == 'edt_cotizado');
-
         setURLInsertDoc(idocumento);
 
         switch (idocumento) {
@@ -411,6 +417,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 break;
             case cPEDIDO:
                 show_btn_procesar = true;
+                table.changeColumnTitle("edt_cotizado","Cotizado");
                 // console.log(idocumento, "cPEDIDO");
                 if (statusadministrativo === "")
                 {
@@ -430,14 +437,15 @@ document.addEventListener("DOMContentLoaded", () =>
                 {
                     show_btn_reabrir = true;
                     show_btn_cancelar = true;
-                    btnProcText = "Recibir";
                 }
                 else if (statusadministrativo == EDO_ADMIN.cPROCESADO)
                 {
                     show_btn_cancelar = true;
+                    btnProcText = "Recibir";
                 }
                 break;
             case cREMISION:
+                table.changeColumnTitle("edt_cotizado","Pedido");
                 // console.log(idocumento, "cREMISION");
                 if (statusadministrativo === "")
                 {
@@ -466,6 +474,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 break;
             case cFACTURA:
+                table.changeColumnTitle("edt_cotizado","Recibido");
                 // console.log(idocumento, "cFACTURA");
                 if (statusadministrativo === "")
                 {
@@ -833,7 +842,13 @@ document.addEventListener("DOMContentLoaded", () =>
             producto[field] = value;
             if (field == "edt_precio") producto["precio"] = value;
             if (field == "edt_cantidad"){
+                let idocumento = Number(selDocumento.value);
                 producto["cantidad"] = value;
+                if ((idocumento == cREMISION || idocumento == cFACTURA) && producto.edt_origen && producto.cantidad > producto.pendientes) {
+                    alert(`No se puede ${(idocumento==cREMISION?'recibir':'facturar')} más de la cantidad ${(idocumento==cREMISION?'pedida':'facturada')}`);
+                    producto["cantidad"] = producto.pendientes;
+                    e.text = producto.pendientes;
+                }
                 if (producto.reqserie && producto.cantidad > 1){
                     alert('La cantidad para este producto con serie requerida debe ser 1, para agregar más series del mismo producto insertelo en una nueva fila');
                     producto["cantidad"] = 1;

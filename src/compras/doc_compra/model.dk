@@ -184,6 +184,7 @@ module "model"
         if nvo_status_admin == cPROCESADO {
             compra<"statusadministrativo"> : cCERRADO
             redir = @true
+            if @@(compra,"#documento") == @cPEDIDO { compra<"statusadministrativo"> : cPROCESADO }
         }
 
         @use_transaction = @false
@@ -210,6 +211,22 @@ module "model"
         if nvo_status_admin == Recibir
         {
             @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cREMISION)
+        }
+        if nvo_status_admin == cPROCESADO && @@(compra,"#documento") == @cPEDIDO
+        {
+            redir = @false
+            @url_redir = ""
+            if not(isnull(@@(compra,"&_detalle")))
+            {
+                ref detalle = @@(compra,"&_detalle")
+                for i = 0; i < list.count(detalle)
+                {
+                    ref det = list.obj(detalle,i)
+                    if not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
+                        do rise_error(0, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$edt_descripcion"))
+                    }
+                }
+            }
         }
         return entity
 
@@ -292,6 +309,7 @@ module "model"
                 }
                 else if nvo_status_admin == cPROCESADO {
                     compra<"statusadministrativo"> : cCERRADO
+                    if @@(compra,"#documento") == @cPEDIDO { compra<"statusadministrativo"> : cPROCESADO }
                     do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
                     do doc.addSerieLote(db,compra)
@@ -330,6 +348,7 @@ module "model"
                 }
                 else if nvo_status_admin == cPROCESADO {
                     compra<"statusadministrativo"> : cCERRADO
+                    if @@(compra,"#documento") == @cPEDIDO { compra<"statusadministrativo"> : cPROCESADO }
                     do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
                     do doc.addSerieLote(db,compra)
@@ -384,7 +403,7 @@ module "model"
             }
             case cPROCESADO
             {
-                if nvo_status_admin != cCANCELADO && nvo_status_admin != FACTURADO { do rise_error(2,"Estado inválido, no es posible editar el documento.") }
+                if nvo_status_admin != cCANCELADO && nvo_status_admin != FACTURADO && nvo_status_admin != Recibir { do rise_error(2,"Estado inválido, no es posible editar el documento.") }
                 if nvo_status_admin == cCANCELADO
                 {
                     // Redirigir

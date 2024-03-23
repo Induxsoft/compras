@@ -106,7 +106,8 @@ module "query_list.dk"
         IFNULL(p.factore,0) AS factore,
         p.reqlote,
         p.reqserie,
-        IFNULL(d.sys_info,'') sys_info
+        IFNULL(d.sys_info,'') sys_info,
+        ifnull(d2.xfacturar,d2.cantidad) AS pendientes
     FROM dcompra d
         INNER JOIN producto p ON p.sys_pk = d.iproducto
         INNER JOIN cfgimpuesto i ON i.sys_pk = p.impuestos
@@ -178,7 +179,8 @@ module "query_list.dk"
         p.reqserie,
         IFNULL(d.sys_info,'') sys_info,
         d.sys_pk doc_partida,
-        c.sys_pk documento
+        c.sys_pk documento,
+        ifnull(d.xfacturar,d.cantidad) AS pendientes
     FROM dcompra d
         INNER JOIN compra c ON d.fk_compra_detalle = c.sys_pk
         INNER JOIN proveedor prv ON c.iproveedor = prv.sys_pk
@@ -224,7 +226,8 @@ module "query_list.dk"
         IFNULL(p.reqlote,0) reqlote,
         IFNULL(p.reqserie,0) reqserie,
         dc.sys_pk doc_partida,
-        c.sys_pk documento
+        c.sys_pk documento,
+        ifnull(dc.xfacturar,dc.cantidad) AS pendientes
     FROM producto AS p
         INNER JOIN divisa AS dvs ON dvs.sys_pk = p.idivisa
         INNER JOIN cfgimpuesto AS imp ON imp.sys_pk = p.impuestos
