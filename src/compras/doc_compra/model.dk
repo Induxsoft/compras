@@ -197,7 +197,6 @@ module "model"
         {
             do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
         }
-        do dbr.commit(db)
         
         if redir && nvo_status_admin == cPROCESADO { 
             // if @@(data,"#documento") == @cCOTIZACION {
@@ -222,12 +221,13 @@ module "model"
                 for i = 0; i < list.count(detalle)
                 {
                     ref det = list.obj(detalle,i)
-                    if not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
+                    if @@(det,"edt_origen") != "" && not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
                         do rise_error(0, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$edt_descripcion"))
                     }
                 }
             }
         }
+        do dbr.commit(db)
         return entity
 
         exception
@@ -282,6 +282,8 @@ module "model"
             }
         }
 
+        do dbr.begin(db)
+
         do doc.setAplicadoAFromDetalle(db,@@(compra,"&_detalle"),compra)
         
         if @@(compra,"#documento") == @cPEDIDO && nvo_status_admin == cPROCESADO && not(isnull(@@(compra,"&_detalle"))) {
@@ -289,7 +291,7 @@ module "model"
             for i = 0; i < list.count(detalle)
             {
                 ref det = list.obj(detalle,i)
-                if not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
+                if @@(det,"edt_origen") != "" && not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
                     do rise_error(0, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$edt_descripcion"))
                 }
             }
@@ -300,34 +302,28 @@ module "model"
             case cNO_APLICA
             {   
                 if nvo_status_admin == cNO_APLICA || nvo_status_admin == cABIERTO || nvo_status_admin == cCERRADO {
-                    do dbr.begin(db)
                     // Actualizar todos los campos
                     do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
-                    do dbr.commit(db)
                 }
                 else if nvo_status_admin == cPROCESADO {
                     compra<"statusadministrativo"> : cCERRADO
                     if @@(compra,"#documento") == @cPEDIDO { compra<"statusadministrativo"> : cPROCESADO }
-                    do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
                     do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
-                    do dbr.commit(db)
 
                     redir = @true
                     @url_redir = @DOC_PROCESAR
                 }
                 else if nvo_status_admin == cCANCELADO {
                     compra<"statusadministrativo"> : cCERRADO
-                    do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
                     do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
-                    do dbr.commit(db)
 
                     redir = @true
                     @url_redir = @DOC_CANCELAR
@@ -339,33 +335,27 @@ module "model"
                 if nvo_status_admin == cNO_APLICA { do rise_error(2,"Estado inválido, no es posible editar el documento.") }
                 
                 if nvo_status_admin == cABIERTO || nvo_status_admin == cCERRADO {
-                    do dbr.begin(db)
                     // Actualizar todos los campos
                     do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
-                    do dbr.commit(db)
                 }
                 else if nvo_status_admin == cPROCESADO {
                     compra<"statusadministrativo"> : cCERRADO
                     if @@(compra,"#documento") == @cPEDIDO { compra<"statusadministrativo"> : cPROCESADO }
-                    do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
                     do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
-                    do dbr.commit(db)
                     redir = @true
                     do doc.check_redirs(compra,entity,@DOC_PROCESAR)
                 }
                 else if nvo_status_admin == cCANCELADO {
                     compra<"statusadministrativo"> : cCERRADO
-                    do dbr.begin(db)
                     // Actualizar todos los campos y redirigir
                     do doc.addSerieLote(db,compra)
                     ref entity = entity.update(db,params,compra)
                     do doc.actualizarTotales(db,@@(entity,"#sys_pk"))
-                    do dbr.commit(db)
 
                     redir = @true
                     @url_redir = @DOC_CANCELAR
@@ -429,6 +419,8 @@ module "model"
             }
             default { do rise_error(500,"Estado Inválido.") }
         }
+
+        if dbr.in_transaction(db) { do dbr.commit(db) }
 
         if nvo_status_admin == cPROCESADO && @@(compra,"#documento") == @cPEDIDO
         {
