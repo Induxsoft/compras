@@ -74,7 +74,7 @@ module "model"
             }
             case @cFACTURA
             {
-                doctypes = ftext(" AND (c.documento = #<@cPEDIDO> OR c.documento = #<@cREMISION>) ")
+                doctypes = ftext(" AND c.documento = #<@cREMISION> ")
                 break
             }
         }
