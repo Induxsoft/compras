@@ -44,6 +44,7 @@ document.addEventListener("DOMContentLoaded", () =>
     sumarImportes();
     toggleColumns();
     table._printRows();
+    if (ikProveedor && Object.keys(ikProveedor.getValue()).length > 0) changeURLImport(ikProveedor.getValue());
 
     function trigger(element,event) {
         if (element) {
@@ -341,12 +342,8 @@ document.addEventListener("DOMContentLoaded", () =>
         table.hideColumn('edt_origen', !showColumns);
         table.hideColumn('edt_cotizado', !showColumns);
     }
-
-    //* ======================================== [ FORM EVENTS ] ========================================
-
-    ikProveedor.addEventListener("change", function(data) {
-        if (!data) return;
-
+    function changeURLImport(data)
+    {
         let URL_BUSCAR_PRODUCTO = InduxsoftCrudlModel.UrlReplace(ikProducto.getAttribute("data-source"),data);
         let URL_BUSCAR_DOCUMENT = InduxsoftCrudlModel.UrlReplace(ikDocInsert.getAttribute("data-source"),{ proveedor:data.sys_pk });
         
@@ -354,6 +351,13 @@ document.addEventListener("DOMContentLoaded", () =>
         txtTipoCambio.value = data.tcambio;
         ikProducto.setAttribute("data-source",URL_BUSCAR_PRODUCTO);
         ikDocInsert.setAttribute("data-source",URL_BUSCAR_DOCUMENT);
+    }
+
+    //* ======================================== [ FORM EVENTS ] ========================================
+
+    ikProveedor.addEventListener("change", function(data) {
+        if (!data) return;
+        changeURLImport(data);
     });
 
     ikProducto.addEventListener("change", function(data) {
@@ -849,7 +853,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 let idocumento = Number(selDocumento.value);
                 producto["cantidad"] = value;
                 if ((idocumento == cREMISION || idocumento == cFACTURA) && producto.edt_origen && producto.cantidad > producto.pendientes) {
-                    alert(`No se puede ${(idocumento==cREMISION?'recibir':'facturar')} más de la cantidad ${(idocumento==cREMISION?'pedida':'facturada')}`);
+                    alert(`No se puede ${(idocumento==cREMISION?'recibir':'facturar')} más de la cantidad ${(idocumento==cREMISION?'pedida':'recibida')}`);
                     producto["cantidad"] = producto.pendientes;
                     e.text = producto.pendientes;
                 }

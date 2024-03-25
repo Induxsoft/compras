@@ -43,11 +43,13 @@ module "model"
             SELECT c.sys_pk, cd.const documento, DATE_FORMAT(c.fecha,'%Y-%m-%d') fecha, c.referencia
             FROM compra c
                 INNER JOIN cdocumentos cd ON c.documento = cd.id
-            WHERE c.statusadministrativo != 3
-                AND c.statusadministrativo != 99
+                INNER JOIN dcompra dc ON c.sys_pk = dc.fk_compra_detalle
+            WHERE c.statusadministrativo != 99
                 AND c.iproveedor = @proveedor
                 AND IF(IFNULL(@search,'%')='%', true, c.referencia LIKE CONCAT('%',@search,'%'))
                 #<doctypes>
+            GROUP BY c.sys_pk
+            HAVING SUM(IFNULL(dc.xfacturar,0)) > 0
             ORDER BY c.fecha
             LIMIT #<@default_max_rows>;
         "
@@ -69,12 +71,12 @@ module "model"
             }
             case @cREMISION
             {
-                doctypes = ftext(" AND c.documento = #<@cPEDIDO> ")
+                doctypes = ftext(" AND (c.documento = #<@cCOTIZACION> OR c.documento = #<@cPEDIDO>) ")
                 break
             }
             case @cFACTURA
             {
-                doctypes = ftext(" AND c.documento = #<@cREMISION> ")
+                doctypes = ftext(" AND (c.documento = #<@cCOTIZACION> OR c.documento = #<@cPEDIDO> OR c.documento = #<@cREMISION>) ")
                 break
             }
         }
@@ -184,7 +186,11 @@ module "model"
         if nvo_status_admin == cPROCESADO {
             compra<"statusadministrativo"> : cCERRADO
             redir = @true
-            if @@(compra,"#documento") == @cPEDIDO { compra<"statusadministrativo"> : cPROCESADO }
+            if @@(compra,"#documento") == @cPEDIDO { 
+                redir = @false
+                @url_redir = ""
+                compra<"statusadministrativo"> : cPROCESADO 
+            }
         }
 
         @use_transaction = @false
@@ -213,8 +219,6 @@ module "model"
         }
         if nvo_status_admin == cPROCESADO && @@(compra,"#documento") == @cPEDIDO
         {
-            redir = @false
-            @url_redir = ""
             if not(isnull(@@(compra,"&_detalle")))
             {
                 ref detalle = @@(compra,"&_detalle")
@@ -222,6 +226,7 @@ module "model"
                 {
                     ref det = list.obj(detalle,i)
                     if @@(det,"edt_origen") != "" && not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
+                        params<"_entity_id">:"_new"
                         do rise_error(0, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$edt_descripcion"))
                     }
                 }
