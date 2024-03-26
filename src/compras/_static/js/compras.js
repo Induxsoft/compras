@@ -311,7 +311,8 @@ document.addEventListener("DOMContentLoaded", () =>
             reqlote: data.reqlote,
             reqserie: data.reqserie,
             doc_partida: (data.doc_partida??null),
-            pendientes: data.pendientes
+            pendientes: data.pendientes,
+            minimo: (data.minimo??0)
         }
         let row = 0;
         if (currentRow)
@@ -861,6 +862,11 @@ document.addEventListener("DOMContentLoaded", () =>
                     alert('La cantidad para este producto con serie requerida debe ser 1, para agregar más series del mismo producto insertelo en una nueva fila');
                     producto["cantidad"] = 1;
                     e.text = 1;
+                }
+                if (producto.cantidad < producto.minimo) {
+                    alert('El producto de este documento a sido insertado en otro documento por lo que no puede establecer una cantidad inferior a: ' + producto.minimo);
+                    producto["cantidad"] = producto.minimo;
+                    e.text = producto.minimo;
                 }
             }
             if (field == "edt_descuentos") producto["descuentos"] = value;

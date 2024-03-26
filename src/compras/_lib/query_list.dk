@@ -107,7 +107,8 @@ module "query_list.dk"
         p.reqlote,
         p.reqserie,
         IFNULL(d.sys_info,'') sys_info,
-        ifnull(d2.xfacturar,d2.cantidad) AS pendientes
+        ifnull(d2.xfacturar,d2.cantidad) AS pendientes,
+        (d.cantidad - IFNULL(d.xfacturar,d.cantidad)) AS minimo
     FROM dcompra d
         INNER JOIN producto p ON p.sys_pk = d.iproducto
         INNER JOIN cfgimpuesto i ON i.sys_pk = p.impuestos

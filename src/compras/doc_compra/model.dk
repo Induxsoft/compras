@@ -288,8 +288,9 @@ module "model"
         }
 
         do dbr.begin(db)
-
+        // **unificar en un función para recorrer 1 sola vez el detalle
         do doc.setAplicadoAFromDetalle(db,@@(compra,"&_detalle"),compra)
+        do doc.valideCantidadDetalle(@@(compra,"&_detalle"))
         
         if @@(compra,"#documento") == @cPEDIDO && nvo_status_admin == cPROCESADO && not(isnull(@@(compra,"&_detalle"))) {
             ref detalle = @@(compra,"&_detalle")
@@ -661,6 +662,19 @@ module "model"
         {
             ref det = list.obj(detalle,i)
             det<"xfacturar">:@@(det,"#cantidad")
+        }
+    }
+    doc.valideCantidadDetalle::&detalle
+    {
+        if isnull(detalle){ return }
+
+        for i = 0; i < list.count(detalle)
+        {
+            ref det = list.obj(detalle,i)
+            minimo = @@(det,"#minimo")
+            cantid = @@(det,"#cantidad")
+            if cantid < minimo { do rise_error(0, "El producto: "+@@(det,"$edt_descripcion") + " de este documento ha sido insertado en otro documento por lo que no puede establecer una cantidad inferior a: "+str(minimo)) }
+            det<"xfacturar">: (cantid - minimo)
         }
     }
     doc.setAplicadoAFromDetalle::&db,&detalle,&entity
