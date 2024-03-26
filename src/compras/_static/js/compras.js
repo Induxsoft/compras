@@ -371,7 +371,10 @@ document.addEventListener("DOMContentLoaded", () =>
     });
 
     ikProducto.addEventListener("change", function(data) {
+        ikProducto.accept_data = null;
+        ikProducto.record_selected = null;
         if (!data) return;
+        
         let row = table.CurrentRowIndex();
         agregarProducto(data);
         table._printRows();
