@@ -353,6 +353,15 @@ document.addEventListener("DOMContentLoaded", () =>
         ikProducto.setAttribute("data-source",URL_BUSCAR_PRODUCTO);
         ikDocInsert.setAttribute("data-source",URL_BUSCAR_DOCUMENT);
     }
+    function showControlsByStatus()
+    {
+        if (EDO_ENTREGA == 3 && EDO_FACTURACION == 3)
+        {
+            btnProcesarDoc.classList.add("d-none");
+            btnCancelarDoc.classList.add("d-none");
+            btnFacturar.classList.add('d-none');
+        }
+    }
 
     //* ======================================== [ FORM EVENTS ] ========================================
 
@@ -551,6 +560,7 @@ document.addEventListener("DOMContentLoaded", () =>
         btnAddDoc.classList.toggle('d-none',!show_btn_insert_doc);
         btnFacturar.classList.toggle('d-none',!show_btn_facturar);
         btnProcesarText.textContent = btnProcText;
+        showControlsByStatus();
     });
     trigger(selDocumento,"change");
 

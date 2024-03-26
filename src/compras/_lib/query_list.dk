@@ -142,7 +142,7 @@ module "query_list.dk"
         d.sys_pk,
         d.sys_guid,
         d.sys_recver,
-        d.cantidad,
+        ifnull(d.xfacturar,d.cantidad) AS cantidad,
         d.costototal,
         d.descuento1,
         d.descuento2,
@@ -190,7 +190,8 @@ module "query_list.dk"
         LEFT JOIN dcardex dc ON dc.rcompra = d.sys_pk
         LEFT JOIN lote l ON dc.ilote = l.sys_pk
         LEFT JOIN serie s ON dc.iserie = s.sys_pk
-    WHERE d.fk_compra_detalle = @_entity_id;
+    WHERE ifnull(d.xfacturar,d.cantidad) > 0
+        AND d.fk_compra_detalle = @_entity_id;
     "
     @sql_dcompra_insert = "
     SELECT
@@ -235,7 +236,8 @@ module "query_list.dk"
         INNER JOIN dcompra dc ON dc.iproducto = p.sys_pk
         INNER JOIN compra c ON dc.fk_compra_detalle = c.sys_pk
         INNER JOIN proveedor prv ON c.iproveedor = prv.sys_pk
-    WHERE dc.fk_compra_detalle = @doc;
+    WHERE ifnull(dc.xfacturar,dc.cantidad) > 0
+        AND dc.fk_compra_detalle = @doc;
     "
     @sql_buscar_proveedor = "
     SELECT 

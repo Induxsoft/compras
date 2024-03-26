@@ -359,6 +359,9 @@ module "doc.pedido.dk"
 
                 const url_detalle_doc = "#<@URL_DETALLE_DOCUMENTO>";
                 const init_insert = "#<init_insert>";
+
+                const EDO_ENTREGA = #<form("statusentrega","nm",compra)>;
+                const EDO_FACTURACION = #<form("statusfacturacion","nm",compra)>;
             '}
             script(src="#<@JS_COMPRAS>"){""}
         }

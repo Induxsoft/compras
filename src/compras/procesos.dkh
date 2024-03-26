@@ -2,7 +2,34 @@
 #!
 module "procesos.dkh:erp.compras.procesos"
 {
-
+    setStatusEntregaFacturacion::&db,compra_pk
+    {
+        new prm { @"compra": compra_pk }
+        sql = "
+            SELECT dc2.fk_compra_detalle compra
+            FROM dcompra dc
+                INNER JOIN dcompra dc2 ON dc.doc_partida = dc2.sys_pk
+            WHERE dc.fk_compra_detalle = @compra
+            GROUP BY dc2.fk_compra_detalle;
+        "
+        ref comprasInsertadas = dbr.list(db, sql, prm)
+        
+        for i = 0; i < list.count(comprasInsertadas)
+        {
+            ref compra = list.obj(comprasInsertadas,i)
+            new status {
+                @"statusentrega": 1 //0:cNo_aplica, 1:cPor_Entregar, 3:cEntregado
+                @"statusfacturacion": 1 //0:cNo_Aplica, 1:cPor_facturar, 2:cParcialmente_facturado, 3:cFacturado 
+            }
+            xfacturar = dbr.num(db,"SELECT SUM(IFNULL(xfacturar,cantidad)) FROM dcompra WHERE fk_compra_detalle = @compra;",compra)
+            if xfacturar <= 0
+            {
+                status<"statusentrega">: 3
+                status<"statusfacturacion">: 3
+            }
+            do dbr.update(db,"compra",status,"sys_pk=@compra",compra)
+        }
+    }
     asignarLoteSerie::&db,&item,&dcardex
     {
         if trim(@@(item,"$sys_info")) != ""
@@ -104,6 +131,7 @@ module "procesos.dkh:erp.compras.procesos"
             do dbr.insert(db,"dcardex",dcardex)
         }
 
+        do erp.compras.procesos.setStatusEntregaFacturacion(db,icompra)
         if start_transaction { do dbr.commit(db) }
         return last_id
 

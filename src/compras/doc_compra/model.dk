@@ -205,12 +205,6 @@ module "model"
         }
         
         if redir && nvo_status_admin == cPROCESADO { 
-            // if @@(data,"#documento") == @cCOTIZACION {
-            //     @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cPEDIDO)
-            // }
-            // else {
-            //     @url_redir = replace(@DOC_PROCESAR,"{_doc}",@@(entity,"#sys_pk")) 
-            // }
             do doc.check_redirs(compra,entity,replace(@DOC_PROCESAR,"{_doc}",@@(entity,"#sys_pk")))
         }
         if nvo_status_admin == Recibir
@@ -226,17 +220,24 @@ module "model"
                 {
                     ref det = list.obj(detalle,i)
                     if @@(det,"edt_origen") != "" && not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
-                        params<"_entity_id">:"_new"
                         do rise_error(0, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$edt_descripcion"))
                     }
                 }
             }
+            do doc.setStatusEntregaFacturacion(db,@@(entity,"#sys_pk"))
+            exception
+            {
+                params<"_entity_id">:"_new"
+                do rise_error(last_error_code(),last_error())
+            }
         }
+
         do dbr.commit(db)
         return entity
 
         exception
         {
+            params<"_entity_id">:"_new"
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
@@ -253,7 +254,7 @@ module "model"
 
     doc.actualizar::&db,&params,&data
     {
-        // do errordet(@false)
+        do errordet(@false)
         redir = @false
         @use_transaction = @false
         
@@ -432,6 +433,7 @@ module "model"
         {
             redir = @false
             @url_redir = ""
+            do doc.setStatusEntregaFacturacion(db,@@(entity,"#sys_pk"))
         }
 
         if redir { @url_redir = replace(@url_redir,"{_doc}",@@(params,"#_entity_id")) }
@@ -697,6 +699,34 @@ module "model"
                 prm<"inserted_doc">: key
                 do dbr.execute(db, "UPDATE compra SET aplicadoa=@current_doc WHERE sys_pk=@inserted_doc", prm)
             }
+        }
+    }
+    doc.setStatusEntregaFacturacion::&db,compra_pk
+    {
+        new prm { @"compra": compra_pk }
+        sql = "
+            SELECT dc2.fk_compra_detalle compra
+            FROM dcompra dc
+                INNER JOIN dcompra dc2 ON dc.doc_partida = dc2.sys_pk
+            WHERE dc.fk_compra_detalle = @compra
+            GROUP BY dc2.fk_compra_detalle;
+        "
+        ref comprasInsertadas = dbr.list(db, sql, prm)
+        
+        for i = 0; i < list.count(comprasInsertadas)
+        {
+            ref compra = list.obj(comprasInsertadas,i)
+            new status {
+                @"statusentrega": 1 //0:cNo_aplica, 1:cPor_Entregar, 3:cEntregado
+                @"statusfacturacion": 1 //0:cNo_Aplica, 1:cPor_facturar, 2:cParcialmente_facturado, 3:cFacturado 
+            }
+            xfacturar = dbr.num(db,"SELECT SUM(IFNULL(xfacturar,cantidad)) FROM dcompra WHERE fk_compra_detalle = @compra;",compra)
+            if xfacturar <= 0
+            {
+                status<"statusentrega">: 3
+                status<"statusfacturacion">: 3
+            }
+            do dbr.update(db, "compra", status, "sys_pk=@compra", compra)
         }
     }
 }
