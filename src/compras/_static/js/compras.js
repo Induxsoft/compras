@@ -362,6 +362,18 @@ document.addEventListener("DOMContentLoaded", () =>
             btnFacturar.classList.add('d-none');
         }
     }
+    function validarDetalle(detalle)
+    {
+        let ok = true;
+        if (!detalle) return ok;
+
+        const bad_product = detalle.find(d => Number(d.edt_precio) <= 0);
+        if (bad_product){
+            ok = false;
+            alert("El precio del producto: " + bad_product.edt_descripcion + " debe ser mayor a cero.");
+        }
+        return ok;
+    }
 
     //* ======================================== [ FORM EVENTS ] ========================================
 
@@ -627,6 +639,7 @@ document.addEventListener("DOMContentLoaded", () =>
         txt_statusadministrativo.value = EDO_ADMIN.cABIERTO;
         let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
         if (!validarReqLoteSerie(_detalle)) return;
+        if (!validarDetalle(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
         formPedido.submit();
@@ -666,6 +679,7 @@ document.addEventListener("DOMContentLoaded", () =>
         if (btnProcesarText.textContent == 'Recibir') txt_statusadministrativo.value = EDO_ADMIN.Recibir;
         let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
         if (!validarReqLoteSerie(_detalle)) return;
+        if (!validarDetalle(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
         formPedido.submit();
@@ -675,6 +689,7 @@ document.addEventListener("DOMContentLoaded", () =>
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.Facturado;
         let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        if (!validarDetalle(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
         formPedido.submit();
     });
