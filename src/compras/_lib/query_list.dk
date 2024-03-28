@@ -108,7 +108,9 @@ module "query_list.dk"
         p.reqserie,
         IFNULL(d.sys_info,'') sys_info,
         ifnull(d2.xfacturar,d2.cantidad) AS pendientes,
-        (d.cantidad - IFNULL(d.xfacturar,d.cantidad)) AS minimo
+        (d.cantidad - IFNULL(d.xfacturar,d.cantidad)) AS minimo,
+        ROUND(d2.cantidad - ifnull(d2.xfacturar,d2.cantidad),0) usado,
+        ROUND(d2.cantidad,0) cantidad_constante
     FROM dcompra d
         INNER JOIN producto p ON p.sys_pk = d.iproducto
         INNER JOIN cfgimpuesto i ON i.sys_pk = p.impuestos
@@ -181,7 +183,9 @@ module "query_list.dk"
         IFNULL(d.sys_info,'') sys_info,
         d.sys_pk doc_partida,
         c.sys_pk documento,
-        ifnull(d.xfacturar,d.cantidad) AS pendientes
+        ifnull(d.xfacturar,d.cantidad) AS pendientes,
+        ROUND(d.cantidad - ifnull(d.xfacturar,d.cantidad),0) usado,
+        ROUND(d.cantidad,0) cantidad_constante
     FROM dcompra d
         INNER JOIN compra c ON d.fk_compra_detalle = c.sys_pk
         INNER JOIN proveedor prv ON c.iproveedor = prv.sys_pk
@@ -229,7 +233,9 @@ module "query_list.dk"
         IFNULL(p.reqserie,0) reqserie,
         dc.sys_pk doc_partida,
         c.sys_pk documento,
-        ifnull(dc.xfacturar,dc.cantidad) AS pendientes
+        ifnull(dc.xfacturar,dc.cantidad) AS pendientes,
+        ROUND(dc.cantidad - ifnull(dc.xfacturar,dc.cantidad),0) usado,
+        ROUND(dc.cantidad,0) cantidad_constante
     FROM producto AS p
         INNER JOIN divisa AS dvs ON dvs.sys_pk = p.idivisa
         INNER JOIN cfgimpuesto AS imp ON imp.sys_pk = p.impuestos

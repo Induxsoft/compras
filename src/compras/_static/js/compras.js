@@ -43,6 +43,7 @@ document.addEventListener("DOMContentLoaded", () =>
     
     sumarImportes();
     toggleColumns();
+    updateCotizados();
     table._printRows();
     if (ikProveedor && Object.keys(ikProveedor.getValue()).length > 0) changeURLImport(ikProveedor.getValue());
 
@@ -233,7 +234,12 @@ document.addEventListener("DOMContentLoaded", () =>
         const url = url_detalle_doc.replace('@doc',doc);
         InduxsoftCrudlModel.InvokeService(url, null,
             success => { 
-                success.forEach(prod => { if (detalleNoRepetido(prod)) agregarProducto(prod,false) });
+                success.forEach(prod => { 
+                    if (detalleNoRepetido(prod)) {
+                        updateCotizado(prod);
+                        agregarProducto(prod,false);
+                    }
+                });
                 sumarImportes();
                 table._printRows();
             },
@@ -312,7 +318,9 @@ document.addEventListener("DOMContentLoaded", () =>
             reqserie: data.reqserie,
             doc_partida: (data.doc_partida??null),
             pendientes: data.pendientes,
-            minimo: (data.minimo??0)
+            minimo: (data.minimo??0),
+            usado: (data.minimo??0),
+            cantidad_constante: (data.cantidad_constante??0)
         }
         let row = 0;
         if (currentRow)
@@ -373,6 +381,17 @@ document.addEventListener("DOMContentLoaded", () =>
             alert("El precio del producto: " + bad_product.edt_descripcion + " debe ser mayor a cero.");
         }
         return ok;
+    }
+    function updateCotizados()
+    {
+        if (init_insert) tData.forEach(d=>updateCotizado(d));
+    }
+    function updateCotizado(producto)
+    {
+        if (producto.edt_cotizado)
+        {
+            producto.edt_cotizado = (producto.usado + producto.cantidad) + "/" + producto.cantidad_constante;
+        }
     }
 
     //* ======================================== [ FORM EVENTS ] ========================================
@@ -896,6 +915,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     producto["cantidad"] = producto.minimo;
                     e.text = producto.minimo;
                 }
+                updateCotizado(producto);
             }
             if (field == "edt_descuentos") producto["descuentos"] = value;
             actualizarProducto(producto,currentRowIndex);
