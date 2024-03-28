@@ -64,12 +64,17 @@ module "procesos.dkh:erp.compras.procesos"
             //excepcion{}
         }
     }
+    actualizarCostoUltimoProducto::&db,&item
+    {
+        new prm { @"costoultimo": @@(item,"#precio") }
+        do dbr.update(db,"producto",prm,"sys_pk=@iproducto",item)
+    }
     entradaInventario::&db,icompra,icategoria
     {
         start_transaction = @false
 
         sql_compra = "SELECT c.referencia, c.tipocambio, c.ialmacen, c.documento FROM compra c WHERE c.sys_pk = @icompra;"
-        sql_dcompra = "SELECT d.sys_pk, IFNULL(d.sys_info,'') sys_info, d.cantidad, d.costototal, d.iproducto, (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos, IFNULL(d.xfacturar,0) xfacturar, IFNULL(d.doc_partida,-99) doc_partida, p.descripcion producto FROM dcompra d INNER JOIN producto p ON d.iproducto = p.sys_pk WHERE d.fk_compra_detalle = @icompra;"
+        sql_dcompra = "SELECT d.sys_pk, IFNULL(d.sys_info,'') sys_info, d.cantidad, d.costototal, d.iproducto, (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos, IFNULL(d.xfacturar,0) xfacturar, IFNULL(d.doc_partida,-99) doc_partida, p.descripcion producto, d.precio FROM dcompra d INNER JOIN producto p ON d.iproducto = p.sys_pk WHERE d.fk_compra_detalle = @icompra;"
         
         new params { @"icompra": icompra }
         ref compra = dbr.rec(db,sql_compra,params)
@@ -128,6 +133,7 @@ module "procesos.dkh:erp.compras.procesos"
                 @"fk_cardex_movimientos": last_id
             }
             do erp.compras.procesos.asignarLoteSerie(db,item,dcardex)
+            do erp.compras.procesos.actualizarCostoUltimoProducto(db,item)
             do dbr.insert(db,"dcardex",dcardex)
         }
 
