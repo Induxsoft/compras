@@ -74,7 +74,19 @@ module "procesos.dkh:erp.compras.procesos"
         start_transaction = @false
 
         sql_compra = "SELECT c.referencia, c.tipocambio, c.ialmacen, c.documento FROM compra c WHERE c.sys_pk = @icompra;"
-        sql_dcompra = "SELECT d.sys_pk, IFNULL(d.sys_info,'') sys_info, d.cantidad, d.costototal, d.iproducto, (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos, IFNULL(d.xfacturar,0) xfacturar, IFNULL(d.doc_partida,-99) doc_partida, p.descripcion producto, d.precio FROM dcompra d INNER JOIN producto p ON d.iproducto = p.sys_pk WHERE d.fk_compra_detalle = @icompra;"
+        sql_dcompra = "
+            SELECT 
+                d.sys_pk, IFNULL(d.sys_info,'') sys_info, d.cantidad, d.costototal, d.iproducto, 
+                (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos, IFNULL(d.xfacturar,0) xfacturar, 
+                IFNULL(d.doc_partida,-99) doc_partida, p.descripcion producto, d.precio,
+                IF(dca.rcompra IS NULL AND dca2.rcompra IS NULL, 0,1) mov_aplicado
+            FROM dcompra d 
+                INNER JOIN producto p ON d.iproducto = p.sys_pk 
+                LEFT JOIN dcardex dca ON dca.rcompra = d.sys_pk
+                LEFT JOIN dcompra d2 ON d.doc_partida = d2.sys_pk
+                LEFT JOIN dcardex dca2 ON dca2.rcompra = d2.sys_pk
+            WHERE d.fk_compra_detalle = @icompra;
+        "
         
         new params { @"icompra": icompra }
         ref compra = dbr.rec(db,sql_compra,params)
@@ -114,27 +126,32 @@ module "procesos.dkh:erp.compras.procesos"
                     do rise_error(0, ftext("No se puede #<action> más de la cantidad #<operation> del producto: ")+@@(item,"$producto"))
                 }
             }
-            new dcardex
-            {
-                @"sys_pk": 0
-                @"sys_guid": uuid()
-                @"sys_dtcreated*": now()
-                @"sys_timestamp*": now()
-                @"sys_recver": 0
-                @"ialmacen": @@(compra,"#ialmacen")
-                @"iproducto": @@(item,"#iproducto")
-                @"entradas": @@(item,"#cantidad")
-                @"cargos": @@(item,"#cargos")
-                @"cpromedio": @@(item,"#costototal")
-                @"tipocambio": @@(item,"#tipocambio")
-                @"ilote*": @null
-                @"iserie*": @null
-                @"rcompra": @@(item,"#sys_pk")
-                @"fk_cardex_movimientos": last_id
-            }
-            do erp.compras.procesos.asignarLoteSerie(db,item,dcardex)
+
             do erp.compras.procesos.actualizarCostoUltimoProducto(db,item)
-            do dbr.insert(db,"dcardex",dcardex)
+
+            if not(@@(item,"#mov_aplicado"))
+            {
+                new dcardex
+                {
+                    @"sys_pk": 0
+                    @"sys_guid": uuid()
+                    @"sys_dtcreated*": now()
+                    @"sys_timestamp*": now()
+                    @"sys_recver": 0
+                    @"ialmacen": @@(compra,"#ialmacen")
+                    @"iproducto": @@(item,"#iproducto")
+                    @"entradas": @@(item,"#cantidad")
+                    @"cargos": @@(item,"#cargos")
+                    @"cpromedio": @@(item,"#costototal")
+                    @"tipocambio": @@(item,"#tipocambio")
+                    @"ilote*": @null
+                    @"iserie*": @null
+                    @"rcompra": @@(item,"#sys_pk")
+                    @"fk_cardex_movimientos": last_id
+                }
+                do erp.compras.procesos.asignarLoteSerie(db,item,dcardex)
+                do dbr.insert(db,"dcardex",dcardex)
+            }
         }
 
         do erp.compras.procesos.setStatusEntregaFacturacion(db,icompra)
