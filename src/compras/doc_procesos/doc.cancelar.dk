@@ -4,12 +4,85 @@ module "doc.cancelar.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
+    #include "../_lib/icons.dk"
+    #include "../_lib/config.dk"
 
     do @context.begin(@crud_context)
+
+    ref entity = ifnull(@("&./entity"),record.create())
 
     #$
     div(class="container")
     {
-        h1(class="h4"){$"Cancelar Documento"}
+        div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top" id="main_action_bar")
+        {
+            div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Cancelar documento"} }
+            div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
+            {
+                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
+                a(href="#<@DOC_COMPRAS>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
+            }
+        }
+
+        div(class="#<ifstr(@('$error/message')!='','alert alert-danger','')> overflow-auto"){$"#<@('$error/message')>"}
+
+        form(class="row" method="POST" action="./")
+        {
+            input(type="hidden" name="sys_pk" value="#<@@(entity,'#sys_pk')>")
+            input(type="hidden" name="sys_recver" value="#<@@(entity,'#sys_recver')>")
+
+            input(type="hidden" name="iproveedor" value="#<@@(entity,'#iproveedor')>")
+            input(type="hidden" name="idocumento" value="#<@@(entity,'#idocumento')>")
+            input(type="hidden" name="formapago" value="#<@@(entity,'#formapago')>")
+            input(type="hidden" name="tipocambio" value="#<@@(entity,'#tipocambio')>")
+
+            div(class="col-lg-8 col-md-10 col-sm-12")
+            {
+                div(class="row mb-2")
+                {
+                    div(class="col-lg-4 col-md-4 col-sm-12 text-md-start d-lg-flex align-items-center justify-content-lg-start gap-1 mb-1")
+                    {
+                        h6(class="my-0"){$"Proveedor:"}
+                        p(class="my-0"){$"#<@@(entity,'$dproveedor')>"}
+                    }
+                    div(class="col-lg-4 col-md-4 col-sm-12 text-md-center d-lg-flex align-items-center justify-content-lg-center gap-1 mb-1")
+                    {
+                        h6(class="my-0"){$"Referencia:"}
+                        p(class="my-0"){$"#<@@(entity,'$referencia')>"}
+                    }
+                    div(class="col-lg-4 col-md-4 col-sm-12 text-md-end d-lg-flex align-items-center justify-content-lg-end gap-1 mb-1")
+                    {
+                        h6(class="my-0"){$"Documento:"}
+                        p(class="my-0"){$"#<@@(entity,'$cdocumento')>"}
+                    }
+
+                    div(class="col-lg-4 col-md-4 col-sm-12 text-md-start d-lg-flex align-items-center justify-content-lg-start gap-1 mb-1")
+                    {
+                        h6(class="my-0"){$"Fecha:"}
+                        p(class="my-0"){$"#<@@(entity,'$fecha')>"}
+                    }
+                    div(class="col-lg-4 col-md-4 col-sm-12 text-md-center d-lg-flex align-items-center justify-content-lg-center gap-1 mb-1")
+                    {
+                        h6(class="my-0"){$"F. Vencimiento:"}
+                        p(class="my-0"){$"#<@@(entity,'$vencimiento')>"}
+                    }
+                    div(class="col-lg-4 col-md-4 col-sm-12 text-md-end d-lg-flex align-items-center justify-content-lg-end gap-1 mb-1")
+                    {
+                        h6(class="my-0"){$"F. Entrega:"}
+                        p(class="my-0"){$"#<@@(entity,'$fentrega')>"}
+                    }
+                    div(class="d-flex gap-1 mb-1")
+                    {
+                        h6(class="my-0"){$"Divisa:"}
+                        p(class="my-0"){$"#<@@(entity,'$ddivisa')>"}
+                    }
+                }
+
+                button(class="btn btn-sm btn-primary float-end rounded-0" type="submit"){$"Confirmar"}
+            }
+        }
     }
+    #!
+
+    do @context.end()
 }

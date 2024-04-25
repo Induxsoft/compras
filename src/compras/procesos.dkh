@@ -69,23 +69,31 @@ module "procesos.dkh:erp.compras.procesos"
         new prm { @"costoultimo": @@(item,"#precio") }
         do dbr.update(db,"producto",prm,"sys_pk=@iproducto",item)
     }
+
     entradaInventario::&db,icompra,icategoria
     {
         start_transaction = @false
 
         sql_compra = "SELECT c.referencia, c.tipocambio, c.ialmacen, c.documento FROM compra c WHERE c.sys_pk = @icompra;"
         sql_dcompra = "
-            SELECT 
-                d.sys_pk, IFNULL(d.sys_info,'') sys_info, d.cantidad, d.costototal, d.iproducto, 
-                (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos, IFNULL(d.xfacturar,0) xfacturar, 
-                IFNULL(d.doc_partida,-99) doc_partida, p.descripcion producto, d.precio,
-                IF(dca.rcompra IS NULL AND dca2.rcompra IS NULL, 0,1) mov_aplicado
-            FROM dcompra d 
-                INNER JOIN producto p ON d.iproducto = p.sys_pk 
-                LEFT JOIN dcardex dca ON dca.rcompra = d.sys_pk
-                LEFT JOIN dcompra d2 ON d.doc_partida = d2.sys_pk
-                LEFT JOIN dcardex dca2 ON dca2.rcompra = d2.sys_pk
-            WHERE d.fk_compra_detalle = @icompra;
+        SELECT 
+            d.sys_pk,
+            IFNULL(d.sys_info,'') sys_info,
+            d.cantidad,
+            d.costototal,
+            d.iproducto, 
+            (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos,
+            IFNULL(d.xfacturar,0) xfacturar, 
+            IFNULL(d.doc_partida,-99) doc_partida,
+            p.descripcion `producto`,
+            d.precio,
+            IF(dca.rcompra IS NULL AND dca2.rcompra IS NULL, 0, 1) mov_aplicado
+        FROM dcompra d 
+            INNER JOIN producto p ON d.iproducto = p.sys_pk 
+            LEFT JOIN dcardex dca ON dca.rcompra = d.sys_pk
+            LEFT JOIN dcompra d2 ON d.doc_partida = d2.sys_pk
+            LEFT JOIN dcardex dca2 ON dca2.rcompra = d2.sys_pk
+        WHERE d.fk_compra_detalle = @icompra;
         "
         
         new params { @"icompra": icompra }
@@ -156,6 +164,86 @@ module "procesos.dkh:erp.compras.procesos"
 
         do erp.compras.procesos.setStatusEntregaFacturacion(db,icompra)
         if start_transaction { do dbr.commit(db) }
+        return last_id
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    salidaInventarioMismoCostoEntrada::&db,icompra
+    {
+        start_transaction = @false
+
+        new params { @"icompra": parse.num(icompra) }
+
+        sql_compra = "SELECT c.referencia, c.tipocambio, c.ialmacen, c.documento FROM compra c WHERE c.sys_pk = @icompra;"
+        sql_dcompra = "
+        SELECT
+            p.descripcion `producto`,
+            dca.ialmacen,
+            dca.iproducto,
+            dca.entradas,
+            dca.cargos,
+            dca.cpromedio,
+            dca.tipocambio,
+            dca.ilote,
+            dca.iserie,
+            dca.rcompra
+        FROM dcompra d 
+            INNER JOIN producto p ON d.iproducto = p.sys_pk 
+            INNER JOIN dcardex dca ON dca.rcompra = d.sys_pk
+        WHERE d.fk_compra_detalle = @icompra;
+        "
+
+        ref compra = dbr.rec(db,sql_compra,params)
+        ref dcompra = dbr.list(db,sql_dcompra,params)
+
+        // Ningún producto ha realizado entradas de inventario
+        if list.count(dcompra) <= 0 { return 0 }
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        new cardex
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"sys_recver": 0
+            @"referencia": @@(compra,"$referencia")+"-S"
+            @"fecha*": now()
+            @"icategoria": 6 // [0003] Otros egresos
+        }
+        do dbr.insert(db,"cardex",cardex)
+        
+        last_id = dbr.num(db,"select last_insert_id();",@null)
+
+        for i = 0; i < list.count(dcompra)
+        {
+            ref itm = list.obj(dcompra,i)
+            
+            ref dcardex = record.copyex(itm, @null, "ialmacen,iproducto,entradas,cargos,cpromedio,tipocambio,ilote,iserie,rcompra", ",", "entradas:salidas,cargos:abonos", ":")
+            using dcardex
+            {
+                @"sys_pk": 0
+                @"sys_guid": uuid()
+                @"sys_dtcreated*": now()
+                @"sys_timestamp*": now()
+                @"sys_recver": 0
+                @"fk_cardex_movimientos": last_id
+            }
+
+            do dbr.insert(db,"dcardex",dcardex)
+        }
+
+        if start_transaction { do dbr.commit(db) }
+
         return last_id
 
         exception

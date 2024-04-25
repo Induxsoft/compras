@@ -50,6 +50,35 @@ module "model"
                 }
                 break
             }
+            case "cancelar"
+            {
+                @read_query = "
+                SELECT
+                    cmp.sys_pk,
+                    cmp.sys_guid,
+                    cmp.sys_recver,
+                    cmp.referencia,
+                    cmp.fecha,
+                    cmp.vencimiento,
+                    cmp.fentrega,
+                    cmp.formapago,
+                    cmp.subtotal,
+                    cmp.total,
+                    cmp.tipocambio,
+                    cmp.iproveedor,
+                    doc.id AS idocumento,
+                    doc.const AS cdocumento,
+                    CONCAT('[',dvs.codigo,']',' ',dvs.descripcion) AS ddivisa,
+                    CONCAT('[',pdr.codigo,']',' ',pdr.nombre) AS dproveedor
+                FROM (#<ftext(@sql_compra)>) AS cmp
+                    INNER JOIN proveedor AS pdr ON cmp.iproveedor = pdr.sys_pk
+                    INNER JOIN cdocumentos AS doc ON cmp.documento = doc.id
+                    INNER JOIN divisa AS dvs ON cmp.idivisa = dvs.sys_pk
+                "
+
+                data<"entity*"> : entity.read(db,params)
+                break
+            }
         }
     }
 
@@ -77,6 +106,14 @@ module "model"
 
         new data {}
         do doc.prepareView(db,params,data)
+        return data
+    }
+
+    doc.cancel.read::&db,&params
+    {
+        new data {}
+        do doc.prepareView(db,params,data)
+
         return data
     }
 
@@ -144,6 +181,125 @@ module "model"
 
         exception
         {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+
+            ref formData = record.copy(data,"*")
+            code = last_error_code()
+            error = last_error()
+
+            do record.clear(data)
+            data<"form*"> : formData
+            
+            do doc.prepareView(db,params,data)
+            do rise_error(code,error)
+        }
+    }
+
+    doc.cancelar.reverseCxP::&db,&params,&data
+    {
+        if @@(data,"#formapago") != @@(@FORMAS_PAGO,"#cCREDITO") { return }
+
+        new bonificacion
+        {
+            @"faplicacion": hoy("yyyy-MM-dd")
+            @"documento": @cNOTA_DE_CREDITO
+            @"fecha": hoy("yyyy-MM-dd")
+            @"notas": "Bonificación a: " + @@(data,"$dproveedor") + " por cancelación del documento con referencia " + @@(data,"$referencia")
+            @"referencia": "B-" + @@(data,"$referencia")
+            @"tcambio": @@(data,"#tipocambio")
+            @"importe": @@(data,"#total")
+            @"iproveedor": @@(data,"#iproveedor")
+        }
+
+        do erp.cxp.movimientos.bonificarProveedor(db,bonificacion)
+    }
+
+    doc.cancelar::&db,&params,&data
+    {
+        @use_transaction = @false
+
+        sql_liberar_documentos = "
+        UPDATE compra AS a
+            INNER JOIN dcompra AS b ON b.fk_compra_detalle = a.sys_pk
+        SET a.aplicadoa = NULL,
+            b.xfacturar = b.cantidad
+        WHERE a.aplicadoa = @_entity_id
+            AND a.documento IN (#<doctype>)
+        "
+
+        ref entity = entity.read(db,params)
+
+        do dbr.events.fire(db,"DET01B","pre_GA14",entity)
+        do dbr.begin(db)
+        
+        switch @@(data,"#idocumento")
+        {
+            case @cPEDIDO
+            {
+                doctype = @cCOTIZACION
+                
+                // Liberar a las cotizaciones relacionadas (`aplicadoa` y `xfacturar`).
+                do dbr.execute(db,ftext(sql_liberar_documentos),params)
+                break
+            }
+            case @cREMISION // recepción
+            {
+                doctype = str(@cCOTIZACION) +","+ str(@cPEDIDO)
+
+                // Liberar a las cotizaciones o pedidos relacionados (`aplicadoa` y `xfacturar`).
+                do dbr.execute(db,ftext(sql_liberar_documentos),params)
+
+                // Realizar la salida de todos los productos que entraron por este documento al mismo costo de la entrada.
+                mov_sys_pk = erp.compras.procesos.salidaInventarioMismoCostoEntrada(db,@@(data,"#sys_pk"))
+                if mov_sys_pk <= 0 { break }
+                do erp.inventario.aplicar_mov(db,mov_sys_pk,@false)
+
+                // Generar un movimiento a CxP inverso al que hubiere generado.
+                do doc.cancelar.reverseCxP(db,params,entity)
+                break
+            }
+            case @cFACTURA
+            {
+                doctype = str(@cCOTIZACION) +","+ str(@cPEDIDO) +","+ str(@cREMISION)
+
+                // Liberar a las cotizaciones, pedidos o recepciones relacionadas (`aplicadoa` y `xfacturar`).
+                do dbr.execute(db,ftext(sql_liberar_documentos),params)
+
+                // Realizar la salida de todos los productos que entraron por este documento al mismo costo de la entrada, con excepción de las entradas que se habían realizado por remisiones consolidadas en la factura.
+                mov_sys_pk = erp.compras.procesos.salidaInventarioMismoCostoEntrada(db,@@(data,"#sys_pk"))
+                if mov_sys_pk <= 0 { break }
+                do erp.inventario.aplicar_mov(db,mov_sys_pk,@false)
+
+                // Generar un movimiento a CxP inverso al que hubiere generado.
+                do doc.cancelar.reverseCxP(db,params,entity)
+                break
+            }
+            case @cNOTA_DE_CREDITO
+            {
+                do rise_error(500,"No es posible cancelar una nota de crédito")
+                break
+            }
+        }
+
+        new compra
+        {
+            @"sys_recver": @@(data,"#sys_recver")
+            @"sys_timestamp*": now()
+            @"statusadministrativo": @@(@EDO_ADMIN,"#cCANCELADO")
+        }
+        // Establecer el estado del documento como cancelado.
+        ref result = entity.update(db,params,compra)
+        ref entity = @@(result,"&entity")
+
+        do dbr.events.fire(db,"DET01B","pos_GA14",entity)
+        do dbr.commit(db)
+        do dbr.events.fire(db,"DET01B","ext_GA14",entity)
+
+        @url_redir = @DOC_COMPRAS
+
+        exception
+        {
+            do errordet(@false)
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
