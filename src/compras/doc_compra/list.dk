@@ -5,7 +5,7 @@ module "list.dk"
     #include "functions.dkh"
     #include "serialize.dkh"
     #include "dbr.dkh"
-    #include "uielements.dkl"
+    #include "dbr.apps.dkl"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
     #include "uielements.v12.dkl"
@@ -92,8 +92,16 @@ module "list.dk"
         }
     }
 
-    ho:: { #$ a(href="#<@DOC_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Agregar"} #! }
-    point general_act to ho
+    new nav_config
+    {
+        @"title": "Compras"
+        @"buttons*": @null
+        @"urlexit": "/"
+        @"main": "GA11"
+        @"actions*": dbr.apps.itemactions(@('&database'),"DET01B","action","",0)
+        @"reports*": dbr.apps.itemactions(@('&database'),"DET01B","report","",0)
+        @"jscurrentcontext": "getCurrentContext"
+    }
 
     #$ div
     {
@@ -101,7 +109,7 @@ module "list.dk"
         
         div(class="container-fluid p-0")
         {
-            #! do uie.printMainBar(general_act, "Compras", @true, "")
+            #! do uie.printV12FormBar(nav_config)
 
             #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
             {
@@ -181,5 +189,16 @@ module "list.dk"
                 #! do uie.dbeditable(table_definition,"table_compras")
             }
         }
+
+        #$
+        script(type="text/javascript")
+        {$'
+            function getCurrentContext()
+            {
+                const table = document.getElementById("table_compras");
+                const id = (table?.DataArray[table.CurrentRowIndex()]?.sys_pk ?? "");
+                return { item_id:id, context: {} }
+            }
+        '}
     }
 }
