@@ -131,7 +131,7 @@ module "model"
 
     doc.agregar::&db,&params,&data
     {
-        do errordet(@false)
+        @use_transaction = @false
         redir = @false
 
         cNO_APLICA = @@(@EDO_ADMIN,"#cNO_APLICA")
@@ -193,8 +193,9 @@ module "model"
             }
         }
 
-        @use_transaction = @false
+        do dbr.apps.action.pre("GA11")
         do dbr.begin(db)
+
         do doc.addSerieLote(db,compra)
         ref entity = entity.create(db,params,compra)
         do doc.setAplicadoAFromDetalle(db,@@(compra,"&_detalle"),entity)
@@ -232,12 +233,16 @@ module "model"
             }
         }
 
+        do dbr.apps.action.pos(entity)
         do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
         return entity
 
         exception
         {
             params<"_entity_id">:"_new"
+            do errordet(@false)
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
@@ -248,15 +253,15 @@ module "model"
             data<"form*"> : formData
             
             do doc.prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
 
     doc.actualizar::&db,&params,&data
     {
-        //do errordet(@false)
-        redir = @false
         @use_transaction = @false
+        redir = @false
         
         cNO_APLICA = @@(@EDO_ADMIN,"#cNO_APLICA")
         cABIERTO = @@(@EDO_ADMIN,"#cABIERTO")
@@ -288,7 +293,9 @@ module "model"
             }
         }
 
+        do dbr.apps.action.pre("GA12")
         do dbr.begin(db)
+
         // **unificar en un función para recorrer 1 sola vez el detalle
         do doc.setAplicadoAFromDetalle(db,@@(compra,"&_detalle"),compra)
         do doc.valideCantidadDetalle(@@(compra,"&_detalle"))
@@ -427,7 +434,9 @@ module "model"
             default { do rise_error(500,"Estado Inválido.") }
         }
 
-        if dbr.in_transaction(db) { do dbr.commit(db) }
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
 
         if nvo_status_admin == cPROCESADO && @@(compra,"#documento") == @cPEDIDO
         {
@@ -441,6 +450,7 @@ module "model"
 
         exception
         {
+            do errordet(@false)
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
@@ -451,6 +461,7 @@ module "model"
             data<"form*"> : formData
             
             do doc.prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
@@ -473,6 +484,8 @@ module "model"
 
     doc.list::&db,&params
     {
+        do dbr.apps.action.grant("GA10")
+
         params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
         params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))
 
@@ -527,17 +540,39 @@ module "model"
         }
 
         return response
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     doc.read::&db,&params
     {
+        do dbr.apps.action.grant("GA10")
+
         ref data = entity.read(db,params)
         do doc.prepareView(db,params,data)
         return data
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     doc.blank::&db,&params
     {
+        do dbr.apps.action.grant("GA10")
+
         new data {}
         if trim(@@(params,"$doc")) != ""
         {
@@ -546,6 +581,15 @@ module "model"
         }
         do doc.prepareView(db,params,data)
         return data
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     prepare_filter::list
@@ -573,7 +617,7 @@ module "model"
             //=============== LOTES
             if @@(prod,"$edt_lote") != ""
             {
-                ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,0,1) used_error, numero FROM lote WHERE numero=@edt_lote LIMIT 1;",prod)
+                ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,1,0) used_error, numero FROM lote WHERE numero=@edt_lote LIMIT 1;",prod)
                 if not(isnull(exist))
                 {
                     if @@(exist,"#used_error") { do rise_error(99,"El lote:"+@@(exist,"numero")+" del producto"+@@(prod,"$edt_descripcion")+" ya está asignado a un producto diferente, indique un nuevo lote para este producto") }
@@ -598,7 +642,7 @@ module "model"
             //=============== SERIES
             if @@(prod,"$edt_serie") != ""
             {
-                ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,0,1) used_error, numero FROM serie WHERE numero=@edt_serie LIMIT 1;",prod)
+                ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,1,0) used_error, numero FROM serie WHERE numero=@edt_serie LIMIT 1;",prod)
                 if not(isnull(exist))
                 {
                     if @@(exist,"#used_error") { do rise_error(99,"La serie:"+@@(exist,"numero")+" del producto"+@@(prod,"$edt_descripcion")+" ya está asignado a un producto diferente, indique una nueva serie para este producto") }

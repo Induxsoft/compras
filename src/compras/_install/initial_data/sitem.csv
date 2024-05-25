@@ -1,0 +1,8 @@
+﻿itemid,description,itemparent
+compras,Compras,\0
+compras.compras,Documentos de compra,compras
+GA10,Compras,compras.compras
+GA11,Crear documento de compra,compras.compras
+GA12,Editar documento de compra,compras.compras
+GA13,Procesar documento de compra,compras.compras
+GA14,Cancelar documento de compra,compras.compras

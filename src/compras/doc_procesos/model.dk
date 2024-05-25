@@ -119,10 +119,13 @@ module "model"
 
     doc.procesar::&db,&params,&data
     {
-        do errordet(@false)
+        @use_transaction = @false
 
         sbqry_importe = "((((((IFNULL(c.subtotal,0) - IFNULL(c.descuento1,0)) - IFNULL(c.descuento2,0)) + IFNULL(c.impuesto1,0)) + IFNULL(c.impuesto2,0)) + IFNULL(c.impuesto3,0)) + IFNULL(c.impuesto4,0)) AS total"
         sql_get_compra = "SELECT c.sys_pk, c.documento, c.iproveedor, #<sbqry_importe> FROM compra c WHERE #<@keyfield> = @_entity_id"
+
+        do dbr.apps.action.pre("GA13")
+        do dbr.begin(db)
 
         switch @@(data,"#act")
         {
@@ -179,8 +182,15 @@ module "model"
             default { do NotImplemented() }
         }
 
+        ref entity = entity.read(db,params)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
         exception
         {
+            do errordet(@false)
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
@@ -191,6 +201,7 @@ module "model"
             data<"form*"> : formData
             
             do doc.prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
@@ -229,7 +240,7 @@ module "model"
 
         ref entity = entity.read(db,params)
 
-        do dbr.events.fire(db,"DET01B","pre_GA14",entity)
+        do dbr.apps.action.pre("GA14")
         do dbr.begin(db)
         
         switch @@(data,"#idocumento")
@@ -291,9 +302,9 @@ module "model"
         ref result = entity.update(db,params,compra)
         ref entity = @@(result,"&entity")
 
-        do dbr.events.fire(db,"DET01B","pos_GA14",entity)
+        do dbr.apps.action.pos(entity)
         do dbr.commit(db)
-        do dbr.events.fire(db,"DET01B","ext_GA14",entity)
+        do dbr.apps.action.ext(entity)
 
         @url_redir = @DOC_COMPRAS
 
@@ -310,6 +321,7 @@ module "model"
             data<"form*"> : formData
             
             do doc.prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
