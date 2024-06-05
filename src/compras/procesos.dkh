@@ -253,6 +253,36 @@ module "procesos.dkh:erp.compras.procesos"
         }
     }
 
+    na::&db,icompra
+    {
+        start_transaction = @false
+        
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        // Establecer los estados correspondientes.
+        new params { @"icompra": icompra }
+        new status
+        {
+            @"formapago": @@(@FORMAS_PAGO,"cNO_APLICA")
+            @"statusadministrativo": @@(@EDO_ADMIN,"cPROCESADO")
+            @"statusentrega": @@(@EDO_ENTREGA,"cNO_APLICA")
+            @"statusfacturacion": @@(@EDO_FACTURACION,"cNO_APLICA")
+            @"statusfinanciero": @@(@EDO_FINANCIERO,"cNO_APLICA")
+        }
+        do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
     liquidacionContado::&db,&data
     {
         start_transaction = @false

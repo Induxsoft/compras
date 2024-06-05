@@ -10,28 +10,25 @@ module "doc.procesar.dk"
     #include "../_lib/lib.dk"
 
     do @context.begin(@crud_context)
-    ref listDocumentos = ifnull(@('&./list_documentos'),list.create())
-    ref listDocsRetiro = ifnull(@('&./list_doc_retiro'),list.create())
-    ref listCuentasChq = ifnull(@("&./list_cuentaschq"),list.create())
-    ref listCatEgreso = ifnull(@("&./list_cat_egreso"),list.create())
-    ref listCatMovinv = ifnull(@("&./list_cat_movinv"),list.create())
-    ref listDivisas = ifnull(@('&./list_divisas'),list.create())
+    
+    ref compra = ifnull(@("&./compra"),record.create())
+    ref amounts = ifnull(@("&./amounts"),record.create())
     ref formData = ifnull(@("&./form"),record.create())
     ref dtprov = ifnull(@("&./dtprov"),record.create())
-    ref compra = ifnull(@("&./compra"),record.create())
     ref cfgdoc = ifnull(@("&./cfg_doc_compra"),record.create())
 
-    // do rise_error(0,to.json(@("&.")))
-    show_form_consigna = parse.bool(@@(cfgdoc,"consigna"))
+    show_form_contado = (not(field.exist(@("&."),"form")) || @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCONTADO'))
+    show_form_credito = (field.exist(@("&."),"form") && @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCREDITO'))
+    show_form_consignado = (field.exist(@("&."),"form") && @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCONSIGNADO'))
 
     new sel_documento
     {
-        @"datatable*": listDocumentos
+        @"datatable*": ifnull(@('&./list_documentos'),list.create())
         @"id": "sel_documento"
         new member "attributes"
         {
             @"class": "form-select form-select-sm rounded-0"
-            @"name": "documento"
+            @"name": ""
             @"disabled": ""
         }
         @"value_field": "id"
@@ -41,7 +38,7 @@ module "doc.procesar.dk"
 
     new sel_doc_retiro
     {
-        @"datatable*": listDocsRetiro
+        @"datatable*": ifnull(@('&./list_doc_retiro'),list.create())
         @"id": "sel_doc_retiro"
         new member "attributes"
         {
@@ -56,7 +53,7 @@ module "doc.procesar.dk"
 
     new sel_cuenta
     {
-        @"datatable*": listCuentasChq
+        @"datatable*": ifnull(@("&./list_cuentaschq"),list.create())
         @"id": "sel_cuenta"
         new member "attributes"
         {
@@ -76,7 +73,7 @@ module "doc.procesar.dk"
 
     new sel_cat_egreso
     {
-        @"datatable*": listCatEgreso
+        @"datatable*": ifnull(@("&./list_cat_egreso"),list.create())
         @"id": "sel_cat_egreso"
         new member "attributes"
         {
@@ -91,7 +88,7 @@ module "doc.procesar.dk"
 
     new sel_cat_movinv
     {
-        @"datatable*": listCatMovinv
+        @"datatable*": ifnull(@("&./list_cat_movinv"),list.create())
         @"id": "sel_cat_movinv"
         new member "attributes"
         {
@@ -106,7 +103,7 @@ module "doc.procesar.dk"
 
     new sel_divisa
     {
-        @"datatable*": listDivisas
+        @"datatable*": ifnull(@('&./list_divisas'),list.create())
         @"id": "sel_divisa"
         new member "attributes"
         {
@@ -139,20 +136,23 @@ module "doc.procesar.dk"
             }
         }
 
+        #! if @@(amounts,"#total") > 0
+        {#$
         div(class="accordion" id="opciones_liquidacion")
         {
             div(class="accordion-item")
             {
                 h2(class="accordion-header" id="headingOne") {
-                    button(class="accordion-button py-2" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseOne" "aria-expanded"="true" "aria-controls"="collapseOne"){$"Contado"}
+                    button(class="accordion-button py-2 #<ifstr(show_form_contado,'','collapsed')>" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseOne" "aria-expanded"="true" "aria-controls"="collapseOne"){$"Contado"}
                 }
-                div(id="collapseOne" class="accordion-collapse collapse show" "aria-labelledby"="headingOne" "data-bs-parent"="#opciones_liquidacion")
+                div(id="collapseOne" class="accordion-collapse collapse #<ifstr(show_form_contado,'show','')>" "aria-labelledby"="headingOne" "data-bs-parent"="#opciones_liquidacion")
                 {
                     div(class="accordion-body")
                     {
                         form(class="row" action="./" method="POST" id="form_liquidacion_contado")
                         {
-                            input(type="hidden" name="act" value="#<@@(@FORMAS_PAGO,'cCONTADO')>")
+                            input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
+                            input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCONTADO')>")
 
                             div(class="col-lg-8 col-md-10 col-sm-12")
                             {
@@ -205,7 +205,7 @@ module "doc.procesar.dk"
                                     div(class="d-flex gap-2 align-items-center justify-content-end my-2")
                                     {
                                         label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(compra,'#total')>" disabled="")
+                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
                                     }
                                 }
 
@@ -219,15 +219,18 @@ module "doc.procesar.dk"
             div(class="accordion-item")
             {
                 h2(class="accordion-header" id="headingTwo") {
-                    button(class="accordion-button py-2 collapsed" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseTwo" "aria-expanded"="true" "aria-controls"="collapseTwo"){$"Crédito"}
+                    button(class="accordion-button py-2 #<ifstr(show_form_credito,'','collapsed')>" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseTwo" "aria-expanded"="true" "aria-controls"="collapseTwo"){$"Crédito"}
                 }
-                div(id="collapseTwo" class="accordion-collapse collapse" "aria-labelledby"="headingTwo" "data-bs-parent"="#opciones_liquidacion")
+                div(id="collapseTwo" class="accordion-collapse collapse #<ifstr(show_form_credito,'show','')>" "aria-labelledby"="headingTwo" "data-bs-parent"="#opciones_liquidacion")
                 {
                     div(class="accordion-body")
                     {
                         form(class="row" action="./" method="POST" id="form_liquidacion_credito")
                         {
-                            input(type="hidden" name="act" value="#<@@(@FORMAS_PAGO,'cCREDITO')>")
+                            input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
+                            input(type="hidden" name="iproveedor" value="#<@@(compra,'#iproveedor')>")
+                            input(type="hidden" name="documento" value="#<@@(compra,'#documento')>")
+                            input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCREDITO')>")
 
                             div(class="col-lg-8 col-md-10 col-sm-12")
                             {
@@ -266,7 +269,7 @@ module "doc.procesar.dk"
                                     div(class="col-lg-4 col-md-4")
                                     {
                                         label(class="form-label" "for"="txt_tcambio"){$"Tipo de cambio:"}
-                                        input(class="form-control form-control-sm rounded-0" type="number" name="tcambio" id="txt_tcambio" value="0" min="1" required="")
+                                        input(class="form-control form-control-sm rounded-0" type="number" name="tipocambio" id="txt_tcambio" value="#<form('tipocambio','nm',compra)>" min="1" required="")
                                     }
 
                                     div(class="col-lg-4 col-md-4")
@@ -286,7 +289,7 @@ module "doc.procesar.dk"
                                     div(class="d-flex gap-2 align-items-center justify-content-end my-2")
                                     {
                                         label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(compra,'#total')>" disabled="")
+                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
                                     }
                                 }
 
@@ -297,20 +300,21 @@ module "doc.procesar.dk"
                 }
             }
 
-            #! if show_form_consigna 
+            #! if parse.bool(@@(cfgdoc,"consigna"))
             {#$
             div(class="accordion-item")
             {
                 h2(class="accordion-header" id="headingThree") {
-                    button(class="accordion-button py-2 collapsed" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseThree" "aria-expanded"="true" "aria-controls"="collapseThree"){$"Consignación"}
+                    button(class="accordion-button py-2 #<ifstr(show_form_consignado,'','collapsed')>" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseThree" "aria-expanded"="true" "aria-controls"="collapseThree"){$"Consignación"}
                 }
-                div(id="collapseThree" class="accordion-collapse collapse" "aria-labelledby"="headingThree" "data-bs-parent"="#opciones_liquidacion")
+                div(id="collapseThree" class="accordion-collapse collapse #<ifstr(show_form_consignado,'show','')>" "aria-labelledby"="headingThree" "data-bs-parent"="#opciones_liquidacion")
                 {
                     div(class="accordion-body")
                     {
                         form(class="row" action="./" method="POST" id="form_liquidacion_consignado")
                         {
-                            input(type="hidden" name="act" value="#<@@(@FORMAS_PAGO,'cCONSIGNADO')>")
+                            input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
+                            input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCONSIGNADO')>")
 
                             div(class="col-lg-8 col-md-10 col-sm-12")
                             {
@@ -345,7 +349,7 @@ module "doc.procesar.dk"
                                     div(class="d-flex gap-2 align-items-center justify-content-end my-2")
                                     {
                                         label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(compra,'#total')>" disabled="")
+                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
                                     }
                                 }
 
@@ -356,6 +360,51 @@ module "doc.procesar.dk"
                 }
             }
             }
+        }
+        }
+        #! else
+        {#$
+        form(class="row" action="./" method="POST" id="form_liquidacion_na")
+        {
+            input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
+            input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cNO_APLICA')>")
+
+            div(class="col-lg-8 col-md-10 col-sm-12")
+            {
+                div(class="row mb-2")
+                {
+                    div(class="col-lg-4 col-md-4")
+                    {
+                        label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
+                        input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
+                    }
+                    div(class="col-lg-4 col-md-4")
+                    {
+                        label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
+                        input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(compra,'$referencia')>" id="txt_referencia" disabled="")
+                    }
+                    div(class="col-lg-4 col-md-4")
+                    {
+                        label(class="form-label" "for"="sel_documento"){$"Documento:"}
+                        ##
+                        do uie.dbSelect(sel_documento)
+                        ##
+                    }
+                    div(class="col-lg-4 col-md-4")
+                    {
+                        label(class="form-label" "for"="txt_fecha"){$"Fecha:"}
+                        input(class="form-control form-control-sm rounded-0" type="date" name="" value="#<@@(compra,'$fecha')>" id="txt_fecha" disabled="")
+                    }
+                    div(class="col-lg-4 col-md-4")
+                    {
+                        label(class="form-label" "for"="txt_fvencimiento"){$"Vencimiento:"}
+                        input(class="form-control form-control-sm rounded-0" type="date" name="" value="#<@@(compra,'$vencimiento')>" id="txt_fvencimiento" disabled="")
+                    }
+                }
+
+                button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
+            } 
+        }
         }
 
         div(class="d-flex gap-2 mt-2 align-items-center"){ 

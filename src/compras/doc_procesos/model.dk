@@ -37,17 +37,14 @@ module "model"
                 data<"list_cat_movinv*"> : dbr.list(db,@sql_cat_movinv,@null)
                 data<"list_divisas*"> : dbr.list(db,@sql_divisas,@null)
 
-                if @@(params,"$_entity_id") != "_new" 
-                {
-                    ref compra = entity.read(db,params)
-                    params<"documento"> : @@(compra,"#documento")
-                    params<"iproveedor"> : @@(compra,"#iproveedor")
-                    ref dtprov = doc.buscarProveedor(db,params)
-                    
-                    data<"dtprov*"> : dtprov
-                    data<"compra*"> : compra
-                    data<"cfg_doc_compra*"> : dbr.rec(db,@sql_cfg_doc_compra,params)
-                }
+                ref compra = entity.read(db,params)
+                params<"documento"> : @@(compra,"#documento")
+                params<"iproveedor"> : @@(compra,"#iproveedor")
+                
+                data<"compra*"> : compra
+                data<"amounts*"> : doc.getAmountsToProcess(db,params)
+                data<"dtprov*"> : doc.buscarProveedor(db,params)
+                data<"cfg_doc_compra*"> : dbr.rec(db,@sql_cfg_doc_compra,params)
                 break
             }
             case "cancelar"
@@ -80,6 +77,33 @@ module "model"
                 break
             }
         }
+    }
+
+    doc.getAmountsToProcess::&db,&params
+    {
+        sql_amounts = "
+        SELECT
+            IFNULL(SUM(IFNULL(d.precio,0) * IFNULL(d.cantidad,0)),0) AS subtotal,
+            IFNULL(SUM(IFNULL(d.descuento1,0) + IFNULL(d.descuento2,0)),0) AS descuentos,
+            IFNULL(SUM(IFNULL(d.impuesto1,0) + IFNULL(d.impuesto2,0) + IFNULL(d.impuesto3,0) + IFNULL(d.impuesto4,0)),0) AS impuestos,
+            IFNULL(SUM((((((
+                (IFNULL(d.costototal,0) * IFNULL(d.cantidad,0))
+                - IFNULL(d.descuento1,0))
+                - IFNULL(d.descuento2,0))
+                + IFNULL(d.impuesto1,0))
+                + IFNULL(d.impuesto2,0))
+                + IFNULL(d.impuesto3,0))
+                + IFNULL(d.impuesto4,0)
+            ),0) AS total
+        FROM dcompra AS d
+            LEFT JOIN dcardex AS dc ON dc.rcompra = d.sys_pk
+            LEFT JOIN dcompra AS d2 ON d.doc_partida = d2.sys_pk
+            LEFT JOIN dcardex AS dc2 ON dc2.rcompra = d2.sys_pk
+        WHERE
+            d.fk_compra_detalle = @_entity_id
+            AND (dc.rcompra IS NULL AND dc2.rcompra IS NULL)
+        "
+        return dbr.rec(db,sql_amounts,params)
     }
 
     NotImplemented::
@@ -121,61 +145,64 @@ module "model"
     {
         @use_transaction = @false
 
-        sbqry_importe = "((((((IFNULL(c.subtotal,0) - IFNULL(c.descuento1,0)) - IFNULL(c.descuento2,0)) + IFNULL(c.impuesto1,0)) + IFNULL(c.impuesto2,0)) + IFNULL(c.impuesto3,0)) + IFNULL(c.impuesto4,0)) AS total"
-        sql_get_compra = "SELECT c.sys_pk, c.documento, c.iproveedor, #<sbqry_importe> FROM compra c WHERE #<@keyfield> = @_entity_id"
-
         do dbr.apps.action.pre("GA13")
         do dbr.begin(db)
 
-        switch @@(data,"#act")
+        sql_get_compra = "SELECT c.sys_pk, c.documento, c.iproveedor FROM compra c WHERE #<@keyfield> = @_entity_id"
+
+        switch @@(data,"#formapago")
         {
-            case @@(@FORMAS_PAGO,"cCONTADO")
+            case @@(@FORMAS_PAGO,"#cNO_APLICA")
             {
-                ref compra = dbr.rec(db,ftext(sql_get_compra),params)
+                do erp.compras.procesos.na(db,@@(data,"#icompra"))
+                @url_redir = @DOC_COMPRAS
+                break
+            }
+            case @@(@FORMAS_PAGO,"#cCONTADO")
+            {
+                ref amounts = doc.getAmountsToProcess(db,params)
                 new rec
                 {
-                    @"icompra": @@(compra,"#sys_pk")
+                    @"icompra": @@(data,"#icompra")
                     @"icategoria": @@(data,"icategoria")
                     @"faplicacion": @@(data,"$faplicacion")
                     @"beneficiario": @@(data,"$beneficiario")
                     @"consiliado": @true
-                    @"importe": @@(compra,"#total")
+                    @"importe": @@(amounts,"#total")
                     @"fecha": hoy("yyyy-MM-dd")
                     @"concepto": @@(data,"$concepto")
                     @"referencia": @@(data,"$referencia")
-                    @"documento": @@(compra,"#documento")
+                    @"documento": @@(data,"#documento")
                     @"icuenta": @@(data,"#icuenta")
-                    @"iproveedor": @@(compra,"#iproveedor")
                 }
                 do erp.compras.procesos.liquidacionContado(db,rec)
                 @url_redir = @DOC_COMPRAS
                 break
             }
-            case @@(@FORMAS_PAGO,"cCREDITO")
+            case @@(@FORMAS_PAGO,"#cCREDITO")
             {
-                ref compra = dbr.rec(db,ftext(sql_get_compra),params)
+                ref amounts = doc.getAmountsToProcess(db,params)
                 new rec
                 {
-                    @"icompra": @@(compra,"#sys_pk")
+                    @"icompra": @@(data,"#icompra")
                     @"icategoria": @@(data,"icategoria")
                     @"aplicable": @true
                     @"flimite": @@(data,"$flimite")
-                    @"documento": @@(compra,"#documento")
+                    @"documento": @@(data,"#documento")
                     @"fecha": hoy("yyyy-MM-dd")
-                    @"importe": @@(compra,"#total")
+                    @"importe": @@(amounts,"#total")
                     @"concepto": @@(data,"$concepto")
                     @"referencia": @@(data,"$referencia")
-                    @"tcambio": @@(data,"#tcambio")
-                    @"iproveedor": @@(compra,"#iproveedor")
+                    @"tcambio": @@(data,"#tipocambio")
+                    @"iproveedor": @@(data,"#iproveedor")
                 }
                 do erp.compras.procesos.liquidacionCredito(db,rec)
                 @url_redir = @DOC_COMPRAS
                 break
             }
-            case @@(@FORMAS_PAGO,"cCONSIGNADO")
+            case @@(@FORMAS_PAGO,"#cCONSIGNADO")
             {
-                ref compra = dbr.rec(db,ftext(sql_get_compra),params)
-                do erp.compras.procesos.liquidacionConsignado(db,@@(compra,"#sys_pk"),@@(data,"#icategoria"))
+                do erp.compras.procesos.liquidacionConsignado(db,@@(data,"#icompra"),@@(data,"#icategoria"))
                 @url_redir = @DOC_COMPRAS
                 break
             }
@@ -196,6 +223,8 @@ module "model"
             ref formData = record.copy(data,"*")
             code = last_error_code()
             error = last_error()
+
+            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un documento procesado con la misma referencia." }
 
             do record.clear(data)
             data<"form*"> : formData

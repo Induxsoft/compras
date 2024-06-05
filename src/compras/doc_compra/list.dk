@@ -79,15 +79,53 @@ module "list.dk"
         {
             member @"documento" { @"caption":"Documento" }
             member @"referencia" { @"caption":"Referencia" }
-            member @"fecha" { @"caption":"Fecha" }
+            member @"fecha"
+            {
+                @"caption":"Fecha"
+                @"align": "center"
+            }
             member @"proveedor" { @"caption":"Proveedor" }
-            member @"vencimiento" { @"caption":"Vencimiento" }
-            member @"divisa" { @"caption":"Divisa" }
-            member @"tipocambio" { @"caption":"Tipo de cambio" }
-            member @"total" { @"caption":"Total" }
-            member @"edo_financiero" { @"caption":"Estado financiero" }
-            member @"forma_pago" { @"caption":"Forma de pago" }
-            member @"edo_administrativo" { @"caption":"Estado administrativo" }
+            member @"vencimiento"
+            {
+                @"caption":"Vencimiento"
+                @"align": "center"
+            }
+            member @"divisa"
+            {
+                @"caption":"Divisa"
+                @"align": "center"
+            }
+            member @"tipocambio"
+            {
+                @"caption":"Tipo de cambio"
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 6
+            }
+            member @"total"
+            {
+                @"caption":"Total"
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 2
+            }
+            member @"edo_financiero"
+            {
+                @"caption":"Estado financiero"
+                @"align": "center"
+            }
+            member @"forma_pago"
+            {
+                @"caption":"Forma de pago"
+                @"align": "center"
+            }
+            member @"edo_administrativo"
+            {
+                @"caption":"Estado administrativo"
+                @"align": "center"
+            }
             member @"_actions" { @"caption":"Acciones" }
         }
     }
