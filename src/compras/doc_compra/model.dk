@@ -129,6 +129,27 @@ module "model"
         do dbr.update(db,"compra",totales,"sys_pk = @sys_pk",p)
     }
 
+    doc.evaluarCampos::&db,&params,&data
+    {
+        emision = trim(@@(data,"$fecha"))
+        vencimiento = trim(@@(data,"$vencimiento"))
+        fentrega = trim(@@(data,"$fentrega"))
+        fembarque = trim(@@(data,"$fembarque"))
+
+        if emision == "" { data<"fecha*"> : @null }
+        if vencimiento == "" { data<"vencimiento*"> : @null }
+        if fentrega == "" { data<"fentrega*"> : @null }
+        if fembarque == "" { data<"fembarque*"> : @null }
+
+        if emision != "" && vencimiento != ""
+        {
+            ndt_emision = ndatetime.fromstr(emision,"yyyy-MM-dd")
+            ndt_vencimiento = ndatetime.fromstr(vencimiento,"yyyy-MM-dd")
+
+            if ndatetime.diff(ndt_vencimiento,ndt_emision,"d") < 0 { do rise_error(500,"La fecha de vencimiento no puede ser inferior a la fecha de emisión.") }
+        }
+    }
+
     doc.agregar::&db,&params,&data
     {
         @use_transaction = @false
@@ -149,6 +170,7 @@ module "model"
         if field.typeof(compra,"_detalle") == 1 {
             compra<"_detalle*"> : from.json(@@(compra,"_detalle"))
         }
+        do doc.evaluarCampos(db,params,compra)
 
         using compra
         {
@@ -221,7 +243,7 @@ module "model"
                 {
                     ref det = list.obj(detalle,i)
                     if @@(det,"$edt_origen") != "" && not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
-                        do rise_error(0, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$edt_descripcion"))
+                        do rise_error(500, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$edt_descripcion"))
                     }
                 }
             }
@@ -241,20 +263,8 @@ module "model"
 
         exception
         {
-            params<"_entity_id">:"_new"
-            do errordet(@false)
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
-
-            ref formData = record.copy(data,"*")
-            code = last_error_code()
-            error = last_error()
-
-            do record.clear(data)
-            data<"form*"> : formData
-            
-            do doc.prepareView(db,params,data)
-            do dbr.apps.action.log()
-            do rise_error(code,error)
+            params<"_entity_id"> : "_new"
+            do catch(db,params,data)
         }
     }
 
@@ -280,6 +290,7 @@ module "model"
         if field.typeof(compra,"_detalle") == 1 {
             compra<"_detalle*"> : from.json(@@(compra,"_detalle"))
         }
+        do doc.evaluarCampos(db,params,compra)
 
         using @childs
         {
@@ -447,22 +458,7 @@ module "model"
         if redir { @url_redir = replace(@url_redir,"{_doc}",@@(params,"#_entity_id")) }
         return entity
 
-        exception
-        {
-            do errordet(@false)
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
-
-            ref formData = record.copy(data,"*")
-            code = last_error_code()
-            error = last_error()
-
-            do record.clear(data)
-            data<"form*"> : formData
-            
-            do doc.prepareView(db,params,data)
-            do dbr.apps.action.log()
-            do rise_error(code,error)
-        }
+        exception{ do catch(db,params,data) }
     }
 
     doc.check_redirs::&compra,&entity,urlprocesar
@@ -771,5 +767,23 @@ module "model"
             }
             do dbr.update(db, "compra", status, "sys_pk=@compra", compra)
         }
+    }
+
+    catch::&db,&params,&data
+    {
+        do errordet(@false)
+        if isnull(data) { ref data:record.create() }
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+
+        code = last_error_code()
+        error = last_error()
+
+        ref formData = record.copy(data,"*")
+        do record.clear(data)
+        data<"form*"> : formData
+        
+        if isset("@@_action_context") { do dbr.apps.action.log() }
+        do doc.prepareView(db,params,data)
+        do rise_error(code,error)
     }
 }

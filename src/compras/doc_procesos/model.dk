@@ -244,7 +244,7 @@ module "model"
             @"faplicacion": hoy("yyyy-MM-dd")
             @"documento": @cNOTA_DE_CREDITO
             @"fecha": hoy("yyyy-MM-dd")
-            @"notas": "Bonificación a: " + @@(data,"$dproveedor") + " por cancelación del documento con referencia " + @@(data,"$referencia")
+            @"notas": "Bonificación por cancelación del documento con referencia " + @@(data,"$referencia")
             @"referencia": "B-" + @@(data,"$referencia")
             @"tcambio": @@(data,"#tipocambio")
             @"importe": @@(data,"#total")

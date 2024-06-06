@@ -60,17 +60,6 @@ module "list.dk"
         @"selected": field.dstr(get, "stat_admin", "-1")
     }
 
-    for i = 0; i < list.count(docs)
-    {
-        ref doc = list.obj(docs,i)
-        link = replace(@DOC_CONSULTAR, "{_doc}", @@(doc,"sys_pk"))
-        doc<"_actions">: ftext('
-            <div class="no-print" style="display:flex;justify-content:center;align-items: center; gap: 6px;">
-                <a href="#<link>" style="cursor:pointer; text-decoration: none; padding: 0px 8px; background-color: #F5F5F5; color: #000;">Detalles</a>
-            </div>
-        ')
-    }
-
     new table_definition
     {
         @"datatable*": docs
@@ -126,7 +115,6 @@ module "list.dk"
                 @"caption":"Estado administrativo"
                 @"align": "center"
             }
-            member @"_actions" { @"caption":"Acciones" }
         }
     }
 
@@ -135,97 +123,90 @@ module "list.dk"
         @"title": "Compras"
         @"buttons*": @null
         @"urlexit": "/"
-        @"main": "GA11"
+        @"main": "GA11,GA12,GA13,GA14"
         @"actions*": dbr.apps.itemactions(@('&database'),"DET01B","action","",0)
         @"reports*": dbr.apps.itemactions(@('&database'),"DET01B","report","",0)
         @"jscurrentcontext": "getCurrentContext"
     }
 
-    #$ div
+    #$ div(class="container-fluid p-0")
     {
-        link(href="#<@CSS_MAIN>" rel="stylesheet")
-        
-        div(class="container-fluid p-0")
+        #! do uie.printV12FormBar(nav_config)
+
+        #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
         {
-            #! do uie.printV12FormBar(nav_config)
-
-            #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
+            form(action="./" method="GET" id="form_filter" class="no-print mb-1")
             {
-                p{$"#<@('$error/message')>"}
-
-                form(action="./" method="GET" id="form_filter" class="no-print mb-1")
+                div(class="d-flex align-items-center")
                 {
-                    div(class="d-flex align-items-center")
+                    div
+                    {
+                        select(class="induxsoft-form-select" name="tdate" onchange="document.querySelector('#form_filter').submit();")
+                        {
+                            option(value="0" "#<ifstr(@@(get,'$tdate')=='0','selected','')>"="true"){$"Emisión"}
+                            option(value="1" "#<ifstr(@@(get,'$tdate')=='1','selected','')>"="true"){$"Vencimiento"}
+                        }
+                    }
+                    div(class="flex-grow-1")
+                    {
+                        "filter-date-range"(
+                            "mode-field"="filter-mode"
+                            "year-field"="year"
+                            "month-field"="month"
+                            "range-field"="range"
+                            "from-field"="datefrom"
+                            "to-field"="dateto"
+                            "selection"='#<to.json(get)>'
+                            "lastdays-options"="15,30,45,60,90"
+                            "years-options"="2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024"
+                            "custom-range"="true"
+                            "form"="#form_filter"
+                            "auto-submit"="true"
+                            "label-months"="Ver por cada mes"
+                            "label-days"="Últ. @lastdays días"
+                            "label-custom"="Personalizado"
+                            "label-from"="Desde:"
+                            "label-to"="Hasta:"
+                            "month-names"="Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre"
+                        ){$""}
+                    }
+                }
+
+                div(class="py-1 w-100 d-flex gap-2 flex-wrap align-items-center")
+                {
+                    div(class="d-flex gap-2")
                     {
                         div
                         {
-                            select(class="induxsoft-form-select" name="tdate" onchange="document.querySelector('#form_filter').submit();")
-                            {
-                                option(value="0" "#<ifstr(@@(get,'$tdate')=='0','selected','')>"="true"){$"Emisión"}
-                                option(value="1" "#<ifstr(@@(get,'$tdate')=='1','selected','')>"="true"){$"Vencimiento"}
-                            }
+                            #! do uie.dbSelect(def_doc) 
+                            #$
                         }
-                        div(class="flex-grow-1")
+                        div
                         {
-                            "filter-date-range"(
-                                "mode-field"="filter-mode"
-                                "year-field"="year"
-                                "month-field"="month"
-                                "range-field"="range"
-                                "from-field"="datefrom"
-                                "to-field"="dateto"
-                                "selection"='#<to.json(get)>'
-                                "lastdays-options"="15,30,45,60,90"
-                                "years-options"="2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024"
-                                "custom-range"="true"
-                                "form"="#form_filter"
-                                "auto-submit"="true"
-                                "label-months"="Ver por cada mes"
-                                "label-days"="Últ. @lastdays días"
-                                "label-custom"="Personalizado"
-                                "label-from"="Desde:"
-                                "label-to"="Hasta:"
-                                "month-names"="Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre"
-                            ){$""}
+                            #! do uie.dbSelect(def_status_finc) 
+                            #$
+                        }
+                        div
+                        {
+                            #! do uie.dbSelect(def_status_admin) 
+                            #$
                         }
                     }
-
-                    div(class="py-1 w-100 d-flex gap-2 flex-wrap align-items-center")
+                    div(class="flex-grow-1")
                     {
-                        div(class="d-flex gap-2")
-                        {
-                            div
-                            {
-                                #! do uie.dbSelect(def_doc) 
-                                #$
-                            }
-                            div
-                            {
-                                #! do uie.dbSelect(def_status_finc) 
-                                #$
-                            }
-                            div
-                            {
-                                #! do uie.dbSelect(def_status_admin) 
-                                #$
-                            }
-                        }
-                        div(class="flex-grow-1")
-                        {
-                            #$ "filter-text"(
-                                "id"="micontrol10"
-                                "text-field"="s"
-                                "placeholder"="Referencia del documento, nombre, código o RFC del proveedor"
-                                "form"="#form_filter"
-                                "value"="#<@@(get,'$s')>"
-                                "auto-submit"="true"
-                                "class"="w-100"
-                            ){$""}
-                        }
+                        #$ "filter-text"(
+                            "id"="micontrol10"
+                            "text-field"="s"
+                            "placeholder"="Referencia del documento, nombre, código o RFC del proveedor"
+                            "form"="#form_filter"
+                            "value"="#<@@(get,'$s')>"
+                            "auto-submit"="true"
+                            "class"="w-100"
+                        ){$""}
                     }
                 }
-                #! do uie.dbeditable(table_definition,"table_compras")
             }
+            #! do uie.dbeditable(table_definition,"table_compras")
         }
 
         #$
