@@ -33,6 +33,7 @@ document.addEventListener("DOMContentLoaded", () =>
     var table = document.getElementById("tbl_productos");
     var tData = table.DataArray;
     var tEvents = table.EdiTable.Const.Events;
+    var tColdef = JSON.parse(JSON.stringify(table.Columns));
 
     btnAddRow.addEventListener("click", () => { table.AddRow(); });
     btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); toggleColumns(); });
@@ -734,6 +735,22 @@ document.addEventListener("DOMContentLoaded", () =>
 
     var lastRowIndex = -1;
     var lastUnit = "";
+
+    table.Events[tEvents.EnterCell] = function(e) {
+        let coldef = e.sender.GetColumnDefOfTd(e.td);
+        let field = coldef.field;
+
+        if (!["edt_lote","edt_fcad","edt_serie"].includes(field)) return;
+
+        let curr_row = table.RowIndexOfTd(e.td);
+        let curr_col = table.ColIndexOfTd(e.td);
+        let data_row = table.DataArray[curr_row];
+
+        // Deshabilitar edición a las celdas de lote, caducidad y serie si el producto no lo requiere.
+        if ((field === "edt_lote" || field === "edt_fcad") && !data_row.reqlote) table.Columns[curr_col].type = "NoEditable";
+        else if (field === "edt_serie" && !data_row.reqserie) table.Columns[curr_col].type = "NoEditable";
+        else table.Columns[curr_col].type = tColdef[curr_col].type;
+    }
 
     table.Events[tEvents.StartEdition] = function(e) {
         let coldef = e.sender.GetColumnDefOfTd(e.td);
