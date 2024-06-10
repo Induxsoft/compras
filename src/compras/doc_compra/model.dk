@@ -605,63 +605,63 @@ module "model"
         
         for i = 0; i < list.count(products)
         {
-            ref prod = list.obj(products,i)
-            ref data = record.create()
+            ref producto = list.obj(products,i)
+            ref prod = record.copy(producto,"iproducto,edt_descripcion,reqlote,reqserie,edt_lote,edt_fcad,edt_serie")
+            ref temp = record.create()
             sys_info = ""
 
             //=============== LOTES
             if @@(prod,"$edt_lote") != ""
             {
-                ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,1,0) used_error, numero FROM lote WHERE numero=@edt_lote LIMIT 1;",prod)
-                if not(isnull(exist))
+                lote = trim(field.dstr(prod,"edt_lote",""))
+			    fcad = trim(field.dstr(prod,"edt_fcad",""))
+
+                // if lote == "" { do rise_error(500,"No se ha indicado un número de lote para "+@@(prod,"$edt_descripcion")) }
+                ref dlote = dbr.rec(db,"SELECT sys_pk, numero FROM lote WHERE numero=@edt_lote AND iproducto=@iproducto LIMIT 1",prod)
+
+                if isnull(dlote)
                 {
-                    if @@(exist,"#used_error") { do rise_error(99,"El lote:"+@@(exist,"numero")+" del producto"+@@(prod,"$edt_descripcion")+" ya está asignado a un producto diferente, indique un nuevo lote para este producto") }
-                    else { data<"lote">: @@(exist,"#sys_pk") }
-                }
-                else 
-                {
-                    new prm{ @"id":uuid() }
-                    new lote
+                    new data
                     {
-                        @"sys_guid": @@(prm,"id")
-                        @"sys_timestamp*": dbr.sql("NOW()")
-                        @"numero":  @@(prod,"edt_lote")
-                        @"iproducto": @@(prod,"iproducto")
-                        @"fcaducidad": @@(prod,"$edt_fcad")
+                        @"fentrada*": now()
+                        @"fcaducidad*": @null
+                        @"numero": lote
+                        @"iproducto": field.num(prod,"iproducto")
                     }
-                    if @@(lote,"$fcaducidad") == "" { lote<"fcaducidad*">: @null }
-                    do dbr.insert(db,"lote",lote)
-                    data<"lote">: dbr.num(db,"SELECT sys_pk FROM lote WHERE sys_guid=@id", prm)
+                    if fcad != "" { data<"fcaducidad*"> : str2dt(fcad) }
+                    ref dlote:record.copy(dbr.save(db,"lote",data),"sys_pk,numero")
                 }
+
+                temp<"lote"> : field.num(dlote,"sys_pk")
             }
             //=============== SERIES
             if @@(prod,"$edt_serie") != ""
             {
-                ref exist = dbr.rec(db, "SELECT sys_pk, IF(iproducto=@iproducto,1,0) used_error, numero FROM serie WHERE numero=@edt_serie LIMIT 1;",prod)
-                if not(isnull(exist))
+                serie = trim(field.dstr(prod,"edt_serie",""))
+
+                // if serie == "" { do rise_error(500,"No se ha indicado un número de serie para "+@@(prod,"$edt_descripcion")) }
+                ref dserie = dbr.rec(db,"SELECT sys_pk, numero, status, IF(iproducto=@iproducto,TRUE,FALSE) AS used FROM serie WHERE numero=@edt_serie AND iproducto=@iproducto LIMIT 1",prod)
+                if not(isnull(dserie)) && @@(dserie,"#used") { do rise_error(500,"El número de serie "+@@(dserie,"$numero")+" para "+@@(prod,"$edt_descripcion")+" ya está asignado, indique una nueva serie para este producto") }
+
+                if isnull(dserie)
                 {
-                    if @@(exist,"#used_error") { do rise_error(99,"La serie:"+@@(exist,"numero")+" del producto"+@@(prod,"$edt_descripcion")+" ya está asignado a un producto diferente, indique una nueva serie para este producto") }
-                    else { data<"serie">: @@(exist,"#sys_pk") }
-                }
-                else 
-                {
-                    new prm{ @"id":uuid() }
-                    new serie
+                    new data
                     {
-                        @"sys_guid": @@(prm,"id")
-                        @"sys_timestamp*": dbr.sql("NOW()")
-                        @"numero": @@(prod,"$edt_serie")
-                        @"status": 1
-                        @"iproducto": @@(prod,"iproducto")
+                        @"fentrada*": now()
+                        @"status": 1 //cDisponible
+                        @"numero": serie
+                        @"iproducto": field.num(prod,"iproducto")
+                        // @"ialmacen": field.num(prod,"ialmacen")
                     }
-                    if @@(data,"$lote") != "" { serie<"ilote">: @@(data,"#lote") }
-                    do dbr.insert(db,"serie",serie)
-                    data<"serie">: dbr.num(db,"SELECT sys_pk FROM serie WHERE sys_guid=@id", prm)
+                    if field.dnum(temp,"ilote",0) > 0 { data<"ilote"> : field.num(temp,"ilote") }
+                    ref dserie:record.copy(dbr.save(db,"serie",data),"sys_pk,numero")
                 }
+
+                temp<"serie"> : field.num(dserie,"sys_pk")
             }
 
-            if field.exist(data,"lote") || field.exist(data,"serie") { sys_info = to.json(data) }
-            prod<"sys_info">: sys_info
+            if field.exist(temp,"lote") || field.exist(temp,"serie") { sys_info = to.json(temp) }
+            producto<"sys_info"> : sys_info
         }
     }
     doc.searchSerieLote::&db,&dcompra

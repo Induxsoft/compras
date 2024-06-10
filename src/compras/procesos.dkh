@@ -32,33 +32,44 @@ module "procesos.dkh:erp.compras.procesos"
     }
     asignarLoteSerie::&db,&item,&dcardex
     {
+        new params
+        {
+            @"doccompra": @@(item,"#doccompra")
+            @"ialmacen": @@(dcardex,"#ialmacen")
+        }
+
         if trim(@@(item,"$sys_info")) != ""
         {
             // Lote
             ref info = from.json(@@(item,"$sys_info"))
             if trim(@@(info,"$lote")) != ""
-            { 
-                dcardex<"ilote">:@@(info,"#lote")
+            {
+                params<"ilote"> : @@(info,"#lote")
+                dcardex<"ilote"> : @@(info,"#lote")
                 // CLoteXAlmacen
-                new prm{
-                    @"lote": @@(dcardex,"$ilote")
-                    @"almacen": @@(dcardex,"$ialmacen")
-                }
-                if isnull(dbr.rec(db, "SELECT sys_pk FROM clotexalmacen WHERE fk_lote_exisxalmacen=@lote AND ialmacen=@almacen LIMIT 1;", prm))
+                if isnull(dbr.rec(db,"SELECT sys_pk FROM clotexalmacen WHERE fk_lote_exisxalmacen=@ilote AND ialmacen=@ialmacen LIMIT 1;",params))
                 {
                     new clxa
                     {
-                        @"sys_guid":uuid()
-                        @"sys_timestamp*": dbr.sql("NOW()")
+                        @"sys_guid": uuid()
+                        @"sys_dtcreated*": dbr.sql("now()")
+                        @"sys_timestamp*": dbr.sql("now()")
+                        @"sys_recver": 0
                         @"cantidad": 0
-                        @"ialmacen": @@(dcardex,"ialmacen")
-                        @"fk_lote_exisxalmacen": @@(dcardex,"ilote")
+                        @"ialmacen": @@(dcardex,"#ialmacen")
+                        @"fk_lote_exisxalmacen": @@(dcardex,"#ilote")
                     }
                     do dbr.insert(db,"clotexalmacen",clxa)
                 }
             }
             // Serie
-            if trim(@@(info,"$serie")) != "" { dcardex<"iserie">:@@(info,"#serie")}
+            if trim(@@(info,"$serie")) != ""
+            {
+                params<"iserie"> : @@(info,"#serie")
+                dcardex<"iserie"> : @@(info,"#serie")
+
+                do dbr.execute(db,"UPDATE serie SET doccompra=@doccompra, ialmacen=@ialmacen WHERE sys_pk=@iserie",params)
+            }
 
             do dbr.execute(db,"UPDATE dcompra SET sys_info='' WHERE sys_pk=@sys_pk",item)
             //excepcion{}
@@ -87,6 +98,7 @@ module "procesos.dkh:erp.compras.procesos"
             IFNULL(d.doc_partida,-99) doc_partida,
             p.descripcion `producto`,
             d.precio,
+            d.fk_compra_detalle AS doccompra,
             IF(dca.rcompra IS NULL AND dca2.rcompra IS NULL, 0, 1) mov_aplicado
         FROM dcompra d 
             INNER JOIN producto p ON d.iproducto = p.sys_pk 

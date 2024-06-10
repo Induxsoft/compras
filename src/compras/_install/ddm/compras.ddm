@@ -576,6 +576,12 @@ model "erp.compras"
         @"rcompra" ref:"dcompra"
         @"fk_cardex_movimientos" ref:"cardex" required
     }
+    entity "clotexalmacen" : "TableModel"
+    {
+        @"cantidad" decimal(18,8)
+        @"ialmacen" ref:"almacen" required
+        @"fk_lote_exisxalmacen" ref:"lote" required
+    }
     // Contiene identificadores de grupos de productos de características similares o iguales
     entity "lote" : "TableModel"
     {
@@ -594,6 +600,11 @@ model "erp.compras"
         @"notas" string(4096) 
         @"numero" string(50) unique required
         @"status" ref:"cstatusseries" required
+        @"doccompra" ref:"compra"
+        // @"docventa" ref:"venta"
+        @"ialmacen" ref:"almacen"
+        @"iensamble" ref:"serie"
+        @"ilote" ref:"lote"
         @"iproducto" ref:"producto" required
     }
     // Información de la aplicación
