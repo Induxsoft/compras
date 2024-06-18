@@ -33,6 +33,7 @@ program "instalador"
         "cstatusfacturacion.csv",
         "cstatusfinancieros.csv",
         "cstatusorg.csv",
+        "cstatusseries.csv",
         "ctasasiva.csv",
         "ctipoproducto.csv",
         "ctiposcomisionesproducto.csv",

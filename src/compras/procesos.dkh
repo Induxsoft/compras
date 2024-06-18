@@ -30,6 +30,7 @@ module "procesos.dkh:erp.compras.procesos"
             do dbr.update(db,"compra",status,"sys_pk=@compra",compra)
         }
     }
+
     asignarLoteSerie::&db,&item,&dcardex
     {
         new params
@@ -75,6 +76,21 @@ module "procesos.dkh:erp.compras.procesos"
             //excepcion{}
         }
     }
+
+    devolverSerie::&db,&item
+    {
+        if @@(item,"#iserie") == 0 { return }
+        
+        sql = "
+        UPDATE serie SET
+            sys_timestamp = now(),
+            sys_recver = IFNULL(sys_recver,0) + 1,
+            status = 3
+        WHERE sys_pk = @iserie
+        "
+        do dbr.execute(db,sql,item)
+    }
+
     actualizarCostoUltimoProducto::&db,&item
     {
         new prm { @"costoultimo": @@(item,"#precio") }
@@ -250,7 +266,7 @@ module "procesos.dkh:erp.compras.procesos"
                 @"sys_recver": 0
                 @"fk_cardex_movimientos": last_id
             }
-
+            do erp.compras.procesos.devolverSerie(db,itm)
             do dbr.insert(db,"dcardex",dcardex)
         }
 
