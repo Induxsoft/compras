@@ -2,37 +2,62 @@
 #!
 module "procesos.dkh:erp.compras.procesos"
 {
-    setStatusEntregaFacturacion::&db,compra_pk
+    setStatusToRelatedDocs::&db,compra_pk,formapago
     {
-        new prm { @"compra": compra_pk }
-        sql = "
-            SELECT dc2.fk_compra_detalle compra
-            FROM dcompra dc
-                INNER JOIN dcompra dc2 ON dc.doc_partida = dc2.sys_pk
-            WHERE dc.fk_compra_detalle = @compra
-            GROUP BY dc2.fk_compra_detalle;
+        new params { @"icompra": compra_pk }
+
+        sql_related_docs = "
+        SELECT dc2.fk_compra_detalle rcompra
+        FROM dcompra dc
+            INNER JOIN dcompra dc2 ON dc.doc_partida = dc2.sys_pk
+        WHERE dc.fk_compra_detalle = @icompra
+        GROUP BY dc2.fk_compra_detalle
         "
-        ref comprasInsertadas = dbr.list(db, sql, prm)
+        ref relatedDocs = dbr.list(db,sql_related_docs,params)
+        if list.count(relatedDocs) <= 0 { return }
+
+        start_transaction = @false
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
         
-        for i = 0; i < list.count(comprasInsertadas)
+        for i = 0; i < list.count(relatedDocs)
         {
-            ref compra = list.obj(comprasInsertadas,i)
-            new status {
-                @"statusentrega": 1 //0:cNo_aplica, 1:cPor_Entregar, 3:cEntregado
-                @"statusfacturacion": 1 //0:cNo_Aplica, 1:cPor_facturar, 2:cParcialmente_facturado, 3:cFacturado 
-            }
-            xfacturar = dbr.num(db,"SELECT SUM(IFNULL(xfacturar,cantidad)) FROM dcompra WHERE fk_compra_detalle = @compra;",compra)
-            if xfacturar <= 0
+            ref doc = list.obj(relatedDocs,i)
+            
+            if dbr.num(db,"SELECT SUM(IFNULL(xfacturar,cantidad)) FROM dcompra WHERE fk_compra_detalle = @rcompra",doc) == 0 
+            { do erp.compras.procesos.setStatus(db,@@(doc,"#rcompra"),formapago) }
+            else
             {
-                status<"statusentrega">: 3
-                status<"statusfacturacion">: 3
+                new status
+                {
+                    @"statusentrega": @@(@EDO_ENTREGA,"#cPOR_ENTREGAR")
+                    @"statusfacturacion": @@(@EDO_FACTURACION,"#cPOR_FACTURAR")
+                }
+                do dbr.update(db,"compra",status,"sys_pk=@rcompra",doc)
             }
-            do dbr.update(db,"compra",status,"sys_pk=@compra",compra)
+        }
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
         }
     }
 
     asignarLoteSerie::&db,&item,&dcardex
     {
+        start_transaction = @false
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
         new params
         {
             @"doccompra": @@(item,"#doccompra")
@@ -75,12 +100,41 @@ module "procesos.dkh:erp.compras.procesos"
             do dbr.execute(db,"UPDATE dcompra SET sys_info='' WHERE sys_pk=@sys_pk",item)
             //excepcion{}
         }
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
     }
 
-    devolverSerie::&db,&item
+    devolverLoteSerie::&db,&item,&dcardex
     {
+        start_transaction = @false
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        if trim(@@(item,"$sys_info")) != ""
+        {
+            ref info = from.json(trim(@@(item,"$sys_info")))
+            // Lote
+            if @@(info,"#lote") > 0 { dcardex<"ilote"> : @@(info,"#lote") }
+            // Serie
+            if @@(info,"#serie") > 0 {
+                item<"iserie"> : @@(info,"#serie")
+                dcardex<"iserie"> : @@(info,"#serie")
+            }
+
+            do dbr.execute(db,"UPDATE compra SET sys_info='' WHERE sys_pk=@sys_pk",item)
+        }
+
         if @@(item,"#iserie") == 0 { return }
-        
+        // Devolver a proveedor
         sql = "
         UPDATE serie SET
             sys_timestamp = now(),
@@ -89,6 +143,14 @@ module "procesos.dkh:erp.compras.procesos"
         WHERE sys_pk = @iserie
         "
         do dbr.execute(db,sql,item)
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
     }
 
     actualizarCostoUltimoProducto::&db,&item
@@ -179,7 +241,7 @@ module "procesos.dkh:erp.compras.procesos"
                     @"entradas": @@(item,"#cantidad")
                     @"cargos": @@(item,"#cargos")
                     @"cpromedio": @@(item,"#costototal")
-                    @"tipocambio": @@(item,"#tipocambio")
+                    @"tipocambio": @@(compra,"#tipocambio")
                     @"ilote*": @null
                     @"iserie*": @null
                     @"rcompra": @@(item,"#sys_pk")
@@ -190,7 +252,83 @@ module "procesos.dkh:erp.compras.procesos"
             }
         }
 
-        do erp.compras.procesos.setStatusEntregaFacturacion(db,icompra)
+        if start_transaction { do dbr.commit(db) }
+        return last_id
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    salidaInventario::&db,icompra,icategoria
+    {
+        start_transaction = @false
+
+        sql_compra = "SELECT c.referencia, c.tipocambio, c.ialmacen, c.documento FROM compra c WHERE c.sys_pk = @icompra;"
+        sql_dcompra = "
+        SELECT 
+            d.sys_pk,
+            d.cantidad,
+            d.precio,
+            d.costototal,
+            d.iproducto, 
+            (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS abonos,
+            IFNULL(d.sys_info,'') sys_info
+        FROM dcompra d
+        WHERE d.fk_compra_detalle = @icompra;
+        "
+        
+        new params { @"icompra": icompra }
+        ref compra = dbr.rec(db,sql_compra,params)
+        ref dcompra = dbr.list(db,sql_dcompra,params)
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        new cardex
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"sys_recver": 0
+            @"referencia": @@(compra,"$referencia")
+            @"fecha*": now()
+            @"icategoria": icategoria
+        }
+        do dbr.insert(db,"cardex",cardex)
+        last_id = dbr.num(db,"select last_insert_id();",@null)
+
+        for i = 0; i < list.count(dcompra)
+        {
+            ref item = list.obj(dcompra,i)
+            
+            new dcardex
+            {
+                @"sys_pk": 0
+                @"sys_guid": uuid()
+                @"sys_dtcreated*": now()
+                @"sys_timestamp*": now()
+                @"sys_recver": 0
+                @"ialmacen": @@(compra,"#ialmacen")
+                @"iproducto": @@(item,"#iproducto")
+                @"salidas": @@(item,"#cantidad")
+                @"abonos": @@(item,"#abonos")
+                @"cpromedio": @@(item,"#costototal")
+                @"tipocambio": @@(compra,"#tipocambio")
+                @"ilote*": @null
+                @"iserie*": @null
+                @"rcompra": @@(item,"#sys_pk")
+                @"fk_cardex_movimientos": last_id
+            }
+            do erp.compras.procesos.devolverLoteSerie(db,item,dcardex)
+            do dbr.insert(db,"dcardex",dcardex)
+        }
+
         if start_transaction { do dbr.commit(db) }
         return last_id
 
@@ -266,7 +404,7 @@ module "procesos.dkh:erp.compras.procesos"
                 @"sys_recver": 0
                 @"fk_cardex_movimientos": last_id
             }
-            do erp.compras.procesos.devolverSerie(db,itm)
+            do erp.compras.procesos.devolverLoteSerie(db,itm,@null)
             do dbr.insert(db,"dcardex",dcardex)
         }
 
@@ -281,7 +419,183 @@ module "procesos.dkh:erp.compras.procesos"
         }
     }
 
-    na::&db,icompra
+    setStatus::&db,icompra,formapago
+    {
+        namespace "erp.compras.procesos"
+
+        new params { @"icompra": icompra }
+        ref compra = dbr.rec(db,ftext("SELECT c.documento, (f.sys_pk IS NOT NULL) AS facturado FROM compra c LEFT JOIN compra f ON c.aplicadoa = f.sys_pk AND f.documento = #<@cFACTURA> WHERE c.sys_pk = @icompra;"),params)
+
+        ref fpago_edofin = record.create()
+        fpago_edofin<@@(@FORMAS_PAGO,"$cNO_APLICA")> : @@(@EDO_FINANCIERO,"#cNO_APLICA")
+        fpago_edofin<@@(@FORMAS_PAGO,"$cCONTADO")> : @@(@EDO_FINANCIERO,"#cSALDADO")
+        fpago_edofin<@@(@FORMAS_PAGO,"$cCREDITO")> : @@(@EDO_FINANCIERO,"#cCON_ADEUDO")
+        fpago_edofin<@@(@FORMAS_PAGO,"$cFINANCIADO")> : @@(@EDO_FINANCIERO,"#cSALDADO")
+        fpago_edofin<@@(@FORMAS_PAGO,"$cCONSIGNADO")> : @@(@EDO_FINANCIERO,"#cCONSIGNADO")
+
+        new status
+        {
+            @"formapago": formapago
+            @"statusadministrativo": @@(@EDO_ADMIN,"#cPROCESADO")
+            @"statusentrega": @@(@EDO_ENTREGA,"#cNO_APLICA")
+            @"statusfacturacion": @@(@EDO_FACTURACION,"#cNO_APLICA")
+            @"statusfinanciero": @@(@EDO_FINANCIERO,"#cNO_APLICA")
+        }
+
+        switch @@(compra,"#documento")
+        {
+            case @cCOTIZACION
+            {
+                using status
+                {
+                    @"formapago": @@(@FORMAS_PAGO,"#cNO_APLICA")
+                    @"statusadministrativo": @@(@EDO_ADMIN,"#cCERRADO")
+                }
+                break
+            }
+            case @cPEDIDO
+            {
+                using status
+                {
+                    @"formapago": @@(@FORMAS_PAGO,"#cNO_APLICA")
+                    @"statusadministrativo": @@(@EDO_ADMIN,"#cCERRADO")
+                    @"statusentrega": @@(@EDO_ENTREGA,"#cPOR_ENTREGAR")
+                }
+                break
+            }
+            case @cREMISION
+            {
+                using status
+                {
+                    @"statusentrega": @@(@EDO_ENTREGA,"#cENTREGADO")
+                    @"statusfacturacion": if(@@(compra,"#facturado"), @@(@EDO_FACTURACION,"#cFACTURADO"), @@(@EDO_FACTURACION,"#cPOR_FACTURAR"))
+                    @"statusfinanciero": field.dnum(fpago_edofin,formapago,@@(@EDO_FINANCIERO,"#cNO_APLICA"))
+                }
+                break
+            }
+            case @cFACTURA
+            {
+                using status
+                {
+                    @"statusentrega": @@(@EDO_ENTREGA,"#cENTREGADO")
+                    @"statusfinanciero": field.dnum(fpago_edofin,formapago,@@(@EDO_FINANCIERO,"#cNO_APLICA"))
+                }
+                break
+            }
+            case @cNOTA_DE_CREDITO
+            {
+                using status
+                {
+                    @"statusfacturacion": @@(@EDO_FACTURACION,"#cPOR_FACTURAR")
+                    @"statusfinanciero": field.dnum(fpago_edofin,formapago,@@(@EDO_FINANCIERO,"#cNO_APLICA"))
+                }
+                break
+            }
+        }
+
+        start_transaction = @false
+        
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
+        if formapago != @@(@FORMAS_PAGO,"#cNO_APLICA") { do setStatusToRelatedDocs(db,icompra,formapago) }
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    devolucion::&db,&data
+    {
+        if @@(data,"#documento") != @cNOTA_DE_CREDITO { do rise_error(500,"El documento no es una Nota de Crédito (Devolución).") }
+
+        start_transaction = @false
+        
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        sql_compra = "
+        SELECT
+            cmp.referencia,
+            IFNULL(cmp.subtotal,0) AS subtotal,
+            ((((((IFNULL(cmp.subtotal,0)
+                - IFNULL(cmp.descuento1,0))
+                - IFNULL(cmp.descuento2,0))
+                + IFNULL(cmp.impuesto1,0))
+                + IFNULL(cmp.impuesto2,0))
+                + IFNULL(cmp.impuesto3,0))
+                + IFNULL(cmp.impuesto4,0)
+            ) AS total,
+            cmp.tipocambio,
+            cmp.idivisa,
+            cmp.iproveedor,
+            pdr.nombre AS beneficiario
+        FROM compra AS cmp
+            INNER JOIN proveedor AS pdr ON cmp.iproveedor = pdr.sys_pk
+        WHERE cmp.sys_pk = @icompra
+        "
+        ref compra = dbr.rec(db,sql_compra,data)
+
+        // Realizar salida de los productos devueltos.
+        do erp.inventario.aplicar_mov(db,erp.compras.procesos.salidaInventario(db,@@(data,"#icompra"),@@(data,"#icategoria")),@false)
+
+        // Realizar ingreo por los productos devueltos.
+        switch @@(data,"$ingreso")
+        {
+            case "GD14"
+            {
+                new deposito
+                {
+                    @"faplicacion": date_str(now(),"yyyy-MM-dd")
+                    @"conciliado": @true
+                    @"importe": @@(compra,"#total")
+                    @"fecha": date_str(now(),"yyyy-MM-dd")
+                    @"concepto": @@(data,"$concepto")
+                    @"referencia": @@(compra,"$referencia")+"-D"
+                    @"documento": @cDEPOSITO
+                    @"icategoria": @@(data,"#icategoria")
+                    @"icuenta": @@(data,"#icuenta")
+                }
+                do erp.efectivo.movimientos.deposito(db,deposito)
+                break
+            }
+            case "GC27"
+            {
+                new bonificacion
+                {
+                    @"faplicacion": date_str(now(),"yyyy-MM-dd")
+                    @"documento": @cNOTA_DE_CREDITO
+                    @"fecha": date_str(now(),"yyyy-MM-dd")
+                    @"notas": @@(data,"$concepto")
+                    @"referencia": @@(compra,"$referencia")+"-B"
+                    @"tcambio": @@(compra,"#tipocambio")
+                    @"importe": @@(compra,"#total")
+                    @"iproveedor": @@(compra,"#iproveedor")
+                }
+                do erp.cxp.movimientos.bonificarProveedor(db,bonificacion)
+                break
+            }
+        }
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    liquidacionNoAplica::&db,&data
     {
         start_transaction = @false
         
@@ -290,17 +604,10 @@ module "procesos.dkh:erp.compras.procesos"
             start_transaction = @true
         }
 
+        if @@(data,"#documento") == @cNOTA_DE_CREDITO { do erp.compras.procesos.devolucion(db,data) }
+
         // Establecer los estados correspondientes.
-        new params { @"icompra": icompra }
-        new status
-        {
-            @"formapago": @@(@FORMAS_PAGO,"cNO_APLICA")
-            @"statusadministrativo": @@(@EDO_ADMIN,"cPROCESADO")
-            @"statusentrega": @@(@EDO_ENTREGA,"cNO_APLICA")
-            @"statusfacturacion": @@(@EDO_FACTURACION,"cNO_APLICA")
-            @"statusfinanciero": @@(@EDO_FINANCIERO,"cNO_APLICA")
-        }
-        do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
+        do erp.compras.procesos.setStatus(db,@@(data,"#icompra"),@@(@FORMAS_PAGO,"#cNO_APLICA"))
 
         if start_transaction { do dbr.commit(db) }
 
@@ -328,17 +635,13 @@ module "procesos.dkh:erp.compras.procesos"
         // Realizar retiro a la cuenta.
         mov_sys_pk = erp.efectivo.movimientos.retiro(db,data)
         // Establecer los estados correspondientes.
-        new params { @"icompra": icompra }
-        new status
+        do erp.compras.procesos.setStatus(db,icompra,@@(@FORMAS_PAGO,"#cCONTADO"))
+        new params
         {
-            @"formapago": @@(@FORMAS_PAGO,"cCONTADO")
-            @"statusadministrativo": @@(@EDO_ADMIN,"cPROCESADO")
-            @"statusentrega": @@(@EDO_ENTREGA,"cENTREGADO")
-            @"statusfacturacion": @@(@EDO_FACTURACION,"cPOR_FACTURAR")
-            @"statusfinanciero": @@(@EDO_FINANCIERO,"cSALDADO")
-            @"imovchequera": mov_sys_pk
+            @"icompra": icompra
+            @"movret": mov_sys_pk
         }
-        do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
+        do dbr.execute(db,"UPDATE compra SET imovchequera=@movret WHERE sys_pk = @icompra",params)
 
         if start_transaction { do dbr.commit(db) }
 
@@ -366,16 +669,7 @@ module "procesos.dkh:erp.compras.procesos"
         // Agregar documento por pagar (dcxp) y afectar el saldo del proveedor.
         do erp.cxp.movimientos.crearCxP(db,data)
         // Establecer los estados correspondientes.
-        new params { @"icompra": icompra }
-        new status
-        {
-            @"formapago": @@(@FORMAS_PAGO,"cCREDITO")
-            @"statusadministrativo": @@(@EDO_ADMIN,"cPROCESADO")
-            @"statusentrega": @@(@EDO_ENTREGA,"cENTREGADO")
-            @"statusfacturacion": @@(@EDO_FACTURACION,"cPOR_FACTURAR")
-            @"statusfinanciero": @@(@EDO_FINANCIERO,"cCON_ADEUDO")
-        }
-        do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
+        do erp.compras.procesos.setStatus(db,icompra,@@(@FORMAS_PAGO,"#cCREDITO"))
 
         if start_transaction { do dbr.commit(db) }
 
@@ -398,16 +692,7 @@ module "procesos.dkh:erp.compras.procesos"
         // Generar movimiento de entrada de inventario y aplicar.
         do erp.inventario.aplicar_mov(db,erp.compras.procesos.entradaInventario(db,icompra,icategoria),@false)
         // Establecer los estados correspondientes.
-        new params { @"icompra": icompra }
-        new status
-        {
-            @"formapago": @@(@FORMAS_PAGO,"cCONSIGNADO")
-            @"statusadministrativo": @@(@EDO_ADMIN,"cPROCESADO")
-            @"statusentrega": @@(@EDO_ENTREGA,"cENTREGADO")
-            @"statusfacturacion": @@(@EDO_FACTURACION,"cPOR_FACTURAR")
-            @"statusfinanciero": @@(@EDO_FINANCIERO,"cCONSIGNADO")
-        }
-        do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
+        do erp.compras.procesos.setStatus(db,icompra,@@(@FORMAS_PAGO,"#cCONSIGNADO"))
 
         if start_transaction { do dbr.commit(db) }
 

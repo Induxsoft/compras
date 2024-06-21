@@ -3,6 +3,9 @@
 #!
 module "lib.dk"
 {
+    do _map_function(-1,"System.Net.WebUtility","HtmlEncode","HtmlEncode","System.String","$")
+    do _map_function(-1,"System.Net.WebUtility","HtmlDecode","HtmlDecode","System.String","$")
+    
     function hoy(fmt)
     {
         return date_str(now(),str(fmt))

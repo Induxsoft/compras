@@ -30,12 +30,18 @@ module "model"
         {
             case "procesar"
             {
+                ref cat_movinv = dbr.list(db,@sql_cat_movinv,@null)
+                go foreach.lobj(value:obj) with(cat_movinv) {
+                    obj<"text"> : HtmlEncode(@@(obj,"$text"))
+                }
+
                 data<"list_documentos*"> : dbr.list(db,@sql_doc_compra,@null)
                 data<"list_doc_retiro*"> : dbr.list(db,@sql_doc_retiro,@null)
                 data<"list_cuentaschq*"> : dbr.list(db,@sql_cuentaschq,@null)
-                data<"list_cat_egreso*"> : dbr.list(db,@sql_cat_egreso,@null)
-                data<"list_cat_movinv*"> : dbr.list(db,@sql_cat_movinv,@null)
                 data<"list_divisas*"> : dbr.list(db,@sql_divisas,@null)
+                data<"list_cat_egreso*"> : dbr.list(db,@sql_cat_egreso,@null)
+                data<"list_cat_ingreso*"> : dbr.list(db,@sql_cat_ingreso,@null)
+                data<"list_cat_movinv*"> : cat_movinv
 
                 ref compra = entity.read(db,params)
                 params<"documento"> : @@(compra,"#documento")
@@ -154,7 +160,7 @@ module "model"
         {
             case @@(@FORMAS_PAGO,"#cNO_APLICA")
             {
-                do erp.compras.procesos.na(db,@@(data,"#icompra"))
+                do erp.compras.procesos.liquidacionNoAplica(db,data)
                 @url_redir = @DOC_COMPRAS
                 break
             }
@@ -245,7 +251,7 @@ module "model"
             @"documento": @cNOTA_DE_CREDITO
             @"fecha": hoy("yyyy-MM-dd")
             @"notas": "Bonificación por cancelación del documento con referencia " + @@(data,"$referencia")
-            @"referencia": "B-" + @@(data,"$referencia")
+            @"referencia": @@(data,"$referencia")+"-B"
             @"tcambio": @@(data,"#tipocambio")
             @"importe": @@(data,"#total")
             @"iproveedor": @@(data,"#iproveedor")

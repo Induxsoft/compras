@@ -142,77 +142,72 @@ module "doc.pedido.dk"
                         small{$"| Edo. facturación: #<form('edo_facturacion','tx',compra)>"}
                         small{$"| Edo. financiero: #<form('edo_financiero','tx',compra)>"}
                     }
-                    div(class="row")
+                    div(class="row gx-2")
                     {
-                        div(class="col-lg-7 col-md-12 col-sm-12")
+                        div(class="col-12")
                         {
-                            div(class="row")
-                            {
-                                div(class="col-12")
-                                {
-                                    label(class="form-label" "for"="sel_proveedor"){$"Proveedor:"}
-                                    "input-key"(
-                                        id="sel_proveedor"
-                                        name="iproveedor"
-                                        "data-key"="sys_pk"
-                                        "data-search"="codigo"
-                                        "data-text"="nombre"
-                                        "data-value"="#<to.json(dtprov)>"
-                                        "data-source"="#<@URL_BUSCAR_PROVEEDOR>"
-                                        columns="codigo,nombre,tipo"
-                                        colcaptions="Código,Nombre,Tipo"
-                                        "box-title-text"="Seleccione un proveedor"
-                                        required="true"
-                                        "control-styles"="
-                                            #input_search_container, #input_description_container,
-                                            #button_search_container, #button_clear_container {
-                                                height: calc(1.5em + .5rem + 2px) !important;
-                                                padding: .25rem .5rem !important;
-                                                font-size: .875rem !important;
-                                            }
-                                        "
-                                    ){$""}
+                            label(class="form-label fw-bold" "for"="sel_proveedor"){$"Proveedor:"}
+                            "input-key"(id="sel_proveedor" name="iproveedor" "data-key"="sys_pk" "data-search"="codigo" "data-text"="nombre" "data-source"="#<@URL_BUSCAR_PROVEEDOR>" "data-value"="#<to.json(dtprov)>" columns="codigo,nombre,tipo" colcaptions="Código,Nombre,Tipo" "box-title-text"="Seleccione un proveedor" required="true" "control-styles"="
+                                #input_search_container, #input_description_container,
+                                #button_search_container, #button_clear_container {
+                                    height: calc(1.5em + .5rem + 2px) !important;
+                                    padding: .25rem .5rem !important;
+                                    font-size: .875rem !important;
                                 }
-                                div(class="col-lg-7 col-md-6 col-sm-12")
-                                {
-                                    label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
-                                    input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" maxlength="25" value="#<form('referencia','tx',compra)>" required="")
-
-                                    label(class="form-label" "for"="sel_documento"){$"Tipo de documento:"}
-                                    ##
-                                    do uie.dbSelect(sel_documento)
-                                    ##
-
-                                    label(class="form-label" "for"="sel_divisa"){$"Divisa:"}
-                                    ##
-                                    do uie.dbSelect(sel_divisa)
-                                    ##
-
-                                    label(class="form-label" "for"="txt_tipocambio"){$"Tipo de cambio:"}
-                                    input(type="number" class="form-control form-control-sm rounded-0" name="tipocambio" min="1" step="0.000001" id="txt_tipocambio" value="#<form('tipocambio','nm',compra)>" required="")
-
-                                    label(class="form-label" "for"="sel_almacen"){$"Almacén:"}
-                                    ##
-                                    do uie.dbSelect(sel_almacen)
-                                    ##
-                                }
-                                div(class="col-lg-5 col-md-6 col-sm-12")
-                                {
-                                    label(class="form-label" "for"="txt_fecha"){$"Fecha:"}
-                                    input(type="date" class="form-control form-control-sm rounded-0" name="fecha" id="txt_fecha" value="#<form('fecha','dt',compra)>" required="")
-
-                                    label(class="form-label" "for"="txt_fvencimiento"){$"Fecha de vencimiento:"}
-                                    input(type="date" class="form-control form-control-sm rounded-0" name="vencimiento" id="txt_fvencimiento" value="#<form('vencimiento','dt',compra)>" required="")
-
-                                    label(class="form-label" "for"="txt_fentrega"){$"Fecha de entrega:"}
-                                    input(type="date" class="form-control form-control-sm rounded-0" name="fentrega" id="txt_fentrega" value="#<form('fentrega','dt',compra)>" required="")
-
-                                    label(class="form-label" "for"="txt_cindirectos"){$"Costos indirectos:"}
-                                    input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" step="0.000001" id="txt_cindirectos" value="#<form('indirectos','nm',compra)>" required="")
-                                }
-                            }
+                            "
+                            ){$""}
                         }
-                        div(class="col-lg-5"){$""}
+                        div(class="col-lg-3 col-md-3 col-sm-4 col-6")
+                        {
+                            label(class="form-label fw-bold" "for"="sel_documento"){$"Tipo de documento:"}
+                            ##
+                            do uie.dbSelect(sel_documento)
+                            ##
+                        }
+                        div(class="col-lg-3 col-md-3 col-sm-4 col-6")
+                        {
+                            label(class="form-label fw-bold" "for"="txt_referencia"){$"Referencia:"}
+                            input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" maxlength="25" value="#<form('referencia','tx',compra)>" required="")
+                        }
+                        div(class="col-lg-2 col-md-3 col-sm-4 col-4")
+                        {
+                            label(class="form-label fw-bold" "for"="txt_fecha"){$"Fecha:"}
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha" id="txt_fecha" value="#<form('fecha','dt',compra)>" required="")
+                        }
+                        div(class="col-lg-2 col-md-3 col-sm-4 col-4")
+                        {
+                            label(class="form-label" "for"="txt_fentrega"){$"F. Entrega:"}
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fentrega" id="txt_fentrega" value="#<form('fentrega','dt',compra)>")
+                        }
+                        div(class="col-lg-2 col-md-3 col-sm-4 col-4")
+                        {
+                            label(class="form-label" "for"="txt_fvencimiento"){$"F. Vencimiento:"}
+                            input(type="date" class="form-control form-control-sm rounded-0" name="vencimiento" id="txt_fvencimiento" value="#<form('vencimiento','dt',compra)>")
+                        }
+                        div(class="col-lg-3 col-md-3 col-sm-4 col-8")
+                        {
+                            label(class="form-label fw-bold" "for"="sel_divisa"){$"Divisa:"}
+                            ##
+                            do uie.dbSelect(sel_divisa)
+                            ##
+                        }
+                        div(class="col-lg-2 col-md-3 col-sm-4 col-4")
+                        {
+                            label(class="form-label fw-bold" "for"="txt_tipocambio"){$"T. Cambio:"}
+                            input(type="number" class="form-control form-control-sm rounded-0" name="tipocambio" min="1" step="0.000001" id="txt_tipocambio" value="#<form('tipocambio','nm',compra)>" required="")
+                        }
+                        div(class="col-lg-3 col-md-3 col-sm-4 col-8")
+                        {
+                            label(class="form-label fw-bold" "for"="sel_almacen"){$"Almacén:"}
+                            ##
+                            do uie.dbSelect(sel_almacen)
+                            ##
+                        }
+                        div(class="col-lg-2 col-md-3 col-sm-4 col-4")
+                        {
+                            label(class="form-label" "for"="txt_cindirectos"){$"Costos indirectos:"}
+                            input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" step="0.000001" id="txt_cindirectos" value="#<form('indirectos','nm',compra)>")
+                        }
                     }
                 }
 

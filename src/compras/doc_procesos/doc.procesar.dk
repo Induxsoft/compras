@@ -86,6 +86,21 @@ module "doc.procesar.dk"
         @"selected": form("icategoria","nm",formData)
     }
 
+    new sel_cat_ingreso
+    {
+        @"datatable*": ifnull(@("&./list_cat_ingreso"),list.create())
+        @"id": "sel_cat_ingreso"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "icategoria"
+            @"required": ""
+        }
+        @"value_field": "sys_pk"
+        @"text_field": "text"
+        @"selected": form("icategoria","nm",formData)
+    }
+
     new sel_cat_movinv
     {
         @"datatable*": ifnull(@("&./list_cat_movinv"),list.create())
@@ -136,280 +151,373 @@ module "doc.procesar.dk"
             }
         }
 
-        #! if @@(amounts,"#total") > 0
-        {#$
-        div(class="accordion" id="opciones_liquidacion")
+        #! if @@(compra,"#documento") == @cNOTA_DE_CREDITO
         {
-            div(class="accordion-item")
+            #$
+            form(class="row" action="./" method="POST" id="form_devolucion")
             {
-                h2(class="accordion-header" id="headingOne") {
-                    button(class="accordion-button py-2 #<ifstr(show_form_contado,'','collapsed')>" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseOne" "aria-expanded"="true" "aria-controls"="collapseOne"){$"Contado"}
-                }
-                div(id="collapseOne" class="accordion-collapse collapse #<ifstr(show_form_contado,'show','')>" "aria-labelledby"="headingOne" "data-bs-parent"="#opciones_liquidacion")
+                input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
+                input(type="hidden" name="documento" value="#<@@(compra,'#documento')>")
+                input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cNO_APLICA')>")
+
+                div(class="col-lg-8 col-md-10 col-sm-12")
                 {
-                    div(class="accordion-body")
+                    div(class="row mb-2")
                     {
-                        form(class="row" action="./" method="POST" id="form_liquidacion_contado")
+                        div(class="col-lg-4 col-md-4")
                         {
-                            input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
-                            input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCONTADO')>")
+                            label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
+                            input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
+                        }
+                        div(class="col-lg-4 col-md-4")
+                        {
+                            label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
+                            input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(compra,'$referencia')>" id="txt_referencia" disabled="")
+                        }
+                        div(class="col-lg-4 col-md-4")
+                        {
+                            label(class="form-label" "for"="sel_documento"){$"Documento:"}
+                            ##
+                            do uie.dbSelect(sel_documento)
+                            ##
+                        }
 
-                            div(class="col-lg-8 col-md-10 col-sm-12")
+                        div(class="col-12 py-1")
+                        {
+                            #!
+                            egreso = field.dstr(ifnull(@("&./form"),record.create()), "ingreso", "GD14")
+                            #$
+                            div(class="form-check form-check-inline")
                             {
-                                div(class="row")
-                                {
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
-                                        input(class="form-control form-control-sm rounded-0" type="text" name="beneficiario" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" readonly="")
-                                    }
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
-                                        input(class="form-control form-control-sm rounded-0" type="text" name="referencia" value="#<@@(compra,'$referencia')>" id="txt_referencia" readonly="")
-                                    }
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="txt_fecha_aplicacion"){$"Fecha de aplicación:"}
-                                        input(class="form-control form-control-sm rounded-0" type="date" name="faplicacion" value="#<form('faplicacion','dt',formData)>" id="txt_faplicacion" required="")
-                                    }
+                                input(class="form-check-input" type="radio" name="ingreso" id="rdb_deposito" value="GD14" "#<ifstr(egreso=='GD14','checked','')>"="" required="")
+                                label(class="form-check-label" "for"="rdb_deposito"){$"Realizar ingreso de efectivo"}
+                            }
 
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="sel_doc_retiro"){$"Documento:"}
-                                        ##
-                                        do uie.dbSelect(sel_doc_retiro)
-                                        ##
-                                    }
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="sel_cuenta"){$"Cuenta:"}
-                                        ##
-                                        do uie.dbSelect(sel_cuenta)
-                                        ##
-                                    }
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="sel_cat_egreso"){$"Categoria:"}
-                                        ##
-                                        do uie.dbSelect(sel_cat_egreso)
-                                        ##
-                                    }
+                            div(class="form-check form-check-inline")
+                            {
+                                input(class="form-check-input" type="radio" name="ingreso" id="rdb_bonificacion" value="GC27" "#<ifstr(egreso=='GC27','checked','')>"="" required="")
+                                label(class="form-check-label" "for"="rdb_bonificacion"){$"Bonificar cuenta del proveedor"}
+                            }
+                        }
+                        div(class="col-lg-6 col-md-6 col-sm-6" id="div_sel_cuenta" "#<ifstr(egreso=='GC27','hidden','')>"="")
+                        {
+                            // label(class="form-label" "for"="sel_cuenta"){$"Cuenta:"}
+                            ##
+                            do uie.dbSelect(sel_cuenta)
+                            ##
+                        }
+                        div(class="col-lg-6 col-md-6 col-sm-6" id="div_cat_ingreso" "#<ifstr(egreso=='GC27','hidden','')>"="")
+                        {
+                            // label(class="form-label" "for"="sel_cat_egreso"){$"Categoria:"}
+                            ##
+                            do uie.dbSelect(sel_cat_ingreso)
+                            ##
+                        }
+                        
+                        div(class="col-12")
+                        {
+                            label(class="form-label" "for"="txt_concepto"){$"Concepto:"}
+                            textarea(class="form-control rounded-0" name="concepto" id="txt_concepto" required=""){$"Devolución de compra"}
+                        }
 
-                                    div(class="col-12")
-                                    {
-                                        label(class="form-label" "for"="txt_concepto"){$"Concepto:"}
-                                        textarea(class="form-control rounded-0" name="concepto" id="txt_concepto" required=""){$"Liquidación del documento con referencia #<@@(compra,'$referencia')>"}
-                                    }
-
-                                    div(class="d-flex gap-2 align-items-center justify-content-end my-2")
-                                    {
-                                        label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
-                                    }
-                                }
-
-                                button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
-                            } 
+                        div(class="d-flex gap-2 align-items-center justify-content-end my-2")
+                        {
+                            label(class="form-label" "for"="txt_importe"){$"Importe:"}
+                            input(class="form-control form-control-sm rounded-0 w-25" type="number" name="" id="txt_importe" value="#<@@(compra,'#total')>" disabled="")
                         }
                     }
-                }
-            }
 
-            div(class="accordion-item")
-            {
-                h2(class="accordion-header" id="headingTwo") {
-                    button(class="accordion-button py-2 #<ifstr(show_form_credito,'','collapsed')>" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseTwo" "aria-expanded"="true" "aria-controls"="collapseTwo"){$"Crédito"}
-                }
-                div(id="collapseTwo" class="accordion-collapse collapse #<ifstr(show_form_credito,'show','')>" "aria-labelledby"="headingTwo" "data-bs-parent"="#opciones_liquidacion")
-                {
-                    div(class="accordion-body")
-                    {
-                        form(class="row" action="./" method="POST" id="form_liquidacion_credito")
-                        {
-                            input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
-                            input(type="hidden" name="iproveedor" value="#<@@(compra,'#iproveedor')>")
-                            input(type="hidden" name="documento" value="#<@@(compra,'#documento')>")
-                            input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCREDITO')>")
-
-                            div(class="col-lg-8 col-md-10 col-sm-12")
-                            {
-                                div(class="row")
-                                {
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
-                                        input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
-                                    }
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
-                                        input(class="form-control form-control-sm rounded-0" type="text" name="referencia" value="#<@@(compra,'$referencia')>" id="txt_referencia" readonly="")
-                                    }
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="txt_flimite"){$"Fecha limite de pago:"}
-                                        input(class="form-control form-control-sm rounded-0" type="date" name="flimite" value="#<form('flimite','dt',formData)>" id="txt_flimite" required="")
-                                    }
-
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="sel_documento"){$"Documento:"}
-                                        ##
-                                        do uie.dbSelect(sel_documento)
-                                        ##
-                                    }
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="sel_divisa"){$"Divisa:"}
-                                        ##
-                                        do uie.dbSelect(sel_divisa)
-                                        ##
-                                    }
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="txt_tcambio"){$"Tipo de cambio:"}
-                                        input(class="form-control form-control-sm rounded-0" type="number" name="tipocambio" id="txt_tcambio" value="#<form('tipocambio','nm',compra)>" min="1" required="")
-                                    }
-
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="sel_cat_movinv"){$"Categoria:"}
-                                        ##
-                                        do uie.dbSelect(sel_cat_movinv)
-                                        ##
-                                    }
-
-                                    div(class="col-12")
-                                    {
-                                        label(class="form-label" "for"="txt_concepto"){$"Concepto:"}
-                                        textarea(class="form-control rounded-0" name="concepto" id="txt_concepto" required=""){$"Compra a crédito"}
-                                    }
-
-                                    div(class="d-flex gap-2 align-items-center justify-content-end my-2")
-                                    {
-                                        label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
-                                    }
-                                }
-
-                                button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
-                            } 
-                        }
-                    }
-                }
-            }
-
-            #! if parse.bool(@@(cfgdoc,"consigna"))
-            {#$
-            div(class="accordion-item")
-            {
-                h2(class="accordion-header" id="headingThree") {
-                    button(class="accordion-button py-2 #<ifstr(show_form_consignado,'','collapsed')>" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseThree" "aria-expanded"="true" "aria-controls"="collapseThree"){$"Consignación"}
-                }
-                div(id="collapseThree" class="accordion-collapse collapse #<ifstr(show_form_consignado,'show','')>" "aria-labelledby"="headingThree" "data-bs-parent"="#opciones_liquidacion")
-                {
-                    div(class="accordion-body")
-                    {
-                        form(class="row" action="./" method="POST" id="form_liquidacion_consignado")
-                        {
-                            input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
-                            input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCONSIGNADO')>")
-
-                            div(class="col-lg-8 col-md-10 col-sm-12")
-                            {
-                                div(class="row")
-                                {
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
-                                        input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
-                                    }
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
-                                        input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(compra,'$referencia')>" id="txt_referencia" disabled="")
-                                    }
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="sel_documento"){$"Documento:"}
-                                        ##
-                                        do uie.dbSelect(sel_documento)
-                                        ##
-                                    }
-
-                                    div(class="col-lg-4 col-md-4")
-                                    {
-                                        label(class="form-label" "for"="sel_cat_movinv"){$"Categoria:"}
-                                        ##
-                                        do uie.dbSelect(sel_cat_movinv)
-                                        ##
-                                    }
-
-                                    div(class="d-flex gap-2 align-items-center justify-content-end my-2")
-                                    {
-                                        label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                        input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
-                                    }
-                                }
-
-                                button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
-                            } 
-                        }
-                    }
-                }
-            }
+                    button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
+                } 
             }
         }
+        #! else if @@(amounts,"#total") > 0
+        {
+            #$
+            div(class="accordion" id="opciones_liquidacion")
+            {
+                div(class="accordion-item")
+                {
+                    h2(class="accordion-header" id="headingOne") {
+                        button(class="accordion-button py-2 #<ifstr(show_form_contado,'','collapsed')>" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseOne" "aria-expanded"="true" "aria-controls"="collapseOne"){$"Contado"}
+                    }
+                    div(id="collapseOne" class="accordion-collapse collapse #<ifstr(show_form_contado,'show','')>" "aria-labelledby"="headingOne" "data-bs-parent"="#opciones_liquidacion")
+                    {
+                        div(class="accordion-body")
+                        {
+                            form(class="row" action="./" method="POST" id="form_liquidacion_contado")
+                            {
+                                input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
+                                input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCONTADO')>")
+
+                                div(class="col-lg-8 col-md-10 col-sm-12")
+                                {
+                                    div(class="row")
+                                    {
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
+                                            input(class="form-control form-control-sm rounded-0" type="text" name="beneficiario" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" readonly="")
+                                        }
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
+                                            input(class="form-control form-control-sm rounded-0" type="text" name="referencia" value="#<@@(compra,'$referencia')>" id="txt_referencia" readonly="")
+                                        }
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="txt_fecha_aplicacion"){$"Fecha de aplicación:"}
+                                            input(class="form-control form-control-sm rounded-0" type="date" name="faplicacion" value="#<form('faplicacion','dt',formData)>" id="txt_faplicacion" required="")
+                                        }
+
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="sel_doc_retiro"){$"Documento:"}
+                                            ##
+                                            do uie.dbSelect(sel_doc_retiro)
+                                            ##
+                                        }
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="sel_cuenta"){$"Cuenta:"}
+                                            ##
+                                            do uie.dbSelect(sel_cuenta)
+                                            ##
+                                        }
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="sel_cat_egreso"){$"Categoria:"}
+                                            ##
+                                            do uie.dbSelect(sel_cat_egreso)
+                                            ##
+                                        }
+
+                                        div(class="col-12")
+                                        {
+                                            label(class="form-label" "for"="txt_concepto"){$"Concepto:"}
+                                            textarea(class="form-control rounded-0" name="concepto" id="txt_concepto" required=""){$"Compra de contado"}
+                                        }
+
+                                        div(class="d-flex gap-2 align-items-center justify-content-end my-2")
+                                        {
+                                            label(class="form-label" "for"="txt_importe"){$"Importe:"}
+                                            input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
+                                        }
+                                    }
+
+                                    button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
+                                } 
+                            }
+                        }
+                    }
+                }
+
+                div(class="accordion-item")
+                {
+                    h2(class="accordion-header" id="headingTwo") {
+                        button(class="accordion-button py-2 #<ifstr(show_form_credito,'','collapsed')>" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseTwo" "aria-expanded"="true" "aria-controls"="collapseTwo"){$"Crédito"}
+                    }
+                    div(id="collapseTwo" class="accordion-collapse collapse #<ifstr(show_form_credito,'show','')>" "aria-labelledby"="headingTwo" "data-bs-parent"="#opciones_liquidacion")
+                    {
+                        div(class="accordion-body")
+                        {
+                            form(class="row" action="./" method="POST" id="form_liquidacion_credito")
+                            {
+                                input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
+                                input(type="hidden" name="iproveedor" value="#<@@(compra,'#iproveedor')>")
+                                input(type="hidden" name="documento" value="#<@@(compra,'#documento')>")
+                                input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCREDITO')>")
+
+                                div(class="col-lg-8 col-md-10 col-sm-12")
+                                {
+                                    div(class="row")
+                                    {
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
+                                            input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
+                                        }
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
+                                            input(class="form-control form-control-sm rounded-0" type="text" name="referencia" value="#<@@(compra,'$referencia')>" id="txt_referencia" readonly="")
+                                        }
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="txt_flimite"){$"Fecha limite de pago:"}
+                                            input(class="form-control form-control-sm rounded-0" type="date" name="flimite" value="#<form('flimite','dt',formData)>" id="txt_flimite" required="")
+                                        }
+
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="sel_documento"){$"Documento:"}
+                                            ##
+                                            do uie.dbSelect(sel_documento)
+                                            ##
+                                        }
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="sel_divisa"){$"Divisa:"}
+                                            ##
+                                            do uie.dbSelect(sel_divisa)
+                                            ##
+                                        }
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="txt_tcambio"){$"Tipo de cambio:"}
+                                            input(class="form-control form-control-sm rounded-0" type="number" name="tipocambio" id="txt_tcambio" value="#<form('tipocambio','nm',compra)>" min="1" required="")
+                                        }
+
+                                        div(class="col-lg-4 col-md-4")
+                                        {
+                                            label(class="form-label" "for"="sel_cat_movinv"){$"Categoria:"}
+                                            ##
+                                            do uie.dbSelect(sel_cat_movinv)
+                                            ##
+                                        }
+
+                                        div(class="col-12")
+                                        {
+                                            label(class="form-label" "for"="txt_concepto"){$"Concepto:"}
+                                            textarea(class="form-control rounded-0" name="concepto" id="txt_concepto" required=""){$"Compra a crédito"}
+                                        }
+
+                                        div(class="d-flex gap-2 align-items-center justify-content-end my-2")
+                                        {
+                                            label(class="form-label" "for"="txt_importe"){$"Importe:"}
+                                            input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
+                                        }
+                                    }
+
+                                    button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
+                                } 
+                            }
+                        }
+                    }
+                }
+
+                #! if parse.bool(@@(cfgdoc,"consigna"))
+                {
+                    #$
+                    div(class="accordion-item")
+                    {
+                        h2(class="accordion-header" id="headingThree") {
+                            button(class="accordion-button py-2 #<ifstr(show_form_consignado,'','collapsed')>" type="button" "data-bs-toggle"="collapse" "data-bs-target"="#collapseThree" "aria-expanded"="true" "aria-controls"="collapseThree"){$"Consignación"}
+                        }
+                        div(id="collapseThree" class="accordion-collapse collapse #<ifstr(show_form_consignado,'show','')>" "aria-labelledby"="headingThree" "data-bs-parent"="#opciones_liquidacion")
+                        {
+                            div(class="accordion-body")
+                            {
+                                form(class="row" action="./" method="POST" id="form_liquidacion_consignado")
+                                {
+                                    input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
+                                    input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCONSIGNADO')>")
+
+                                    div(class="col-lg-8 col-md-10 col-sm-12")
+                                    {
+                                        div(class="row")
+                                        {
+                                            div(class="col-lg-4 col-md-4")
+                                            {
+                                                label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
+                                                input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
+                                            }
+                                            div(class="col-lg-4 col-md-4")
+                                            {
+                                                label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
+                                                input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(compra,'$referencia')>" id="txt_referencia" disabled="")
+                                            }
+                                            div(class="col-lg-4 col-md-4")
+                                            {
+                                                label(class="form-label" "for"="sel_documento"){$"Documento:"}
+                                                ##
+                                                do uie.dbSelect(sel_documento)
+                                                ##
+                                            }
+
+                                            div(class="col-lg-4 col-md-4")
+                                            {
+                                                label(class="form-label" "for"="sel_cat_movinv"){$"Categoria:"}
+                                                ##
+                                                do uie.dbSelect(sel_cat_movinv)
+                                                ##
+                                            }
+
+                                            div(class="d-flex gap-2 align-items-center justify-content-end my-2")
+                                            {
+                                                label(class="form-label" "for"="txt_importe"){$"Importe:"}
+                                                input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
+                                            }
+                                        }
+
+                                        button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
+                                    } 
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         #! else
-        {#$
-        form(class="row" action="./" method="POST" id="form_liquidacion_na")
         {
-            input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
-            input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cNO_APLICA')>")
-
-            div(class="col-lg-8 col-md-10 col-sm-12")
+            #$
+            form(class="row" action="./" method="POST" id="form_liquidacion_na")
             {
-                div(class="row mb-2")
-                {
-                    div(class="col-lg-4 col-md-4")
-                    {
-                        label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
-                        input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
-                    }
-                    div(class="col-lg-4 col-md-4")
-                    {
-                        label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
-                        input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(compra,'$referencia')>" id="txt_referencia" disabled="")
-                    }
-                    div(class="col-lg-4 col-md-4")
-                    {
-                        label(class="form-label" "for"="sel_documento"){$"Documento:"}
-                        ##
-                        do uie.dbSelect(sel_documento)
-                        ##
-                    }
-                    div(class="col-lg-4 col-md-4")
-                    {
-                        label(class="form-label" "for"="txt_fecha"){$"Fecha:"}
-                        input(class="form-control form-control-sm rounded-0" type="date" name="" value="#<@@(compra,'$fecha')>" id="txt_fecha" disabled="")
-                    }
-                    div(class="col-lg-4 col-md-4")
-                    {
-                        label(class="form-label" "for"="txt_fvencimiento"){$"Vencimiento:"}
-                        input(class="form-control form-control-sm rounded-0" type="date" name="" value="#<@@(compra,'$vencimiento')>" id="txt_fvencimiento" disabled="")
-                    }
-                }
+                input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
+                input(type="hidden" name="documento" value="#<@@(compra,'#documento')>")
+                input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cNO_APLICA')>")
 
-                button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
-            } 
-        }
+                div(class="col-lg-8 col-md-10 col-sm-12")
+                {
+                    div(class="row mb-2")
+                    {
+                        div(class="col-lg-4 col-md-4")
+                        {
+                            label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
+                            input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
+                        }
+                        div(class="col-lg-4 col-md-4")
+                        {
+                            label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
+                            input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(compra,'$referencia')>" id="txt_referencia" disabled="")
+                        }
+                        div(class="col-lg-4 col-md-4")
+                        {
+                            label(class="form-label" "for"="sel_documento"){$"Documento:"}
+                            ##
+                            do uie.dbSelect(sel_documento)
+                            ##
+                        }
+                        div(class="col-lg-4 col-md-4")
+                        {
+                            label(class="form-label" "for"="txt_fecha"){$"Fecha:"}
+                            input(class="form-control form-control-sm rounded-0" type="date" name="" value="#<@@(compra,'$fecha')>" id="txt_fecha" disabled="")
+                        }
+                        div(class="col-lg-4 col-md-4")
+                        {
+                            label(class="form-label" "for"="txt_fvencimiento"){$"Vencimiento:"}
+                            input(class="form-control form-control-sm rounded-0" type="date" name="" value="#<@@(compra,'$vencimiento')>" id="txt_fvencimiento" disabled="")
+                        }
+                    }
+
+                    button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
+                } 
+            }
         }
 
         div(class="d-flex gap-2 mt-2 align-items-center"){ 
             span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} 
             #! if @('$error/message') != "" { #$ a(href="#<@DOC_COMPRAS>#<@@(compra,'sys_pk')>/" class="btn btn-sm btn-secondary"){$"Editar documento"} }
         }
+
+        #$
+        script(src="#<@JS_PROCESOS>"){$""}
+        script(type="text/javascript")
+        {$'
+            document.addEventListener("DOMContentLoaded", () => {
+                procesar.init();
+            });
+        '}
     }
 }
