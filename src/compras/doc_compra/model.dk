@@ -29,6 +29,13 @@ module "model"
 
     doc.buscarProducto::&db,&params
     {
+        // fields = ""
+        // joins = ""
+        // if @@(params,"#idivisa") > 0
+        // {
+        //     fields = ", ROUND((p.costoultimo * dvs.tcambio) / dd.tcambio, 8) AS _precio"
+        //     joins = "INNER JOIN divisa AS dd ON dd.sys_pk = @idivisa"
+        // }
         condition = "(p.codigo LIKE CONCAT('%',@search,'%') OR p.descripcion LIKE CONCAT('%',@search,'%'))"
         return dbr.list(db,ftext(@sql_buscar_producto),params)
     }

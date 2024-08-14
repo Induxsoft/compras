@@ -28,3 +28,9 @@
     color: #000 !important;
     background-color: #F0F8FF !important;
 }
+
+select[readonly] {
+    pointer-events: none;
+    background-color: #e9ecef;
+    opacity: 1;
+}

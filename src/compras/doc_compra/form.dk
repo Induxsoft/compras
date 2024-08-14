@@ -28,6 +28,7 @@ module "doc.pedido.dk"
 
     @compras_lotes_inhab = not(parse.bool(dbr.vars.getd(@('&database'),"compras_lotes_inhab",@compras_lotes_inhab)))
 	@compras_series_inhab = not(parse.bool(dbr.vars.getd(@('&database'),"compras_series_inhab",@compras_series_inhab)))
+    @DECIMAL_PRECISION = parse.num(dbr.vars.getd(@("&database"),"FXCA001",@DECIMAL_PRECISION))
 
     is_new = (@_entity_id == "_new")
 
@@ -124,8 +125,8 @@ module "doc.pedido.dk"
         {
             div(class="nav nav-tabs mb-2" id="nav-tab" role="tablist")
             {
-                button(class="nav-link active" id="nav-general-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-general" type="button" role="tab" "aria-controls"="nav-general" "aria-selected"="true"){$"General"}
-                button(class="nav-link" id="nav-mrdata-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-mrdata" type="button" role="tab" "aria-controls"="nav-mrdata" "aria-selected"="false"){$"Más datos"}
+                button(class="nav-link py-1 active" id="nav-general-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-general" type="button" role="tab" "aria-controls"="nav-general" "aria-selected"="true"){$"General"}
+                button(class="nav-link py-1" id="nav-mrdata-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-mrdata" type="button" role="tab" "aria-controls"="nav-mrdata" "aria-selected"="false"){$"Más datos"}
             }
         }
 
@@ -147,7 +148,7 @@ module "doc.pedido.dk"
                         div(class="col-12")
                         {
                             label(class="form-label fw-bold" "for"="sel_proveedor"){$"Proveedor:"}
-                            "input-key"(id="sel_proveedor" name="iproveedor" "data-key"="sys_pk" "data-search"="codigo" "data-text"="nombre" "data-source"="#<@URL_BUSCAR_PROVEEDOR>" "data-value"="#<to.json(dtprov)>" columns="codigo,nombre,tipo" colcaptions="Código,Nombre,Tipo" "box-title-text"="Seleccione un proveedor" required="true" "control-styles"="
+                            "input-key"(id="sel_proveedor" name="iproveedor" "data-key"="sys_pk" "data-search"="codigo" "data-text"="nombre" "data-source"="#<@URL_BUSCAR_PROVEEDOR>" "data-value"="#<to.json(dtprov)>" columns="codigo,nombre,tipo,zona_impuesto" colcaptions="Código,Nombre,Tipo,Z. Impuestos" "box-title-text"="Seleccione un proveedor" required="true" "control-styles"="
                                 #input_search_container, #input_description_container,
                                 #button_search_container, #button_clear_container {
                                     height: calc(1.5em + .5rem + 2px) !important;
@@ -236,7 +237,7 @@ module "doc.pedido.dk"
 
         div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
 
-        div(class="d-flex justify-content-end align-items-center border gap-1 px-2 my-2 #<ifstr(enable_editing,'','disable-form')>" id="tbl_action_bar")
+        div(class="d-flex justify-content-end align-items-center border gap-1 px-2 mt-2 #<ifstr(enable_editing,'','disable-form')>" id="tbl_action_bar")
         {
             small(class="flex-grow-1 text-muted"){$"Seleccione los productos en la cuadrícula"}
 
@@ -262,10 +263,16 @@ module "doc.pedido.dk"
                 "hidden-input"="false"
             ){$""}
         }
-
-        div(class="#<ifstr(enable_editing,'','disable-form')>" id="div_tbl_productos")
+        // div(class="alert alert-danger rounded-0 mb-1 py-0 d-none" role="alert" id="tbl_alerts"){$""}
+        div(class="border border-top-0 #<ifstr(enable_editing,'','disable-form')>" id="div_tbl_productos" style="width:auto; min-width:100%; height:55vh; display:flex;")
         {
-            "edit-table"(class="w-100" id="tbl_productos" data="#<to.json(dcompra)>")
+            "edit-table"(id="tbl_productos" data="#<to.json(dcompra)>" "auto-confirm"="true" style="width:100%;"
+            "row-height"="1.2rem"
+            "control-styles"="
+                tr th { font-size:.9rem; outline:none !important; font-weight:500 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+                tr td { font-size:.8rem; }
+                #__table_input { font-size:unset !important; }
+            ")
             {
                 "edit-thead"
                 {
@@ -274,14 +281,14 @@ module "doc.pedido.dk"
                         "edit-th"(type="Text" field="edt_codigo" button="true"){$"Código"}
                         "edit-th"(type="Text" field="edt_descripcion" button="true"){$"Descripción"}
                         "edit-th"(type="Select" field="edt_unidad" options="{}"){$"Unidad"}
-                        "edit-th"(type="Number" field="edt_precio" textalign="end"){$"Precio"}
+                        "edit-th"(type="Number" field="edt_precio" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Precio"}
                         "edit-th"(type="NoEditable" field="edt_origen"){$"Origen"}
                         "edit-th"(type="NoEditable" field="edt_cotizado" textalign="center"){$"Cotizado"}
                         "edit-th"(type="Number" field="edt_cantidad" textalign="center"){$"Cantidad"}
-                        "edit-th"(type="NoEditable" field="edt_subtotal" textalign="end"){$"Subtotal"}
-                        "edit-th"(type="Number" field="edt_descuentos" textalign="end"){$"Descuentos"}
-                        "edit-th"(type="NoEditable" field="edt_impuestos" textalign="end"){$"Impuestos"}
-                        "edit-th"(type="NoEditable" field="edt_importe" textalign="end"){$"Importe"}
+                        "edit-th"(type="NoEditable" field="edt_subtotal" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Subtotal"}
+                        "edit-th"(type="Number" field="edt_descuentos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Descuentos"}
+                        "edit-th"(type="NoEditable" field="edt_impuestos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Impuestos"}
+                        "edit-th"(type="NoEditable" field="edt_importe" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Importe"}
                         #! if not(@compras_lotes_inhab) {
                             #$ "edit-th"(type="Text" field="edt_lote"){$"Lote"}
                             "edit-th"(type="Date" field="edt_fcad"){$"Caducidad"}

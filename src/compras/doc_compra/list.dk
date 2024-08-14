@@ -123,7 +123,7 @@ module "list.dk"
         @"title": "Compras"
         @"buttons*": @null
         @"urlexit": "/"
-        @"main": "GA11,GA12,GA13,GA14"
+        @"main": "GA11,GA12"
         @"actions*": dbr.apps.itemactions(@('&database'),"DET01B","action","",0)
         @"reports*": dbr.apps.itemactions(@('&database'),"DET01B","report","",0)
         @"jscurrentcontext": "getCurrentContext"

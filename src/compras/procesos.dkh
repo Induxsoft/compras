@@ -2,6 +2,19 @@
 #!
 module "procesos.dkh:erp.compras.procesos"
 {
+    @convertir_a_divisa_documento = 1
+    @convertir_a_divisa_producto = 2
+    
+    convertir::value,tcprd,tcdoc,mode
+    {
+        if mode == @convertir_a_divisa_documento {
+            return div((value * tcprd), tcdoc)
+        }
+        else if mode == @convertir_a_divisa_producto {
+            return div((value * tcdoc), tcprd)
+        }
+    }
+
     setStatusToRelatedDocs::&db,compra_pk,formapago
     {
         new params { @"icompra": compra_pk }
@@ -169,17 +182,18 @@ module "procesos.dkh:erp.compras.procesos"
             d.sys_pk,
             IFNULL(d.sys_info,'') sys_info,
             d.cantidad,
-            d.costototal,
-            d.iproducto, 
-            (IFNULL(d.cantidad,0) * IFNULL(d.costototal,0)) AS cargos,
+            d.precio,
+            d.iproducto,
+            dvs.tcambio,
+            (((IFNULL(d.precio,0) * IFNULL(d.cantidad,0)) - IFNULL(d.descuento1,0)) - IFNULL(d.descuento2,0)) AS cargos,
             IFNULL(d.xfacturar,0) xfacturar, 
             IFNULL(d.doc_partida,-99) doc_partida,
             p.descripcion `producto`,
-            d.precio,
             d.fk_compra_detalle AS doccompra,
             IF(dca.rcompra IS NULL AND dca2.rcompra IS NULL, 0, 1) mov_aplicado
         FROM dcompra d 
-            INNER JOIN producto p ON d.iproducto = p.sys_pk 
+            INNER JOIN producto p ON d.iproducto = p.sys_pk
+            INNER JOIN divisa dvs ON p.idivisa = dvs.sys_pk
             LEFT JOIN dcardex dca ON dca.rcompra = d.sys_pk
             LEFT JOIN dcompra d2 ON d.doc_partida = d2.sys_pk
             LEFT JOIN dcardex dca2 ON dca2.rcompra = d2.sys_pk
@@ -229,6 +243,9 @@ module "procesos.dkh:erp.compras.procesos"
 
             if not(@@(item,"#mov_aplicado"))
             {
+                entradas = @@(item,"#cantidad")
+                cargos = erp.compras.procesos.convertir(@@(item,"#cargos"),@@(item,"#tcambio"),@@(compra,"#tipocambio"),@convertir_a_divisa_producto)
+
                 new dcardex
                 {
                     @"sys_pk": 0
@@ -238,10 +255,10 @@ module "procesos.dkh:erp.compras.procesos"
                     @"sys_recver": 0
                     @"ialmacen": @@(compra,"#ialmacen")
                     @"iproducto": @@(item,"#iproducto")
-                    @"entradas": @@(item,"#cantidad")
-                    @"cargos": @@(item,"#cargos")
-                    @"cpromedio": @@(item,"#costototal")
-                    @"tipocambio": @@(compra,"#tipocambio")
+                    @"entradas": entradas
+                    @"cargos": cargos
+                    @"cpromedio": div(cargos,entradas)
+                    @"tipocambio": @@(item,"#tcambio")
                     @"ilote*": @null
                     @"iserie*": @null
                     @"rcompra": @@(item,"#sys_pk")

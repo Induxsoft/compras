@@ -83,56 +83,49 @@ document.addEventListener("DOMContentLoaded", () =>
             options.style = "currency";
             options.currency = moneda;
             options.minimumFractionDigits = decimal;
+            options.maximumFractionDigits = decimal;
         }
         else
         {
             value = round(value,decimal);
         }
 
-        let result = new Intl.NumberFormat("en-US", options).format(value);
+        let langcode = (new Intl.NumberFormat()).resolvedOptions().locale;
+        let result = new Intl.NumberFormat(langcode, options).format(value);
+        
         return result;
     }
 
     function sumarImportes() {
-        let option = selDivisa.options[selDivisa.selectedIndex];
-        let divisa = option.getAttribute("data-codigo").toUpperCase();
-
-        let subtotal = 0;
-        let descuento = 0;
-        let impuesto = 0;
-        let importe = 0;
+        let subtotal = 0, descuentos = 0, impuestos = 0, total = 0;
 
         for (let i = 0; i < tData.length; i++) {
             const producto = tData[i];
             if (Object.entries(producto ?? {}).length === 0) continue;
             
-            subtotal += Number(producto.subtotal);
-            descuento += Number(producto.descuentos);
-            impuesto += Number(producto.impuestos);
-            importe += Number(producto.importe);
+            subtotal = Math.add(subtotal,Number(producto.subtotal));
+            descuentos = Math.add(descuentos,Number(producto.descuentos));
+            impuestos = Math.add(impuestos,Number(producto.impuestos));
+            total = Math.add(total,Number(producto.importe));
         }
 
-        let fmt = {
-            moneda: divisa,
-            decimal: DECIMAL_PRECISION
-        }
+        let option = selDivisa.options[selDivisa.selectedIndex];
+        let divisa = option.getAttribute("data-codigo").toUpperCase();
+
+        let fmt = {moneda: divisa, decimal: DECIMAL_PRECISION};
 
         lblSubtotal.textContent = number_format(subtotal,fmt);
-        lblDescuento.textContent = number_format(descuento,fmt);
-        lblImpuesto.textContent = number_format(impuesto,fmt);
-        lblImporte.textContent = number_format(importe,fmt);
-
-        /* let importes = {
-            subtotal: subtotal,
-            descuento: descuento,
-            impuesto: impuesto,
-            importe, importe
-        }
-        return importes */
+        lblDescuento.textContent = number_format(descuentos,fmt);
+        lblImpuesto.textContent = number_format(impuestos,fmt);
+        lblImporte.textContent = number_format(total,fmt);
     }
 
     function calcularImpuestos(info) {
-        let costo = Number(info.precio);
+        let tc_doc = Number(txtTipoCambio.value);
+        let tc_prd = Number(info.tipocambio);
+        let precio = Number(info.precio);
+        
+        let costo = Math.RoundTo(Math.div(Math.mul(precio,tc_prd),tc_doc),8);
         let cantidad = Number(info.cantidad);
         let descuentos = Number(info.descuentos);
         let i1_tasa = Number(info.i1_tasa);
@@ -336,6 +329,7 @@ document.addEventListener("DOMContentLoaded", () =>
         }
         toggleColumns();
         //table.UpdateRow(row);
+        disableSelDivisa(true);
     }
     function colorearTabla(td,idxRow,idxCol,field)
     {
@@ -394,6 +388,14 @@ document.addEventListener("DOMContentLoaded", () =>
             producto.edt_cotizado = (producto.usado + producto.cantidad) + "/" + producto.cantidad_constante;
         }
     }
+    
+    sel_divisa_disable = false;
+    function disableSelDivisa(v)
+    {
+        if (sel_divisa_disable === v) return;
+        selDivisa.toggleAttribute("readonly",v);
+        sel_divisa_disable = v;
+    }
 
     //* ======================================== [ FORM EVENTS ] ========================================
 
@@ -413,10 +415,22 @@ document.addEventListener("DOMContentLoaded", () =>
         table.NavTo(row,2);
         sumarImportes();
     });
+
+    ikProducto.onBeforeSearch = function(surl) {
+        let dtPdr = ikProveedor.getValue();
+        let zimpuesto = Number(dtPdr?.zimpuesto??1);
+        let idivisa = Number(selDivisa.value);
+        
+        let url = surl.replace("@zimpuesto",zimpuesto);
+        url = InduxsoftCrudlModel.UrlAddParameter(url,"idivisa",idivisa);
+        return url;
+    }
+
     ikDocInsert.addEventListener('change', function(data) {
         if (!data) return;
         getDetalleFromDoc(data.sys_pk)
     });
+
     selDocumento.addEventListener("change", function() {
         // let option = selDocumento.options[selDocumento.selectedIndex];
         let idocumento = Number(selDocumento.value);
@@ -735,6 +749,14 @@ document.addEventListener("DOMContentLoaded", () =>
 
     var lastRowIndex = -1;
     var lastUnit = "";
+
+    function filterData() {
+        return (table?.DataArray??[]).filter(row => Object.keys(row??{}).length >= (table?.Columns??[]).length);
+    }
+
+    table.Events[tEvents.RowDeleted] = function(e) {
+        disableSelDivisa((filterData().length > 0));
+    }
 
     table.Events[tEvents.EnterCell] = function(e) {
         let coldef = e.sender.GetColumnDefOfTd(e.td);
