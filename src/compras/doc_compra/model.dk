@@ -114,6 +114,7 @@ module "model"
                     data<"dtprov*"> : dtprov
                     data<"compra*"> : compra
                     data<"dcompra*"> : dcompra
+                    do prepareDefaultReportData(db,data)
                 }
                 if trim(@@(params,"$insert")) != ""
                 {
@@ -122,6 +123,20 @@ module "model"
                     data<"dtprov*"> : dbr.rec(db,@sql_buscar_proveedor_by_doc,prm)
                 }
                 break
+            }
+        }
+    }
+
+    prepareDefaultReportData::&db,&data
+    {
+        using data
+        {
+            member @"titles"
+            {
+                @"title": dbr.vars.getd(db,"FXCA108","")
+                @"subtitle": dbr.vars.getd(db,"FXCA109","")
+                @"subtitle_2": dbr.vars.getd(db,"FXCA110","")
+                @"footer": dbr.vars.getd(db,"FXCA111","")
             }
         }
     }
@@ -249,8 +264,8 @@ module "model"
                 for i = 0; i < list.count(detalle)
                 {
                     ref det = list.obj(detalle,i)
-                    if @@(det,"$edt_origen") != "" && not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
-                        do rise_error(500, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$edt_descripcion"))
+                    if @@(det,"$origen") != "" && not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
+                        do rise_error(500, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$descripcion"))
                     }
                 }
             }
@@ -311,7 +326,9 @@ module "model"
             }
         }
 
-        do dbr.apps.action.pre("GA12")
+        action = "GA12"
+        if nvo_status_admin==cABIERTO { action="GA15" }
+        do dbr.apps.action.pre(action)
         do dbr.begin(db)
 
         // **unificar en un función para recorrer 1 sola vez el detalle
@@ -323,8 +340,8 @@ module "model"
             for i = 0; i < list.count(detalle)
             {
                 ref det = list.obj(detalle,i)
-                if @@(det,"$edt_origen") != "" && not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
-                    do rise_error(0, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$edt_descripcion"))
+                if @@(det,"$origen") != "" && not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
+                    do rise_error(0, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$descripcion"))
                 }
             }
         }
@@ -540,6 +557,7 @@ module "model"
             @"cstatusAdmn*": prepare_filter(cstatusAdmn)
             @"cstatusFinc*": prepare_filter(cstatusFinc)
         }
+        do prepareDefaultReportData(db,response)
 
         return response
 
@@ -613,18 +631,18 @@ module "model"
         for i = 0; i < list.count(products)
         {
             ref producto = list.obj(products,i)
-            ref prod = record.copy(producto,"iproducto,edt_descripcion,reqlote,reqserie,edt_lote,edt_fcad,edt_serie")
+            ref prod = record.copy(producto,"iproducto,descripcion,reqlote,reqserie,lote,fcad,serie")
             ref temp = record.create()
             sys_info = ""
 
             //=============== LOTES
-            if @@(prod,"$edt_lote") != ""
+            if @@(prod,"$lote") != ""
             {
-                lote = trim(field.dstr(prod,"edt_lote",""))
-			    fcad = trim(field.dstr(prod,"edt_fcad",""))
+                lote = trim(field.dstr(prod,"lote",""))
+			    fcad = trim(field.dstr(prod,"fcad",""))
 
-                // if lote == "" { do rise_error(500,"No se ha indicado un número de lote para "+@@(prod,"$edt_descripcion")) }
-                ref dlote = dbr.rec(db,"SELECT sys_pk, numero FROM lote WHERE numero=@edt_lote AND iproducto=@iproducto LIMIT 1",prod)
+                // if lote == "" { do rise_error(500,"No se ha indicado un número de lote para "+@@(prod,"$descripcion")) }
+                ref dlote = dbr.rec(db,"SELECT sys_pk, numero FROM lote WHERE numero=@lote AND iproducto=@iproducto LIMIT 1",prod)
 
                 if isnull(dlote)
                 {
@@ -642,13 +660,13 @@ module "model"
                 temp<"lote"> : field.num(dlote,"sys_pk")
             }
             //=============== SERIES
-            if @@(prod,"$edt_serie") != ""
+            if @@(prod,"$serie") != ""
             {
-                serie = trim(field.dstr(prod,"edt_serie",""))
+                serie = trim(field.dstr(prod,"serie",""))
 
-                // if serie == "" { do rise_error(500,"No se ha indicado un número de serie para "+@@(prod,"$edt_descripcion")) }
-                ref dserie = dbr.rec(db,"SELECT sys_pk, numero, status, IF(iproducto=@iproducto,TRUE,FALSE) AS used FROM serie WHERE numero=@edt_serie AND iproducto=@iproducto LIMIT 1",prod)
-                if not(isnull(dserie)) && @@(dserie,"#used") { do rise_error(500,"El número de serie "+@@(dserie,"$numero")+" para "+@@(prod,"$edt_descripcion")+" ya está asignado, indique una nueva serie para este producto") }
+                // if serie == "" { do rise_error(500,"No se ha indicado un número de serie para "+@@(prod,"$descripcion")) }
+                ref dserie = dbr.rec(db,"SELECT sys_pk, numero, status, IF(iproducto=@iproducto,TRUE,FALSE) AS used FROM serie WHERE numero=@serie AND iproducto=@iproducto LIMIT 1",prod)
+                if not(isnull(dserie)) && @@(dserie,"#used") { do rise_error(500,"El número de serie "+@@(dserie,"$numero")+" para "+@@(prod,"$descripcion")+" ya está asignado, indique una nueva serie para este producto") }
 
                 if isnull(dserie)
                 {
@@ -685,15 +703,15 @@ module "model"
                     ref lote = dbr.rec(db,"SELECT numero,IFNULL(fcaducidad,'') caduci FROM lote WHERE sys_pk=@lote",info)
                     if not(isnull(lote))
                     {
-                        detalle<"edt_lote">:@@(lote,"numero")
-                        detalle<"edt_fcad">:@@(lote,"caduci")
+                        detalle<"lote">:@@(lote,"numero")
+                        detalle<"fcad">:@@(lote,"caduci")
                     }
                 }
                 if trim(@@(info,"$serie")) != "" {
                     ref serie = dbr.rec(db,"SELECT numero FROM serie WHERE sys_pk=@serie",info)
                     if not(isnull(serie))
                     {
-                        detalle<"edt_serie">:@@(serie,"numero")
+                        detalle<"serie">:@@(serie,"numero")
                     }
                 }
                 exception {}
@@ -721,7 +739,7 @@ module "model"
             ref det = list.obj(detalle,i)
             minimo = @@(det,"#minimo")
             cantid = @@(det,"#cantidad")
-            if cantid < minimo { do rise_error(0, "El producto: "+@@(det,"$edt_descripcion") + " de este documento ha sido insertado en otro documento por lo que no puede establecer una cantidad inferior a: "+str(minimo)) }
+            if cantid < minimo { do rise_error(0, "El producto: "+@@(det,"$descripcion") + " de este documento ha sido insertado en otro documento por lo que no puede establecer una cantidad inferior a: "+str(minimo)) }
             det<"xfacturar">: (cantid - minimo)
         }
     }

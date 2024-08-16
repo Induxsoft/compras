@@ -35,10 +35,16 @@ document.addEventListener("DOMContentLoaded", () =>
     var tEvents = table.EdiTable.Const.Events;
     var tColdef = JSON.parse(JSON.stringify(table.Columns));
 
+    const convertir_a =
+    {
+        divisa_documento:1,
+        divisa_producto:2
+    }
+
     btnAddRow.addEventListener("click", () => { table.AddRow(); });
     btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); toggleColumns(); });
-    table.setInputKey("edt_codigo",ikProducto);
-    table.setInputKey("edt_descripcion", ikProducto);
+    table.setInputKey("codigo",ikProducto);
+    table.setInputKey("descripcion", ikProducto);
 
     table.onTdPaint = (td,idxRow,idxCol,field) => { colorearTabla(td,idxRow,idxCol,field) }
     
@@ -120,12 +126,23 @@ document.addEventListener("DOMContentLoaded", () =>
         lblImporte.textContent = number_format(total,fmt);
     }
 
+    function convertir(value,tcprd,tcdoc,mode) {
+        if (mode === convertir_a.divisa_documento) {
+            return Math.RoundTo(Math.div(Math.mul(value,tcprd),tcdoc),8)
+        }
+        if (mode === convertir_a.divisa_producto) {
+            return Math.RoundTo(Math.div(Math.mul(value,tcdoc),tcprd),8)
+        }
+        
+        return 0;
+    }
+
     function calcularImpuestos(info) {
         let tc_doc = Number(txtTipoCambio.value);
         let tc_prd = Number(info.tipocambio);
-        let precio = Number(info.precio);
+        let precio = Number(info?._precio ?? info.precio);
         
-        let costo = Math.RoundTo(Math.div(Math.mul(precio,tc_prd),tc_doc),8);
+        let costo = convertir(precio,tc_prd,tc_doc,convertir_a.divisa_documento);
         let cantidad = Number(info.cantidad);
         let descuentos = Number(info.descuentos);
         let i1_tasa = Number(info.i1_tasa);
@@ -163,16 +180,6 @@ document.addEventListener("DOMContentLoaded", () =>
 
     function actualizarProducto(producto, rowIndex) {
         let i = calcularImpuestos(producto);
-        let fmt = {
-            decimal: DECIMAL_PRECISION
-        }
-
-        producto["edt_precio"] = number_format(i.costo,fmt);
-        producto["edt_cantidad"] = i.cantidad;
-        producto["edt_subtotal"] = number_format(i.subtotal,fmt);
-        producto["edt_descuentos"] = number_format(i.descuentos,fmt);
-        producto["edt_impuestos"] = number_format(i.impuestos,fmt);
-        producto["edt_importe"] = number_format(i.total,fmt);
 
         producto["precio"] = i.costo;
         producto["cantidad"] = i.cantidad;
@@ -207,13 +214,13 @@ document.addEventListener("DOMContentLoaded", () =>
         if (!detalle) return ok;
 
         detalle.forEach(d=>{
-            if (!compras_lotes_inhab && ok && Number(d.reqlote??0) && (d.edt_lote??'').trim() == ''){
+            if (!compras_lotes_inhab && ok && Number(d.reqlote??0) && (d.lote??'').trim() == ''){
                 ok = false;
-                alert(`No se puede continuar, el producto: ${d.edt_codigo}-${d.edt_descripcion} requiere un número de lote`);
+                alert(`No se puede continuar, el producto: ${d.codigo}-${d.descripcion} requiere un número de lote`);
             }
-            if (!compras_series_inhab && ok && Number(d.reqserie??0) && (d.edt_serie??'').trim() == ''){
+            if (!compras_series_inhab && ok && Number(d.reqserie??0) && (d.serie??'').trim() == ''){
                 ok = false;
-                alert(`No se puede continuar, el producto: ${d.edt_codigo}-${d.edt_descripcion} requiere un número de serie`);
+                alert(`No se puede continuar, el producto: ${d.codigo}-${d.descripcion} requiere un número de serie`);
             }
         });
         return ok;
@@ -247,30 +254,31 @@ document.addEventListener("DOMContentLoaded", () =>
     }
     function agregarProducto(data,currentRow=true)
     {
+        if (!data) return;
+
         let i = calcularImpuestos(data);
         let list_unidades = joinUnidades(data.unidada,data.unidadb,data.unidadc,data.unidadd,data.unidade);
         
         let producto = 
         {
             // campos visibles en el editable.
-            edt_codigo: data.codigo,
-            edt_descripcion: data.descripcion,
-            edt_unidad: data.unidada,
-            edt_precio: i.costo,
-            edt_cantidad: i.cantidad,
-            edt_origen: (data.edt_origen??''),
-            edt_cotizado: (data.edt_cotizado??''),
-            edt_subtotal: i.subtotal,
-            edt_descuentos: i.descuentos,
-            edt_impuestos: i.impuestos,
-            edt_importe: i.total,
-            edt_notas: "",
-            edt_lote: "",
-            edt_fcad: "",
-            edt_serie: "",
+            codigo: data.codigo,
+            descripcion: data.descripcion,
+            unidad: data.unidada,
+            precio: i.costo,
+            cantidad: i.cantidad,
+            origen: (data.origen??''),
+            cotizado: (data.cotizado??''),
+            subtotal: i.subtotal,
+            descuentos: i.descuentos,
+            impuestos: i.impuestos,
+            importe: i.total,
+            notas: "",
+            lote: "",
+            fcad: "",
+            serie: "",
 
             // campos para el insert.
-            cantidad: i.cantidad,
             costototal: i.costo,
             descuento1: i.descuentos,
             descuento2: 0,
@@ -279,21 +287,15 @@ document.addEventListener("DOMContentLoaded", () =>
             impuesto2: i.impuesto2,
             impuesto3: i.impuesto3,
             impuesto4: i.impuesto4,
-            notas: "",
-            precio: i.costo,
             status: 1, // cPor_recibir
             tipocambio: data.tipocambio,
-            unidad: data.unidada,
             xfacturar: 1.0,
             iproducto: data.sys_pk,
             doc_partida: (data.doc_partida??null),
             documento: (data.documento??null),
 
             // campos extras para operaciones.
-            subtotal: i.subtotal,
-            descuentos: i.descuentos,
-            impuestos: i.impuestos,
-            importe: i.total,
+            _precio: data.precio,
             i1_tasa: data.i1_tasa,
             i2_tasa: data.i2_tasa,
             i3_tasa: data.i3_tasa,
@@ -342,9 +344,9 @@ document.addEventListener("DOMContentLoaded", () =>
     }
     function toggleColumns()
     {
-        const showColumns = tData.find(r => (r.edt_origen??'') != '');
-        table.hideColumn('edt_origen', !showColumns);
-        table.hideColumn('edt_cotizado', !showColumns);
+        const showColumns = tData.find(r => (r.origen??'') != '');
+        table.hideColumn('origen', !showColumns);
+        table.hideColumn('cotizado', !showColumns);
     }
     function changeURLImport(data)
     {
@@ -370,10 +372,10 @@ document.addEventListener("DOMContentLoaded", () =>
         let ok = true;
         if (!detalle) return ok;
 
-        const bad_product = detalle.find(d => Number(d.edt_precio) <= 0);
+        const bad_product = detalle.find(d => Number(d.precio) <= 0);
         if (bad_product){
             ok = false;
-            alert("El precio del producto: " + bad_product.edt_descripcion + " debe ser mayor a cero.");
+            alert("El precio del producto: " + bad_product.descripcion + " debe ser mayor a cero.");
         }
         return ok;
     }
@@ -383,9 +385,9 @@ document.addEventListener("DOMContentLoaded", () =>
     }
     function updateCotizado(producto)
     {
-        if (producto.edt_cotizado)
+        if (producto.cotizado)
         {
-            producto.edt_cotizado = (producto.usado + producto.cantidad) + "/" + producto.cantidad_constante;
+            producto.cotizado = (producto.usado + producto.cantidad) + "/" + producto.cantidad_constante;
         }
     }
     
@@ -480,7 +482,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 break;
             case cPEDIDO:
                 show_btn_procesar = true;
-                table.changeColumnTitle("edt_cotizado","Cotizado");
+                table.changeColumnTitle("cotizado","Cotizado");
                 // console.log(idocumento, "cPEDIDO");
                 if (statusadministrativo === "")
                 {
@@ -508,7 +510,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 break;
             case cREMISION:
-                table.changeColumnTitle("edt_cotizado","Pedido");
+                table.changeColumnTitle("cotizado","Pedido");
                 // console.log(idocumento, "cREMISION");
                 if (statusadministrativo === "")
                 {
@@ -539,7 +541,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 break;
             case cFACTURA:
-                table.changeColumnTitle("edt_cotizado","Recibido");
+                table.changeColumnTitle("cotizado","Recibido");
                 // console.log(idocumento, "cFACTURA");
                 if (statusadministrativo === "")
                 {
@@ -671,7 +673,7 @@ document.addEventListener("DOMContentLoaded", () =>
     btnGuardarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cABIERTO;
-        let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        let _detalle = filterData()
         if (!validarReqLoteSerie(_detalle)) return;
         if (!validarDetalle(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
@@ -682,7 +684,7 @@ document.addEventListener("DOMContentLoaded", () =>
     btnCerrarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cCERRADO;
-        let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        let _detalle = filterData()
         if (!validarReqLoteSerie(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
@@ -711,7 +713,7 @@ document.addEventListener("DOMContentLoaded", () =>
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cPROCESADO;
         if (btnProcesarText.textContent == 'Recibir') txt_statusadministrativo.value = EDO_ADMIN.Recibir;
-        let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        let _detalle = filterData()
         if (!validarReqLoteSerie(_detalle)) return;
         if (!validarDetalle(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
@@ -722,7 +724,7 @@ document.addEventListener("DOMContentLoaded", () =>
     btnFacturar.addEventListener("click", function(){
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.Facturado;
-        let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        let _detalle = filterData()
         if (!validarDetalle(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
         formPedido.submit();
@@ -731,7 +733,7 @@ document.addEventListener("DOMContentLoaded", () =>
     btnCancelarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
         txt_statusadministrativo.value = EDO_ADMIN.cCANCELADO;
-        let _detalle = tData.filter((el) => { return el && (Object.entries(el ?? {}).length > 0); });
+        let _detalle = filterData()
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
         formPedido.submit();
@@ -762,15 +764,15 @@ document.addEventListener("DOMContentLoaded", () =>
         let coldef = e.sender.GetColumnDefOfTd(e.td);
         let field = coldef.field;
 
-        if (!["edt_lote","edt_fcad","edt_serie"].includes(field)) return;
+        if (!["lote","fcad","serie"].includes(field)) return;
 
         let curr_row = table.RowIndexOfTd(e.td);
         let curr_col = table.ColIndexOfTd(e.td);
         let data_row = table.DataArray[curr_row];
 
         // Deshabilitar edición a las celdas de lote, caducidad y serie si el producto no lo requiere.
-        if ((field === "edt_lote" || field === "edt_fcad") && !data_row.reqlote) table.Columns[curr_col].type = "NoEditable";
-        else if (field === "edt_serie" && !data_row.reqserie) table.Columns[curr_col].type = "NoEditable";
+        if ((field === "lote" || field === "fcad") && !data_row.reqlote) table.Columns[curr_col].type = "NoEditable";
+        else if (field === "serie" && !data_row.reqserie) table.Columns[curr_col].type = "NoEditable";
         else table.Columns[curr_col].type = tColdef[curr_col].type;
     }
 
@@ -780,7 +782,7 @@ document.addEventListener("DOMContentLoaded", () =>
         let producto = tData[currentRowIndex];
 
         if (Object.entries(producto ?? {}).length === 0) return;
-        if (coldef.field == "edt_unidad" && lastRowIndex != currentRowIndex)
+        if (coldef.field == "unidad" && lastRowIndex != currentRowIndex)
         {
             lastRowIndex = currentRowIndex;
             if (!producto.lunidades) {
@@ -796,9 +798,9 @@ document.addEventListener("DOMContentLoaded", () =>
         let producto = tData[currentRowIndex];
 
         if (Object.entries(producto ?? {}).length === 0) return;
-        if (field == "edt_unidad" && e.text.trim() == "") { show_error("Debe elegir una opción."); e.cancel = true; return false; }
-        if ((field == "edt_precio" || field == "edt_cantidad") && Number(e.text.trim()) <= 0) { show_error("El valor debe ser mayor que 0."); e.cancel = true; return false; }
-        if (field == "edt_descuentos" && Number(e.text.trim()) < 0) { show_error("El valor no puede ser menor que 0."); e.cancel = true; return false; }
+        if (field == "unidad" && e.text.trim() == "") { show_error("Debe elegir una opción."); e.cancel = true; return false; }
+        if ((field == "precio" || field == "cantidad") && Number(e.text.trim()) <= 0) { show_error("El valor debe ser mayor que 0."); e.cancel = true; return false; }
+        if (field == "descuentos" && Number(e.text.trim()) < 0) { show_error("El valor no puede ser menor que 0."); e.cancel = true; return false; }
     }
 
     table.Events[tEvents.ConfirmEdition] = function(e) {
@@ -807,9 +809,40 @@ document.addEventListener("DOMContentLoaded", () =>
         let producto = tData[currentRowIndex];
         
         if (Object.entries(producto ?? {}).length === 0) return;
-        lastUnit = producto.unidad;
+        let actualizar_importes = false;
 
-        if (field == "edt_unidad") {
+        if (["precio","cantidad","descuentos"].includes(field))
+        {
+            let value = Number(e.text.trim());
+            producto[field] = value;
+            if (field == "precio") producto["precio"] = value;
+            if (field == "cantidad"){
+                let idocumento = Number(selDocumento.value);
+                producto["cantidad"] = value;
+                if ((idocumento == cREMISION || idocumento == cFACTURA) && producto.origen && producto.cantidad > producto.pendientes) {
+                    alert(`No se puede ${(idocumento==cREMISION?'recibir':'facturar')} más de la cantidad ${(idocumento==cREMISION?'pedida':'recibida')}`);
+                    producto["cantidad"] = producto.pendientes;
+                    e.text = producto.pendientes;
+                }
+                if (producto.reqserie && producto.cantidad > 1){
+                    alert('La cantidad para este producto con serie requerida debe ser 1, para agregar más series del mismo producto insertelo en una nueva fila');
+                    producto["cantidad"] = 1;
+                    e.text = 1;
+                }
+                if (producto.cantidad < producto.minimo) {
+                    alert('El producto de este documento a sido insertado en otro documento por lo que no puede establecer una cantidad inferior a: ' + producto.minimo);
+                    producto["cantidad"] = producto.minimo;
+                    e.text = producto.minimo;
+                }
+                updateCotizado(producto);
+            }
+            if (field == "descuentos") producto["descuentos"] = value;
+            actualizar_importes = true;
+        }
+        
+        lastUnit = producto.unidad;
+        if (field == "unidad")
+        {
             producto["unidad"] = e.text;
 
             switch (e.text) {
@@ -826,7 +859,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     producto["factor"] = 1; // factora
                     lastUnit = producto.unidada;
 
-                    actualizarProducto(producto,currentRowIndex);
+                    actualizar_importes = true;
                     break;
                 case producto.unidadb:
                     if (lastUnit == producto.unidadb) return;
@@ -850,7 +883,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     producto["factor"] = producto.factorb;
                     lastUnit = producto.unidadb;
 
-                    actualizarProducto(producto,currentRowIndex);
+                    actualizar_importes = true;
                     break;
                 case producto.unidadc:
                     if (lastUnit == producto.unidadc) return;
@@ -874,7 +907,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     producto["factor"] = producto.factorc;
                     lastUnit = producto.unidadc;
 
-                    actualizarProducto(producto,currentRowIndex);
+                    actualizar_importes = true;
                     break;
                 case producto.unidadd:
                     if (lastUnit == producto.unidadd) return;
@@ -898,7 +931,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     producto["factor"] = producto.factord;
                     lastUnit = producto.unidadd;
 
-                    actualizarProducto(producto,currentRowIndex);
+                    actualizar_importes = true;
                     break;
                 case producto.unidade:
                     if (lastUnit == producto.unidade) return;
@@ -922,7 +955,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     producto["factor"] = producto.factore;
                     lastUnit = producto.unidade;
 
-                    actualizarProducto(producto,currentRowIndex);
+                    actualizar_importes = true;
                     break;
 
                 default:
@@ -931,38 +964,18 @@ document.addEventListener("DOMContentLoaded", () =>
             }
         }
 
-        if (["edt_precio","edt_cantidad","edt_descuentos"].includes(field))
+        if (field == "notas") producto["notas"] = e.text.trim();
+
+        if (actualizar_importes)
         {
-            let value = Number(e.text.trim());
-            producto[field] = value;
-            if (field == "edt_precio") producto["precio"] = value;
-            if (field == "edt_cantidad"){
-                let idocumento = Number(selDocumento.value);
-                producto["cantidad"] = value;
-                if ((idocumento == cREMISION || idocumento == cFACTURA) && producto.edt_origen && producto.cantidad > producto.pendientes) {
-                    alert(`No se puede ${(idocumento==cREMISION?'recibir':'facturar')} más de la cantidad ${(idocumento==cREMISION?'pedida':'recibida')}`);
-                    producto["cantidad"] = producto.pendientes;
-                    e.text = producto.pendientes;
-                }
-                if (producto.reqserie && producto.cantidad > 1){
-                    alert('La cantidad para este producto con serie requerida debe ser 1, para agregar más series del mismo producto insertelo en una nueva fila');
-                    producto["cantidad"] = 1;
-                    e.text = 1;
-                }
-                if (producto.cantidad < producto.minimo) {
-                    alert('El producto de este documento a sido insertado en otro documento por lo que no puede establecer una cantidad inferior a: ' + producto.minimo);
-                    producto["cantidad"] = producto.minimo;
-                    e.text = producto.minimo;
-                }
-                updateCotizado(producto);
-            }
-            if (field == "edt_descuentos") producto["descuentos"] = value;
+            let tc_doc = Number(txtTipoCambio.value);
+            let tc_prd = Number(producto.tipocambio);
+            let precio = Number(producto.precio);
+
+            producto["_precio"] = convertir(precio,tc_prd,tc_doc,convertir_a.divisa_producto);
+
             actualizarProducto(producto,currentRowIndex);
         }
-
-        if (field == "edt_notas") {
-            producto["notas"] = e.text.trim();
-            table.UpdateRow(currentRowIndex);
-        }
+        else table.UpdateRow(currentRowIndex);
     }
 });

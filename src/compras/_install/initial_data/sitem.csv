@@ -6,3 +6,4 @@ GA11,Crear documento de compra,compras.compras
 GA12,Editar documento de compra,compras.compras
 GA13,Procesar documento de compra,compras.compras
 GA14,Cancelar documento de compra,compras.compras
+GA15,Re-abrir documento de compra,compras.compras

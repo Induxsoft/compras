@@ -166,4 +166,49 @@ module "icons.dk"
             <path d="M9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5zm0 1v2A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z"/>
         </svg>
     '}
+
+    text @ICON_PROCESS
+    {$'
+        <svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#"
+            xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:svg="http://www.w3.org/2000/svg"
+            xmlns="http://www.w3.org/2000/svg" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+            xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="16" height="16" viewBox="0 0 4.23328 4.23328"
+            version="1.1" id="svg8" sodipodi:docname="process-icon2.svg" inkscape:version="1.0.2-2 (e86c870879, 2021-01-15)">
+            <defs id="defs2" />
+            <sodipodi:namedview id="base" pagecolor="#ffffff" bordercolor="#666666" borderopacity="1.0"
+                inkscape:pageopacity="0.0" inkscape:pageshadow="2" inkscape:zoom="11.2" inkscape:cx="6.6333519"
+                inkscape:cy="6.5800265" inkscape:document-units="px" inkscape:current-layer="layer1"
+                inkscape:document-rotation="0" showgrid="false" inkscape:snap-global="false" units="px"
+                inkscape:window-width="1920" inkscape:window-height="1017" inkscape:window-x="1912" inkscape:window-y="-8"
+                inkscape:window-maximized="1" />
+            <metadata id="metadata5">
+                <rdf:RDF>
+                    <cc:Work rdf:about="">
+                        <dc:format>image/svg+xml</dc:format>
+                        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+                        <dc:title></dc:title>
+                    </cc:Work>
+                </rdf:RDF>
+            </metadata>
+            <g inkscape:label="Capa 1" inkscape:groupmode="layer" id="layer1">
+                <path sodipodi:type="star"
+                    style="fill:#000000;stroke:#000000;stroke-width:1.05783;stroke-miterlimit:4;stroke-dasharray:none"
+                    id="path1017" sodipodi:sides="3" sodipodi:cx="1.3442613" sodipodi:cy="2.1553254" sodipodi:r1="1.3433241"
+                    sodipodi:r2="0.67166209" sodipodi:arg1="0" sodipodi:arg2="1.0471976" inkscape:flatsided="false"
+                    inkscape:rounded="0" inkscape:randomized="0"
+                    d="m 2.6875854,2.1553254 -1.0074931,0.5816765 -1.00749304,0.5816763 -6e-8,-1.1633528 6e-8,-1.16335275 L 1.6800924,1.573649 Z"
+                    inkscape:transform-center-x="-0.27588992"
+                    transform="matrix(0.82151397,0,0,0.98322869,1.0203365,0.05404149)" />
+                <rect style="fill:#000000;stroke:#000000;stroke-width:0.545656;stroke-miterlimit:4;stroke-dasharray:none"
+                    id="rect1023" width="0.034250222" height="2.1130931" x="0.41990438" y="0.5024693" />
+                <rect style="fill:#000000;stroke:#000000;stroke-width:0.396081;stroke-miterlimit:4;stroke-dasharray:none"
+                    id="rect1025" width="0.18382476" height="0.20744793" x="0.34511709" y="3.7113087" />
+            </g>
+            <style type="text/css" id="style849">
+                .st0 {
+                    fill: #134563;
+                }
+            </style>
+        </svg>
+    '}
 }

@@ -16,6 +16,8 @@ module "list.dk"
     ref get = @@(@http_context,"&request/get")
     ref docs = @('&./docs')
 
+    ref titles = ifnull(@("&./titles"),record.create())
+
     get<"filter-mode">: ifstr(trim(@@(get,"filter-mode"))!="", @@(get,"filter-mode"), "month")
     get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
     get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
@@ -129,13 +131,15 @@ module "list.dk"
         @"jscurrentcontext": "getCurrentContext"
     }
 
-    #$ div(class="container-fluid p-0")
+    #$ div(class="v12-list-view" id="view")
     {
-        #! do uie.printV12FormBar(nav_config)
-
-        #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
+        section(class="container-fluid bg-white" id="top_area")
         {
-            form(action="./" method="GET" id="form_filter" class="no-print mb-1")
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+
+            form(action="./" method="GET" id="form_filter" class="mb-1")
             {
                 div(class="d-flex align-items-center")
                 {
@@ -176,21 +180,9 @@ module "list.dk"
                 {
                     div(class="d-flex gap-2")
                     {
-                        div
-                        {
-                            #! do uie.dbSelect(def_doc) 
-                            #$
-                        }
-                        div
-                        {
-                            #! do uie.dbSelect(def_status_finc) 
-                            #$
-                        }
-                        div
-                        {
-                            #! do uie.dbSelect(def_status_admin) 
-                            #$
-                        }
+                        div{ #! do uie.dbSelect(def_doc) } #$
+                        div{ #! do uie.dbSelect(def_status_finc) } #$
+                        div{ #! do uie.dbSelect(def_status_admin) } #$
                     }
                     div(class="flex-grow-1")
                     {
@@ -206,10 +198,45 @@ module "list.dk"
                     }
                 }
             }
-            #! do uie.dbeditable(table_definition,"table_compras")
         }
 
-        #$
+        section(class="container-fluid" id="work_area")
+        {
+            div(class="show-on-print")
+            {
+                p(class="text-center my-0"){$"#<@@(titles,'$title')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle_2')>"}
+
+                div(class="row")
+                {
+                    div(class="col-3 text-start")
+                    {
+                        small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                        small(class="d-block"){ $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                    }
+                    div(class="col-6 text-center")
+                    {
+                        h4(class=""){$"Informe general de compras"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        small(class="d-block" id="lbl_documento"){$""}
+                        small(class="d-block" id="lbl_stt_fin"){$""}
+                        small(class="d-block" id="lbl_stt_adm"){$""}
+                    }
+                }
+            }
+
+            #!
+            do uie.dbeditable(table_definition,"table_compras")
+            #$
+
+            div(class="show-on-print"){p(class="fixed-bottom text-center my-1"){$"#<@@(titles,'$footer')>"}}
+        }
+
+        // section(class="container-fluid" id="bottom_area"){}
+
         script(type="text/javascript")
         {$'
             function getCurrentContext()

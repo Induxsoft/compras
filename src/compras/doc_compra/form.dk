@@ -4,7 +4,7 @@ module "doc.pedido.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
-    #include "uielements.dkl"
+    #include "uielements.v12.dkl"
     #include "dbr.dkh"
     #include "dbr.vars.dkl"
     #include "../_lib/icons.dk"
@@ -22,6 +22,7 @@ module "doc.pedido.dk"
     ref dtprov = ifnull(@("&./dtprov"),record.create())
     ref compra = ifnull(@("&./compra"),record.create())
     ref dcompra = ifnull(@('&./dcompra'),list.create())
+    ref titles = ifnull(@("&./titles"),record.create())
 
     @_entities_type = @("$parameters/_entities_type")
     @_entity_id = @("$parameters/_entity_id")
@@ -90,6 +91,8 @@ module "doc.pedido.dk"
         @"text_field": "descripcion"
         @"selected": form("ialmacen","nm",compra)
     }
+    new_line_char="\n"
+    break_line_tag="<br>"
 
     // Estados administrativos para documentos : https://docs.induxsoft.net/es/productos/v12/devops/enums/cstatusadministrativos.md
     // ""=Nuevo | 0=NoAplica | 1=Abierto | 2=Cerrado | 3=Procesado | 99=Cancelado
@@ -98,238 +101,319 @@ module "doc.pedido.dk"
     enable_delete = ((cur_statusadmin == "0") || (cur_statusadmin == "1"))
     enable_cancel = ((cur_statusadmin == "1") || (cur_statusadmin == "2") || (cur_statusadmin == "3"))
 
-    #$
-    div(class="container")
+    function print_buttons()
+    {
+        btn_cls = "btn btn-sm border-secondary induxsoft-corners btn-main-action"
+        #$
+        button(type="button" class="#<btn_cls>" id="btn-guardar" title="Guardar"){$"#<@ICON_SAVE>"}
+        button(type="button" class="#<btn_cls>" id="btn-cerrar" title="Guardar y cerrar"){$"#<@ICON_LOCK>"}
+        button(type="button" class="#<btn_cls>" id="btn-reabrir" title="Re-abrir"){$"#<@ICON_UNLOCK>"}
+        button(type="button" class="#<btn_cls> d-flex gap-2 align-items-center" id="btn-procesar"){$"#<@ICON_PROCESS>" p(id="btn-procesar-text" class="p-0 m-0"){$"Procesar"}}
+        button(type="button" class="#<btn_cls>" id="btn-facturar"){$"Facturar"}
+        button(type="button" class="#<btn_cls>" id="btn-cancelar"){$"#<@ICON_TRASH> Cancelar"}
+        #!
+    }
+    point nav_buttons to print_buttons
+    new nav_config
+    {
+        @"title": ifstr(is_new, "Nuevo documento", @@(compra,"$referencia"))
+        @"buttons*": nav_buttons
+        @"urlexit": @DOC_COMPRAS
+        member @"hidden" { @"print": if(enable_editing, @true, @false) }
+    }
+
+    #$ div(class="container" id="view")
     {
         link(href="#<@CSS_MAIN>" rel="stylesheet")
+        style
+        {$'
+            table tr th { font-size:.9rem; font-weight:500; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+            table tr td { font-size:.8rem; }
 
-        div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
+            @media print { #div_tbl_productos { max-height:unset !important; overflow:hidden; } }
+        '}
+
+        section(id="top_area")
         {
-            div(class="col-4 d-flex align-items-center p-0") { h5(class="tex-no-break m-0"){$"#<ifstr(is_new,'Nuevo','Editar')> documento"} }
-            div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+
+            div(class="d-flex gap-2 #<ifstr(is_new,'d-none','')>")
             {
-                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
-
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-guardar" title="Guardar"){$"#<@ICON_SAVE>"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-cerrar" title="Guardar y cerrar"){$"#<@ICON_LOCK>"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-reabrir" title="Re-abrir"){$"#<@ICON_UNLOCK>"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action d-flex gap-2 align-items-center" id="btn-procesar"){$"#<@ICON_FILE_CHECK>" p(id="btn-procesar-text" class="p-0 m-0"){$"Procesar"}}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-facturar"){$"Facturar"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn-cancelar"){$"#<@ICON_TRASH> Cancelar"}
-
-                a(href="#<@DOC_COMPRAS>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
+                small{b{$"Edo. administrativo: "} $"#<@@(compra,'$edo_admin')>"}
+                small{b{$"Edo. entrega: "} $"#<@@(compra,'$edo_entrega')>"}
+                small{b{$"Edo. facturación: "} $"#<@@(compra,'$edo_facturacion')>"}
+                small{b{$"Edo. financiero: "} $"#<@@(compra,'$edo_financiero')>"}
             }
-        }
 
-        nav
-        {
-            div(class="nav nav-tabs mb-2" id="nav-tab" role="tablist")
+            nav
             {
-                button(class="nav-link py-1 active" id="nav-general-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-general" type="button" role="tab" "aria-controls"="nav-general" "aria-selected"="true"){$"General"}
-                button(class="nav-link py-1" id="nav-mrdata-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-mrdata" type="button" role="tab" "aria-controls"="nav-mrdata" "aria-selected"="false"){$"Más datos"}
-            }
-        }
-
-        form(class="#<ifstr(enable_editing,'','disable-form')>" action="./" method="POST" id="form_pedido")
-        {
-            div(class="tab-content")
-            {
-                div(class="tab-pane fade show active" id="nav-general" role="tabpanel" "aria-labelledby"="nav-general-tab")
+                div(class="nav nav-tabs mb-2" id="nav-tab" role="tablist")
                 {
-                    div(class="d-flex gap-3")
-                    {
-                        small{$"Edo. admin: #<form('edo_admin','tx',compra)>"}
-                        small{$"| Edo. entrega: #<form('edo_entrega','tx',compra)>"}
-                        small{$"| Edo. facturación: #<form('edo_facturacion','tx',compra)>"}
-                        small{$"| Edo. financiero: #<form('edo_financiero','tx',compra)>"}
-                    }
-                    div(class="row gx-2")
-                    {
-                        div(class="col-12")
-                        {
-                            label(class="form-label fw-bold" "for"="sel_proveedor"){$"Proveedor:"}
-                            "input-key"(id="sel_proveedor" name="iproveedor" "data-key"="sys_pk" "data-search"="codigo" "data-text"="nombre" "data-source"="#<@URL_BUSCAR_PROVEEDOR>" "data-value"="#<to.json(dtprov)>" columns="codigo,nombre,tipo,zona_impuesto" colcaptions="Código,Nombre,Tipo,Z. Impuestos" "box-title-text"="Seleccione un proveedor" required="true" "control-styles"="
-                                #input_search_container, #input_description_container,
-                                #button_search_container, #button_clear_container {
-                                    height: calc(1.5em + .5rem + 2px) !important;
-                                    padding: .25rem .5rem !important;
-                                    font-size: .875rem !important;
-                                }
-                            "
-                            ){$""}
-                        }
-                        div(class="col-lg-3 col-md-3 col-sm-4 col-6")
-                        {
-                            label(class="form-label fw-bold" "for"="sel_documento"){$"Tipo de documento:"}
-                            ##
-                            do uie.dbSelect(sel_documento)
-                            ##
-                        }
-                        div(class="col-lg-3 col-md-3 col-sm-4 col-6")
-                        {
-                            label(class="form-label fw-bold" "for"="txt_referencia"){$"Referencia:"}
-                            input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" maxlength="25" value="#<form('referencia','tx',compra)>" required="")
-                        }
-                        div(class="col-lg-2 col-md-3 col-sm-4 col-4")
-                        {
-                            label(class="form-label fw-bold" "for"="txt_fecha"){$"Fecha:"}
-                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha" id="txt_fecha" value="#<form('fecha','dt',compra)>" required="")
-                        }
-                        div(class="col-lg-2 col-md-3 col-sm-4 col-4")
-                        {
-                            label(class="form-label" "for"="txt_fentrega"){$"F. Entrega:"}
-                            input(type="date" class="form-control form-control-sm rounded-0" name="fentrega" id="txt_fentrega" value="#<form('fentrega','dt',compra)>")
-                        }
-                        div(class="col-lg-2 col-md-3 col-sm-4 col-4")
-                        {
-                            label(class="form-label" "for"="txt_fvencimiento"){$"F. Vencimiento:"}
-                            input(type="date" class="form-control form-control-sm rounded-0" name="vencimiento" id="txt_fvencimiento" value="#<form('vencimiento','dt',compra)>")
-                        }
-                        div(class="col-lg-3 col-md-3 col-sm-4 col-8")
-                        {
-                            label(class="form-label fw-bold" "for"="sel_divisa"){$"Divisa:"}
-                            ##
-                            do uie.dbSelect(sel_divisa)
-                            ##
-                        }
-                        div(class="col-lg-2 col-md-3 col-sm-4 col-4")
-                        {
-                            label(class="form-label fw-bold" "for"="txt_tipocambio"){$"T. Cambio:"}
-                            input(type="number" class="form-control form-control-sm rounded-0" name="tipocambio" min="1" step="0.000001" id="txt_tipocambio" value="#<form('tipocambio','nm',compra)>" required="")
-                        }
-                        div(class="col-lg-3 col-md-3 col-sm-4 col-8")
-                        {
-                            label(class="form-label fw-bold" "for"="sel_almacen"){$"Almacén:"}
-                            ##
-                            do uie.dbSelect(sel_almacen)
-                            ##
-                        }
-                        div(class="col-lg-2 col-md-3 col-sm-4 col-4")
-                        {
-                            label(class="form-label" "for"="txt_cindirectos"){$"Costos indirectos:"}
-                            input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" step="0.000001" id="txt_cindirectos" value="#<form('indirectos','nm',compra)>")
-                        }
-                    }
+                    button(class="nav-link py-1 active" id="nav-general-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-general" type="button" role="tab" "aria-controls"="nav-general" "aria-selected"="true"){$"General"}
+                    button(class="nav-link py-1" id="nav-mrdata-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-mrdata" type="button" role="tab" "aria-controls"="nav-mrdata" "aria-selected"="false"){$"Más datos"}
                 }
+            }
+        }
 
-                div(class="tab-pane fade" id="nav-mrdata" role="tabpanel" "aria-labelledby"="nav-mrdata-tab")
+        section(id="work_area")
+        {
+            div(class="show-on-print")
+            {
+                p(class="text-center my-0"){$"#<@@(titles,'$title')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle_2')>"}
+
+                div(class="row")
                 {
-                    div(class="row")
+                    div(class="col-3 text-start")
                     {
-                        div(class="col-lg-4 col-md-8 col-sm-12")
-                        {
-                            label(class="form-label" "for"="txt_fembarque"){$"Fecha de embarque:"}
-                            input(type="date" class="form-control form-control-sm rounded-0" name="fembarque" id="txt_fembarque" value="#<form('fembarque','dt',compra)>" required="")
-
-                            label(class="form-label" "for"="txt_notas"){$"Notas:"}
-                            textarea(class="form-control" name="notas" id="txt_notas" maxlength="32000"){ $"#<form('notas','tx',compra)>" }
-                        }
+                        small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                        small(class="d-block"){ $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                    }
+                    div(class="col-6 text-center")
+                    {
+                        h4(class=""){$"Documento de compra"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        small(class="d-block" id=""){$""}
+                        small(class="d-block" id=""){$""}
+                        small(class="d-block" id=""){$""}
                     }
                 }
             }
 
-            input(type="hidden" name="sys_pk" value="#<@@(compra,'#sys_pk')>" id="txt_sys_pk")
-            // input(type="hidden" name="sys_guid" value="#<@@(compra,'$sys_guid')>" id="txt_sys_guid")
-            input(type="hidden" name="sys_recver" value="#<@@(compra,'#sys_recver')>" id="txt_sys_recver")
-            input(type="hidden" name="statusadministrativo" value="#<cur_statusadmin>" id="txt_statusadministrativo")
-            input(type="hidden" name="_detalle" value="" id="txt_detalle_compra")
-        }
-
-        div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
-
-        div(class="d-flex justify-content-end align-items-center border gap-1 px-2 mt-2 #<ifstr(enable_editing,'','disable-form')>" id="tbl_action_bar")
-        {
-            small(class="flex-grow-1 text-muted"){$"Seleccione los productos en la cuadrícula"}
-
-            button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow d-none" id="btn-add-doc" title="Insertar documento"){
-                $"#<@ICON_DOCUMENT>"
-                $"Insertar doc."
-            }
-            button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-add-row" title="Agregar fila"){$"#<@ICON_ADD_ROW>"}
-            button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-del-row" title="Eliminar fila"){$"#<@ICON_REMOVE_ROW>"}
-
-            "input-key"(
-                "id"="sel_doc_insert"
-                "data-key"="sys_pk"
-                "data-search"="referencia"
-                "data-text"="referencia"
-                "data-source"="#<@URL_BUSCAR_DOCUMENTO>"
-                "columns"="documento,fecha,referencia"
-                "colcaptions"="Documento,Fecha,Referencia"
-                "box-title-text"="Seleccione un documento"
-                "box-placeholder-text"="Buscar documento"
-                "box-nodata-text"="No se encontraron documentos"
-                "control-styles"="#container{ display: none !important; }"
-                "hidden-input"="false"
-            ){$""}
-        }
-        // div(class="alert alert-danger rounded-0 mb-1 py-0 d-none" role="alert" id="tbl_alerts"){$""}
-        div(class="border border-top-0 #<ifstr(enable_editing,'','disable-form')>" id="div_tbl_productos" style="width:auto; min-width:100%; height:55vh; display:flex;")
-        {
-            "edit-table"(id="tbl_productos" data="#<to.json(dcompra)>" "auto-confirm"="true" style="width:100%;"
-            "row-height"="1.2rem"
-            "control-styles"="
-                tr th { font-size:.9rem; outline:none !important; font-weight:500 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
-                tr td { font-size:.8rem; }
-                #__table_input { font-size:unset !important; }
-            ")
+            section(class="show-on-print" id="master")
             {
-                "edit-thead"
+                table(class="table table-sm table-bordered")
                 {
-                    "edit-tr"
+                    thead
                     {
-                        "edit-th"(type="Text" field="edt_codigo" button="true"){$"Código"}
-                        "edit-th"(type="Text" field="edt_descripcion" button="true"){$"Descripción"}
-                        "edit-th"(type="Select" field="edt_unidad" options="{}"){$"Unidad"}
-                        "edit-th"(type="Number" field="edt_precio" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Precio"}
-                        "edit-th"(type="NoEditable" field="edt_origen"){$"Origen"}
-                        "edit-th"(type="NoEditable" field="edt_cotizado" textalign="center"){$"Cotizado"}
-                        "edit-th"(type="Number" field="edt_cantidad" textalign="center"){$"Cantidad"}
-                        "edit-th"(type="NoEditable" field="edt_subtotal" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Subtotal"}
-                        "edit-th"(type="Number" field="edt_descuentos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Descuentos"}
-                        "edit-th"(type="NoEditable" field="edt_impuestos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Impuestos"}
-                        "edit-th"(type="NoEditable" field="edt_importe" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Importe"}
-                        #! if not(@compras_lotes_inhab) {
-                            #$ "edit-th"(type="Text" field="edt_lote"){$"Lote"}
-                            "edit-th"(type="Date" field="edt_fcad"){$"Caducidad"}
+                        tr(class="bg-light-gray")
+                        {
+                            th(class="text-center"){$"Referencia"}
+                            th(class="text-center"){$"Documento"}
+                            th(class="text-center"){$"Emisión"}
+                            th(class="text-center"){$"Vencimiento"}
+                            th(class="text-center"){$"Divisa"}
                         }
-                        #! if not(@compras_series_inhab) {
-                            #$ "edit-th"(type="Text" field="edt_serie"){$"Serie"}
+                    }
+                    tbody
+                    {
+                        tr
+                        {
+                            td{$"#<@@(compra,'$referencia')>"}
+                            td(class="text-center"){$"#<@@(compra,'$cdocumento')>"}
+                            td(class="text-center"){$"#<@@(compra,'$fecha')>"}
+                            td(class="text-center"){$"#<@@(compra,'$vencimiento')>"}
+                            td(class="text-center"){$"#<@@(compra,'$cdivisa')>"}
                         }
-                        "edit-th"(type="Memo" field="edt_notas"){$"Notas"}
                     }
                 }
-                /* #!
-                if list.count(dcompra) <= 0
+                table(class="table table-sm table-bordered my-2")
                 {
-                    #$
-                    "edit-tbody"
+                    tbody
                     {
-                        #!
-                        repeat 10
+                        tr
                         {
-                            #$
-                            "edit-tr"
+                            th(class="bg-light-gray"){$"Proveedor:"}
+                            td{$"#<@@(dtprov,'$codigo')>"}
+                            td{$"#<@@(dtprov,'$nombre')>"}
+                        }
+                    }
+                }
+
+                label(class="form-label fw-bolder mb-2 w-100") {
+                    $"Notas:"
+                    div(class="fw-normal"){$"#<replace(@@(compra,'$notas'),new_line_char,break_line_tag)>"}
+                }
+            }
+
+            form(class="hide-on-print #<ifstr(enable_editing,'','disable-form')>" action="./" method="POST" id="form_pedido")
+            {
+                div(class="tab-content")
+                {
+                    div(class="tab-pane fade show active" id="nav-general" role="tabpanel" "aria-labelledby"="nav-general-tab")
+                    {
+                        div(class="row gx-2")
+                        {
+                            div(class="col-12")
                             {
-                                #! repeat 10
-                                {
-                                    #$
-                                    "edit-td"{$""}
-                                }
+                                label(class="form-label fw-bold" "for"="sel_proveedor"){$"Proveedor:"}
+                                "input-key"(id="sel_proveedor" name="iproveedor" "data-key"="sys_pk" "data-search"="codigo" "data-text"="nombre" "data-source"="#<@URL_BUSCAR_PROVEEDOR>" "data-value"="#<to.json(dtprov)>" columns="codigo,nombre,tipo,zona_impuesto" colcaptions="Código,Nombre,Tipo,Z. Impuestos" "box-title-text"="Seleccione un proveedor" required="true" "control-styles"="
+                                    #input_search_container, #input_description_container,
+                                    #button_search_container, #button_clear_container {
+                                        height: calc(1.5em + .5rem + 2px) !important;
+                                        padding: .25rem .5rem !important;
+                                        font-size: .875rem !important;
+                                    }
+                                "
+                                ){$""}
+                            }
+                            div(class="col-lg-3 col-md-3 col-sm-4 col-6")
+                            {
+                                label(class="form-label fw-bold" "for"="sel_documento"){$"Tipo de documento:"}
+                                ##
+                                do uie.dbSelect(sel_documento)
+                                ##
+                            }
+                            div(class="col-lg-3 col-md-3 col-sm-4 col-6")
+                            {
+                                label(class="form-label fw-bold" "for"="txt_referencia"){$"Referencia:"}
+                                input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" maxlength="25" value="#<form('referencia','tx',compra)>" required="")
+                            }
+                            div(class="col-lg-2 col-md-3 col-sm-4 col-4")
+                            {
+                                label(class="form-label fw-bold" "for"="txt_fecha"){$"Fecha:"}
+                                input(type="date" class="form-control form-control-sm rounded-0" name="fecha" id="txt_fecha" value="#<form('fecha','dt',compra)>" required="")
+                            }
+                            div(class="col-lg-2 col-md-3 col-sm-4 col-4")
+                            {
+                                label(class="form-label" "for"="txt_fentrega"){$"F. Entrega:"}
+                                input(type="date" class="form-control form-control-sm rounded-0" name="fentrega" id="txt_fentrega" value="#<form('fentrega','dt',compra)>")
+                            }
+                            div(class="col-lg-2 col-md-3 col-sm-4 col-4")
+                            {
+                                label(class="form-label" "for"="txt_fvencimiento"){$"F. Vencimiento:"}
+                                input(type="date" class="form-control form-control-sm rounded-0" name="vencimiento" id="txt_fvencimiento" value="#<form('vencimiento','dt',compra)>")
+                            }
+                            div(class="col-lg-3 col-md-3 col-sm-4 col-8")
+                            {
+                                label(class="form-label fw-bold" "for"="sel_divisa"){$"Divisa:"}
+                                ##
+                                do uie.dbSelect(sel_divisa)
+                                ##
+                            }
+                            div(class="col-lg-2 col-md-3 col-sm-4 col-4")
+                            {
+                                label(class="form-label fw-bold" "for"="txt_tipocambio"){$"T. Cambio:"}
+                                input(type="number" class="form-control form-control-sm rounded-0" name="tipocambio" min="1" step="0.000001" id="txt_tipocambio" value="#<form('tipocambio','nm',compra)>" required="")
+                            }
+                            div(class="col-lg-3 col-md-3 col-sm-4 col-8")
+                            {
+                                label(class="form-label fw-bold" "for"="sel_almacen"){$"Almacén:"}
+                                ##
+                                do uie.dbSelect(sel_almacen)
+                                ##
+                            }
+                            div(class="col-lg-2 col-md-3 col-sm-4 col-4")
+                            {
+                                label(class="form-label" "for"="txt_cindirectos"){$"Costos indirectos:"}
+                                input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" step="0.000001" id="txt_cindirectos" value="#<form('indirectos','nm',compra)>")
+                            }
+                        }
+                    }
+
+                    div(class="tab-pane fade" id="nav-mrdata" role="tabpanel" "aria-labelledby"="nav-mrdata-tab")
+                    {
+                        div(class="row")
+                        {
+                            div(class="col-lg-4 col-md-8 col-sm-12")
+                            {
+                                label(class="form-label" "for"="txt_fembarque"){$"Fecha de embarque:"}
+                                input(type="date" class="form-control form-control-sm rounded-0" name="fembarque" id="txt_fembarque" value="#<form('fembarque','dt',compra)>" required="")
+
+                                label(class="form-label" "for"="txt_notas"){$"Notas:"}
+                                textarea(class="form-control" name="notas" id="txt_notas" maxlength="32000"){ $"#<form('notas','tx',compra)>" }
                             }
                         }
                     }
                 }
-                #$ */
+
+                input(type="hidden" name="sys_pk" value="#<@@(compra,'#sys_pk')>" id="txt_sys_pk")
+                // input(type="hidden" name="sys_guid" value="#<@@(compra,'$sys_guid')>" id="txt_sys_guid")
+                input(type="hidden" name="sys_recver" value="#<@@(compra,'#sys_recver')>" id="txt_sys_recver")
+                input(type="hidden" name="statusadministrativo" value="#<cur_statusadmin>" id="txt_statusadministrativo")
+                input(type="hidden" name="_detalle" value="" id="txt_detalle_compra")
             }
+
+            div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
+
+            div(class="hide-on-print d-flex justify-content-end align-items-center border gap-1 px-2 mt-2 #<ifstr(enable_editing,'','disable-form')>" id="tbl_action_bar")
+            {
+                small(class="flex-grow-1 text-muted"){$"Seleccione los productos en la cuadrícula"}
+
+                button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow d-none" id="btn-add-doc" title="Insertar documento"){
+                    $"#<@ICON_DOCUMENT>"
+                    $"Insertar doc."
+                }
+                button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-add-row" title="Agregar fila"){$"#<@ICON_ADD_ROW>"}
+                button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-del-row" title="Eliminar fila"){$"#<@ICON_REMOVE_ROW>"}
+
+                "input-key"(
+                    "id"="sel_doc_insert"
+                    "data-key"="sys_pk"
+                    "data-search"="referencia"
+                    "data-text"="referencia"
+                    "data-source"="#<@URL_BUSCAR_DOCUMENTO>"
+                    "columns"="documento,fecha,referencia"
+                    "colcaptions"="Documento,Fecha,Referencia"
+                    "box-title-text"="Seleccione un documento"
+                    "box-placeholder-text"="Buscar documento"
+                    "box-nodata-text"="No se encontraron documentos"
+                    "control-styles"="#container{ display: none !important; }"
+                    "hidden-input"="false"
+                ){$""}
+            }
+            // div(class="alert alert-danger rounded-0 mb-1 py-0 d-none" role="alert" id="tbl_alerts"){$""}
+            div(class="border border-top-0 #<ifstr(enable_editing,'','disable-form')>" id="div_tbl_productos" style="width:auto; min-width:100%; max-height:55vh; display:flex;")
+            {
+                "edit-table"(id="tbl_productos" data="#<to.json(dcompra)>" "auto-confirm"="true" style="width:100%;"
+                "row-height"="1.2rem"
+                "control-styles"="
+                    tr th { font-size:.9rem; font-weight:500 !important; outline:none !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+                    tr td { font-size:.8rem; }
+                    #__table_input { font-size:unset !important; }
+
+                    @media print
+                    {
+                        tr th { background-color: #DCDCDC; }
+                        tr td { background-color: #FFF !important; color:#000 !important; }
+                    }
+                ")
+                {
+                    "edit-thead"
+                    {
+                        "edit-tr"
+                        {
+                            "edit-th"(type="Text" field="codigo" button="true"){$"Código"}
+                            "edit-th"(type="Text" field="descripcion" button="true"){$"Descripción"}
+                            "edit-th"(type="Select" field="unidad" options="{}"){$"Unidad"}
+                            "edit-th"(type="Number" field="precio" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Precio"}
+                            "edit-th"(type="NoEditable" field="origen" textalign="center"){$"Origen"}
+                            "edit-th"(type="NoEditable" field="cotizado" textalign="center"){$"Cotizado"}
+                            "edit-th"(type="Number" field="cantidad" textalign="center"){$"Cantidad"}
+                            "edit-th"(type="NoEditable" field="subtotal" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Subtotal"}
+                            "edit-th"(type="Number" field="descuentos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Descuentos"}
+                            "edit-th"(type="NoEditable" field="impuestos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Impuestos"}
+                            "edit-th"(type="NoEditable" field="importe" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Importe"}
+                            #! if not(@compras_lotes_inhab) {
+                                #$ "edit-th"(type="Text" field="lote"){$"Lote"}
+                                "edit-th"(type="Date" field="fcad"){$"Caducidad"}
+                            }
+                            #! if not(@compras_series_inhab) {
+                                #$ "edit-th"(type="Text" field="edt_serie"){$"Serie"}
+                            }
+                            "edit-th"(type="Memo" field="notas"){$"Notas"}
+                        }
+                    }
+                }
+            }
+
+            div(class="show-on-print"){p(class="fixed-bottom text-center my-1"){$"#<@@(titles,'$footer')>"}}
         }
 
-        div(class="d-flex justify-content-between w-100 bg-light p-2 border")
+        section(id="bottom_area")
         {
-            b{$"Subtotal: " span(id="lbl_subtotal"){$""}}
-            b{$"Descuento: " span(id="lbl_descuento"){$""}}
-            b{$"Impuesto: " span(id="lbl_impuesto"){$""}}
-            b{$"Importe: " span(id="lbl_importe"){$""}}
+            div(class="d-flex justify-content-between w-100 bg-light p-2 border")
+            {
+                b{$"Subtotal: " span(id="lbl_subtotal"){$""}}
+                b{$"Descuento: " span(id="lbl_descuento"){$""}}
+                b{$"Impuesto: " span(id="lbl_impuesto"){$""}}
+                b{$"Importe: " span(id="lbl_importe"){$""}}
+            }
         }
 
         div
@@ -340,8 +424,8 @@ module "doc.pedido.dk"
                 "data-search"="codigo"
                 "data-text"="descripcion"
                 "data-source"="#<@URL_BUSCAR_PRODUCTO>"
-                columns="codigo,descripcion"
-                colcaptions="Código,Descripción"
+                columns="codigo,descripcion,divisa,precio"
+                colcaptions="Código,Descripción,Divisa,Precio"
                 "box-title-text"="Seleccione un producto"
                 "control-styles"="#container{display:none !important;}"
             ){$""}

@@ -1,6 +1,6 @@
 "id","title","shorttitle","icon16x16","href","_blank","appid","itemtype","req_context_item_id","act_type"
 
-"GA11","Crear documento de compra","Agregar","","/!/compras/compras/_new/","0","compras.compras","DET01B","0","action"
+"GA11","Crear documento de compra","Crear","","/!/compras/compras/_new/","0","compras.compras","DET01B","0","action"
 "GA12","Editar documento de compra","Detalles","","/!/compras/compras/@_src_context_item_id/","0","compras.compras","DET01B","1","action"
 "GA13","Procesar documento de compra","Procesar","","/!/compras/procesos/@_src_context_item_id/procesar/","0","compras.compras","DET01B","1","action"
 "GA14","Cancelar documento de compra","Cancelar","","/!/compras/procesos/@_src_context_item_id/cancelar/","0","compras.compras","DET01B","1","action"
