@@ -43,6 +43,74 @@
                         "keyfield":"val"
                     }
                 }
+            },
+            {
+                "varname": "v12.compras.pago",
+                "vardefault": "",
+                "varvalue": "GAC01",
+                "varcaption": "Pago de compras al contado",
+                "varhelp": "Categorías para compras",
+                "vartype": "string",
+                "varinput": {
+                    "control": "select",
+                    "source":{
+                        "type":"query",
+                        "query":"select codigo, descripcion from categoria where tipo=2",
+                        "keyfield":"codigo",
+                        "showfield":"descripcion"
+                    }
+                }
+            },
+            {
+                "varname": "v12.compras.entrada",
+                "vardefault": "",
+                "varvalue": "GAC02",
+                "varcaption": "Entradas por compras",
+                "varhelp": "Categorías para compras",
+                "vartype": "string",
+                "varinput": {
+                    "control": "select",
+                    "source":{
+                        "type":"query",
+                        "query":"select codigo, descripcion from categoria where tipo=3",
+                        "keyfield":"codigo",
+                        "showfield":"descripcion"
+                    }
+                }
+            },
+            {
+                "varname": "v12.compras.devinv",
+                "vardefault": "",
+                "varvalue": "GAC03",
+                "varcaption": "Salida por devolución de compras",
+                "varhelp": "Categorías para compras",
+                "vartype": "string",
+                "varinput": {
+                    "control": "select",
+                    "source":{
+                        "type":"query",
+                        "query":"select codigo, descripcion from categoria where tipo=3",
+                        "keyfield":"codigo",
+                        "showfield":"descripcion"
+                    }
+                }
+            },
+            {
+                "varname": "v12.compras.devefec",
+                "vardefault": "",
+                "varvalue": "GAC04",
+                "varcaption": "Ingreso de efectivo por devolución de compras",
+                "varhelp": "Categorías para compras",
+                "vartype": "string",
+                "varinput": {
+                    "control": "select",
+                    "source":{
+                        "type":"query",
+                        "query":"select codigo, descripcion from categoria where tipo=1",
+                        "keyfield":"codigo",
+                        "showfield":"descripcion"
+                    }
+                }
             }
         ]
     }
