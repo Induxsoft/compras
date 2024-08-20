@@ -284,13 +284,6 @@ module "doc.procesar.dk"
                                             do uie.dbSelect(sel_cuenta)
                                             ##
                                         }
-                                        div(class="col-lg-4 col-md-4")
-                                        {
-                                            label(class="form-label" "for"="sel_cat_egreso"){$"Categoria:"}
-                                            ##
-                                            do uie.dbSelect(sel_cat_egreso)
-                                            ##
-                                        }
 
                                         div(class="col-12")
                                         {
@@ -368,14 +361,6 @@ module "doc.procesar.dk"
                                             input(class="form-control form-control-sm rounded-0" type="number" name="tipocambio" id="txt_tcambio" value="#<form('tipocambio','nm',compra)>" min="1" required="")
                                         }
 
-                                        div(class="col-lg-4 col-md-4")
-                                        {
-                                            label(class="form-label" "for"="sel_cat_movinv"){$"Categoria:"}
-                                            ##
-                                            do uie.dbSelect(sel_cat_movinv)
-                                            ##
-                                        }
-
                                         div(class="col-12")
                                         {
                                             label(class="form-label" "for"="txt_concepto"){$"Concepto:"}
@@ -432,14 +417,6 @@ module "doc.procesar.dk"
                                                 label(class="form-label" "for"="sel_documento"){$"Documento:"}
                                                 ##
                                                 do uie.dbSelect(sel_documento)
-                                                ##
-                                            }
-
-                                            div(class="col-lg-4 col-md-4")
-                                            {
-                                                label(class="form-label" "for"="sel_cat_movinv"){$"Categoria:"}
-                                                ##
-                                                do uie.dbSelect(sel_cat_movinv)
                                                 ##
                                             }
 

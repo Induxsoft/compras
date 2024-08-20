@@ -167,10 +167,17 @@ module "model"
             case @@(@FORMAS_PAGO,"#cCONTADO")
             {
                 ref amounts = doc.getAmountsToProcess(db,params)
+                new varval
+                {
+                    @"cat_movinv": dbr.vars.get(db,"v12.compras.entrada")
+                    @"cat_egreso": dbr.vars.get(db,"v12.compras.pago")
+                }
+
                 new rec
                 {
                     @"icompra": @@(data,"#icompra")
-                    @"icategoria": @@(data,"icategoria")
+                    @"cat_movinv": dbr.num(db,"select sys_pk from categoria where codigo=@cat_movinv",varval)
+                    @"cat_egreso": dbr.num(db,"select sys_pk from categoria where codigo=@cat_egreso",varval)
                     @"faplicacion": @@(data,"$faplicacion")
                     @"beneficiario": @@(data,"$beneficiario")
                     @"consiliado": @true
@@ -188,10 +195,12 @@ module "model"
             case @@(@FORMAS_PAGO,"#cCREDITO")
             {
                 ref amounts = doc.getAmountsToProcess(db,params)
+                new varval { @"cat_movinv": dbr.vars.get(db,"v12.compras.entrada") }
+
                 new rec
                 {
                     @"icompra": @@(data,"#icompra")
-                    @"icategoria": @@(data,"icategoria")
+                    @"icategoria": dbr.num(db,"select sys_pk from categoria where codigo=@cat_movinv",varval)
                     @"aplicable": @true
                     @"flimite": @@(data,"$flimite")
                     @"documento": @@(data,"#documento")
@@ -208,7 +217,10 @@ module "model"
             }
             case @@(@FORMAS_PAGO,"#cCONSIGNADO")
             {
-                do erp.compras.procesos.liquidacionConsignado(db,@@(data,"#icompra"),@@(data,"#icategoria"))
+                new varval { @"cat_movinv": dbr.vars.get(db,"v12.compras.entrada") }
+                icategoria = dbr.num(db,"select sys_pk from categoria where codigo=@cat_movinv",varval)
+
+                do erp.compras.procesos.liquidacionConsignado(db,@@(data,"#icompra"),icategoria)
                 @url_redir = @DOC_COMPRAS
                 break
             }

@@ -1,0 +1,25 @@
+#include "dkli.dkh"
+#!
+program ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "compras/_lib/config.dk"
+    #include "cxp/movimientos.dkh"
+    #include "compras/procesos.dkh"
+
+    ref db = dbr.open("v12demo1@appsdkl")
+    factura = 37
+
+    ref totales = erp.compras.procesos.totalFactura(db,factura)
+    do erp.compras.procesos.bonificarRemisiones(db,totales)
+    do print(to.json(totales))
+
+    do dbr.close(db)
+    exception
+    {
+        do dbr.close(db)
+        do print(last_error())
+    }
+}
