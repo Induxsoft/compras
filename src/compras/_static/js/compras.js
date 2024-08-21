@@ -81,6 +81,16 @@ document.addEventListener("DOMContentLoaded", () =>
         return signo * (num[0] + 'e' + (num[1] ? (+num[1] - dec) : -dec));
     }
 
+    function desactivar_botones(v)
+    {
+        if (btnGuardarDoc) btnGuardarDoc.disabled = v;
+        if (btnCerrarDoc) btnCerrarDoc.disabled = v;
+        if (btnProcesarDoc) btnProcesarDoc.disabled = v;
+        if (btnCancelarDoc) btnCancelarDoc.disabled = v;
+        if (btnReAbrirDoc) btnReAbrirDoc.disabled = v;
+        if (btnFacturar) btnFacturar.disabled = v;
+    }
+
     function number_format(value, {moneda = "", decimal = 2}) {
         let options = {}
 
@@ -353,7 +363,6 @@ document.addEventListener("DOMContentLoaded", () =>
         let URL_BUSCAR_PRODUCTO = InduxsoftCrudlModel.UrlReplace(ikProducto.getAttribute("data-source"),data);
         let URL_BUSCAR_DOCUMENT = InduxsoftCrudlModel.UrlReplace(ikDocInsert.getAttribute("data-source"),{ proveedor:data.sys_pk });
         
-        selDivisa.value = data.idivisa;
         txtTipoCambio.value = data.tcambio;
         ikProducto.setAttribute("data-source",URL_BUSCAR_PRODUCTO);
         ikDocInsert.setAttribute("data-source",URL_BUSCAR_DOCUMENT);
@@ -398,12 +407,14 @@ document.addEventListener("DOMContentLoaded", () =>
         selDivisa.toggleAttribute("readonly",v);
         sel_divisa_disable = v;
     }
+    disableSelDivisa((filterData().length > 0));
 
     //* ======================================== [ FORM EVENTS ] ========================================
 
     ikProveedor.addEventListener("change", function(data) {
         if (!data) return;
         changeURLImport(data);
+        selDivisa.value = data.idivisa;
     });
 
     ikProducto.addEventListener("change", function(data) {
@@ -678,6 +689,7 @@ document.addEventListener("DOMContentLoaded", () =>
         if (!validarDetalle(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
+        desactivar_botones(true);
         formPedido.submit();
     });
 
@@ -688,12 +700,15 @@ document.addEventListener("DOMContentLoaded", () =>
         if (!validarReqLoteSerie(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
+        desactivar_botones(true);
         formPedido.submit();
     });
 
     btnReAbrirDoc.addEventListener("click", function() {
         txt_statusadministrativo.value = EDO_ADMIN.cABIERTO;
         let elements = formPedido.elements;
+
+        desactivar_botones(true);
 
         let fd = new FormData();
         fd.append("sys_pk",elements["sys_pk"].value);
@@ -704,7 +719,10 @@ document.addEventListener("DOMContentLoaded", () =>
             if (r.message) { alert(r.message); return false; }
             window.location.href = "./";
         }
-        let onFail = function(r) { alert(r.message) }
+        let onFail = function(r) {
+            alert(r.message);
+            desactivar_botones(false);
+        }
 
         InduxsoftCrudlModel.InvokeService("./",fd,onSuccess,onFail,"PUT",false,false,"",true);
     });
@@ -718,6 +736,7 @@ document.addEventListener("DOMContentLoaded", () =>
         if (!validarDetalle(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
+        desactivar_botones(true);
         formPedido.submit();
     });
 
@@ -727,6 +746,7 @@ document.addEventListener("DOMContentLoaded", () =>
         let _detalle = filterData()
         if (!validarDetalle(_detalle)) return;
         txt_detalle_compra.value = JSON.stringify(_detalle);
+        desactivar_botones(true);
         formPedido.submit();
     });
 
@@ -736,6 +756,7 @@ document.addEventListener("DOMContentLoaded", () =>
         let _detalle = filterData()
         txt_detalle_compra.value = JSON.stringify(_detalle);
 
+        desactivar_botones(true);
         formPedido.submit();
     });
 

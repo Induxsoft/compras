@@ -33,10 +33,17 @@ module "doc.pedido.dk"
 
     is_new = (@_entity_id == "_new")
 
-    if @('$error/message') != ""
+    if not(isnull(@@(@crud_context,"&error")))
     {
-        ref dcompra = from.json(form('_detalle','tx',@null))
-        exception{}
+        if @("#./form/sys_recver") != @("#./compra/sys_recver")
+        {
+            do field.remove(@("&."),"form")
+            @crud_context.error.message:="El documento fue cambiado por otro usuario."
+        }
+        else
+        {
+            ref dcompra:from.json(form('_detalle','tx',@null))
+        }
     }
 
     // do rise_error(0,to.json(@("&.")))
@@ -138,6 +145,10 @@ module "doc.pedido.dk"
             #!
             do uie.printV12FormBar(nav_config)
             #$
+
+            div(class="alert alert-danger overflow-auto mb-2 #<ifstr(@('$error/message')!='','','d-none')>" id="frm_alerts"){$"#<@('error/message')>"}
+            // div(class="alert alert-danger overflow-auto mb-2 #<ifstr(@('$error/message')!='','','d-none')>" id="frm_alerts"){$"#<to.json(@crud_context)>"}
+            // div(class="alert alert-danger overflow-auto mb-2" id="frm_alerts"){$"#<to.json(@crud_context)>"}
 
             div(class="d-flex gap-2 #<ifstr(is_new,'d-none','')>")
             {
@@ -329,7 +340,7 @@ module "doc.pedido.dk"
                 input(type="hidden" name="_detalle" value="" id="txt_detalle_compra")
             }
 
-            div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
+            div{ span(class="text-danger" id="err-msg"){$""} }
 
             div(class="hide-on-print d-flex justify-content-end align-items-center border gap-1 px-2 mt-2 #<ifstr(enable_editing,'','disable-form')>" id="tbl_action_bar")
             {
@@ -457,4 +468,6 @@ module "doc.pedido.dk"
             script(src="#<@JS_COMPRAS>"){""}
         }
     }
+    #!
+    exception{ do clear_exceptions() }
 }

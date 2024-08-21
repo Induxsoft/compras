@@ -155,6 +155,7 @@ module "model"
         do dbr.begin(db)
 
         sql_get_compra = "SELECT c.sys_pk, c.documento, c.iproveedor FROM compra c WHERE #<@keyfield> = @_entity_id"
+        // do rise_error(0,to.json(data))
 
         switch @@(data,"#formapago")
         {
@@ -185,6 +186,7 @@ module "model"
                     @"fecha": hoy("yyyy-MM-dd")
                     @"concepto": @@(data,"$concepto")
                     @"referencia": @@(data,"$referencia")
+                    @"ref_ret": @@(data,"$ref_ret")
                     @"documento": @@(data,"#documento")
                     @"icuenta": @@(data,"#icuenta")
                 }
@@ -199,17 +201,16 @@ module "model"
 
                 new rec
                 {
-                    @"icompra": @@(data,"#icompra")
-                    @"icategoria": dbr.num(db,"select sys_pk from categoria where codigo=@cat_movinv",varval)
                     @"aplicable": @true
+                    @"fecha": hoy("yyyy-MM-dd")
                     @"flimite": @@(data,"$flimite")
                     @"documento": @@(data,"#documento")
-                    @"fecha": hoy("yyyy-MM-dd")
+                    @"referencia": @@(data,"$referencia")
                     @"importe": @@(amounts,"#total")
                     @"concepto": @@(data,"$concepto")
-                    @"referencia": @@(data,"$referencia")
-                    @"tcambio": @@(data,"#tipocambio")
                     @"iproveedor": @@(data,"#iproveedor")
+                    @"icompra": @@(data,"#icompra")
+                    @"icategoria": dbr.num(db,"select sys_pk from categoria where codigo=@cat_movinv",varval)
                 }
                 do erp.compras.procesos.liquidacionCredito(db,rec)
                 @url_redir = @DOC_COMPRAS

@@ -5,6 +5,8 @@ module "doc.procesar.dk"
     #include "functions.dkh"
     #include "serialize.dkh"
     #include "uielements.dkl"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
     #include "../_lib/lib.dk"
@@ -16,6 +18,9 @@ module "doc.procesar.dk"
     ref formData = ifnull(@("&./form"),record.create())
     ref dtprov = ifnull(@("&./dtprov"),record.create())
     ref cfgdoc = ifnull(@("&./cfg_doc_compra"),record.create())
+
+    decs = parse.num(dbr.vars.get(@("&database"),"FXCA001"))
+    rems_credito = dbr.num(@("&database"),"SELECT COUNT(DISTINCT r.sys_pk) FROM dcompra df INNER JOIN compra r ON df.documento=r.sys_pk WHERE df.fk_compra_detalle = @_entity_id AND r.formapago = 2;",@("&parameters"))
 
     show_form_contado = (not(field.exist(@("&."),"form")) || @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCONTADO'))
     show_form_credito = (field.exist(@("&."),"form") && @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCREDITO'))
@@ -124,7 +129,7 @@ module "doc.procesar.dk"
         {
             @"class": "form-select form-select-sm rounded-0"
             @"name": "idivisa"
-            @"required": ""
+            @"disabled": ""
         }
         @"value_field": "sys_pk"
         @"text_field": "text"
@@ -133,7 +138,6 @@ module "doc.procesar.dk"
             @"data-codigo": "#<@@(row,'codigo')>"
             @"data-tcambio": "#<@@(row,'tcambio')>"
         }
-        @"selected": form("idivisa","nm",formData)
     }
 
     #$
@@ -234,8 +238,50 @@ module "doc.procesar.dk"
         #! else if @@(amounts,"#total") > 0
         {
             #$
+            div(class="row mb-4")
+            {
+                div(class="col-lg-4 col-md-4")
+                {
+                    label(class="form-label fw-bold" "for"="txt_proveedor"){$"Proveedor:"}
+                    input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
+                }
+                div(class="col-lg-4 col-md-4")
+                {
+                    label(class="form-label fw-bold" "for"="txt_referencia"){$"Referencia:"}
+                    input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(compra,'$referencia')>" id="txt_referencia" disabled="")
+                }
+                div(class="col-lg-4 col-md-4")
+                {
+                    label(class="form-label fw-bold" "for"="sel_documento"){$"Documento:"}
+                    ##
+                    do uie.dbSelect(sel_documento)
+                    ##
+                }
+                div(class="col-lg-4 col-md-4")
+                {
+                    label(class="form-label fw-bold" "for"="sel_divisa"){$"Divisa:"}
+                    ##
+                    sel_divisa<"selected"> : @@(compra,"#idivisa")
+                    do uie.dbSelect(sel_divisa)
+                    ##
+                }
+                div(class="col-lg-4 col-md-4")
+                {
+                    label(class="form-label fw-bold" "for"="txt_tcambio"){$"Tipo de cambio:"}
+                    input(class="form-control form-control-sm rounded-0" type="number" name="" id="txt_tcambio" value="#<@@(compra,'#tipocambio')>" min="1" disabled="")
+                }
+                div(class="col-lg-4 col-md-4")
+                {
+                    label(class="form-label fw-bold" "for"="txt_importe"){$"Importe:"}
+                    input(class="form-control form-control-sm rounded-0" type="number" name="" id="" value="#<round(@@(amounts,'#total'),decs)>" disabled="")
+                }
+            }
+
             div(class="accordion" id="opciones_liquidacion")
             {
+                #!
+                if rems_credito == 0
+                {#$
                 div(class="accordion-item")
                 {
                     h2(class="accordion-header" id="headingOne") {
@@ -249,35 +295,35 @@ module "doc.procesar.dk"
                             {
                                 input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
                                 input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCONTADO')>")
+                                input(type="hidden" name="beneficiario" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor")
+                                input(type="hidden" name="referencia" value="#<@@(compra,'$referencia')>" id="txt_referencia")
 
-                                div(class="col-lg-8 col-md-10 col-sm-12")
+                                div(class="col-12") //div(class="col-lg-8 col-md-10 col-sm-12")
                                 {
                                     div(class="row")
                                     {
-                                        div(class="col-lg-4 col-md-4")
+                                        div(class="col-12")
                                         {
-                                            label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
-                                            input(class="form-control form-control-sm rounded-0" type="text" name="beneficiario" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" readonly="")
+                                            #!
+                                            referencia_retiro = cut(@@(compra,'$referencia'),15)+"/"+uuid()
+                                            #$
+                                            label(class="form-label" "for"="txt_ref_retiro"){$"Referencia:"}
+                                            input(class="form-control form-control-sm rounded-0" type="text" name="ref_ret" value="#<referencia_retiro>" id="txt_ref_retiro" minlength="3" maxlength="50")
                                         }
-                                        div(class="col-lg-4 col-md-4")
-                                        {
-                                            label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
-                                            input(class="form-control form-control-sm rounded-0" type="text" name="referencia" value="#<@@(compra,'$referencia')>" id="txt_referencia" readonly="")
-                                        }
-                                        div(class="col-lg-4 col-md-4")
+                                        div(class="col-lg-3 col-md-4")
                                         {
                                             label(class="form-label" "for"="txt_fecha_aplicacion"){$"Fecha de aplicación:"}
                                             input(class="form-control form-control-sm rounded-0" type="date" name="faplicacion" value="#<form('faplicacion','dt',formData)>" id="txt_faplicacion" required="")
                                         }
 
-                                        div(class="col-lg-4 col-md-4")
+                                        div(class="col-lg-3 col-md-4")
                                         {
                                             label(class="form-label" "for"="sel_doc_retiro"){$"Documento:"}
                                             ##
                                             do uie.dbSelect(sel_doc_retiro)
                                             ##
                                         }
-                                        div(class="col-lg-4 col-md-4")
+                                        div(class="col-lg-6 col-md-4")
                                         {
                                             label(class="form-label" "for"="sel_cuenta"){$"Cuenta:"}
                                             ##
@@ -294,16 +340,18 @@ module "doc.procesar.dk"
                                         div(class="d-flex gap-2 align-items-center justify-content-end my-2")
                                         {
                                             label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                            input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
+                                            input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<round(@@(amounts,'#total'),decs)>" disabled="")
                                         }
                                     }
 
-                                    button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
+                                    button(type="submit" class="btn btn-primary btn-sm w-100"){$"Aceptar"}
                                 } 
                             }
                         }
                     }
                 }
+                }
+                #$
 
                 div(class="accordion-item")
                 {
@@ -320,45 +368,29 @@ module "doc.procesar.dk"
                                 input(type="hidden" name="iproveedor" value="#<@@(compra,'#iproveedor')>")
                                 input(type="hidden" name="documento" value="#<@@(compra,'#documento')>")
                                 input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCREDITO')>")
+                                input(type="hidden" name="referencia" value="#<@@(compra,'$referencia')>" id="txt_referencia")
 
-                                div(class="col-lg-8 col-md-10 col-sm-12")
+                                div(class="col-12") //div(class="col-lg-8 col-md-10 col-sm-12")
                                 {
                                     div(class="row")
                                     {
                                         div(class="col-lg-4 col-md-4")
                                         {
-                                            label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
-                                            input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
-                                        }
-                                        div(class="col-lg-4 col-md-4")
-                                        {
-                                            label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
-                                            input(class="form-control form-control-sm rounded-0" type="text" name="referencia" value="#<@@(compra,'$referencia')>" id="txt_referencia" readonly="")
-                                        }
-                                        div(class="col-lg-4 col-md-4")
-                                        {
                                             label(class="form-label" "for"="txt_flimite"){$"Fecha limite de pago:"}
                                             input(class="form-control form-control-sm rounded-0" type="date" name="flimite" value="#<form('flimite','dt',formData)>" id="txt_flimite" required="")
-                                        }
-
-                                        div(class="col-lg-4 col-md-4")
-                                        {
-                                            label(class="form-label" "for"="sel_documento"){$"Documento:"}
-                                            ##
-                                            do uie.dbSelect(sel_documento)
-                                            ##
                                         }
                                         div(class="col-lg-4 col-md-4")
                                         {
                                             label(class="form-label" "for"="sel_divisa"){$"Divisa:"}
                                             ##
+                                            sel_divisa<"selected"> : @@(dtprov,"#idivisa")
                                             do uie.dbSelect(sel_divisa)
                                             ##
                                         }
                                         div(class="col-lg-4 col-md-4")
                                         {
                                             label(class="form-label" "for"="txt_tcambio"){$"Tipo de cambio:"}
-                                            input(class="form-control form-control-sm rounded-0" type="number" name="tipocambio" id="txt_tcambio" value="#<form('tipocambio','nm',compra)>" min="1" required="")
+                                            input(class="form-control form-control-sm rounded-0" type="number" name="tipocambio" id="txt_tcambio" value="#<form('tcambio','nm',dtprov)>" min="1" disabled="")
                                         }
 
                                         div(class="col-12")
@@ -369,12 +401,16 @@ module "doc.procesar.dk"
 
                                         div(class="d-flex gap-2 align-items-center justify-content-end my-2")
                                         {
+                                            #!
+                                            factor = (@@(compra,"#tipocambio") / @@(dtprov,"#tcambio"))
+                                            importe = round(@@(amounts,"#total") * factor, decs)
+                                            #$
                                             label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                            input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
+                                            input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<importe>" disabled="")
                                         }
                                     }
 
-                                    button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
+                                    button(type="submit" class="btn btn-primary btn-sm w-100"){$"Aceptar"}
                                 } 
                             }
                         }
@@ -398,36 +434,11 @@ module "doc.procesar.dk"
                                     input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
                                     input(type="hidden" name="formapago" value="#<@@(@FORMAS_PAGO,'#cCONSIGNADO')>")
 
-                                    div(class="col-lg-8 col-md-10 col-sm-12")
+                                    div(class="col-12") //div(class="col-lg-8 col-md-10 col-sm-12")
                                     {
-                                        div(class="row")
-                                        {
-                                            div(class="col-lg-4 col-md-4")
-                                            {
-                                                label(class="form-label" "for"="txt_proveedor"){$"Proveedor:"}
-                                                input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(dtprov,'$nombre')>" id="txt_proveedor" disabled="")
-                                            }
-                                            div(class="col-lg-4 col-md-4")
-                                            {
-                                                label(class="form-label" "for"="txt_referencia"){$"Referencia:"}
-                                                input(class="form-control form-control-sm rounded-0" type="text" name="" value="#<@@(compra,'$referencia')>" id="txt_referencia" disabled="")
-                                            }
-                                            div(class="col-lg-4 col-md-4")
-                                            {
-                                                label(class="form-label" "for"="sel_documento"){$"Documento:"}
-                                                ##
-                                                do uie.dbSelect(sel_documento)
-                                                ##
-                                            }
+                                        p{"Al procesar la remisión como una consignación, los productos ingresarán al inventario pero no se afectará la cuenta del proveedor hasta que realice la facturación total o parcial de la misma."}
 
-                                            div(class="d-flex gap-2 align-items-center justify-content-end my-2")
-                                            {
-                                                label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                                input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<@@(amounts,'#total')>" disabled="")
-                                            }
-                                        }
-
-                                        button(type="submit" class="btn btn-primary btn-sm float-end"){$"Aceptar"}
+                                        button(type="submit" class="btn btn-primary btn-sm w-100"){$"Aceptar"}
                                     } 
                                 }
                             }
@@ -493,6 +504,9 @@ module "doc.procesar.dk"
         script(type="text/javascript")
         {$'
             document.addEventListener("DOMContentLoaded", () => {
+                procesar.total = #<@@(amounts,"#total")>;
+                procesar.decs = #<decs>;
+                procesar.tcd = #<@@(compra,"#tipocambio")>;
                 procesar.init();
             });
         '}

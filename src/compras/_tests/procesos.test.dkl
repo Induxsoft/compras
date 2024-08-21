@@ -5,6 +5,7 @@ program ""
     #include "functions.dkh"
     #include "serialize.dkh"
     #include "dbr.dkh"
+    #include "dbr.vars.dkl"
     #include "compras/_lib/config.dk"
     #include "cxp/movimientos.dkh"
     #include "compras/procesos.dkh"
@@ -12,8 +13,25 @@ program ""
     ref db = dbr.open("v12demo1@appsdkl")
     factura = 37
 
+    new data
+    {
+        @"icompra": factura
+        @"iproveedor": 0
+        @"documento": 4
+        @"formapago": 2
+        @"referencia": ""
+        @"flimite": "2024-08-20"
+        @"tipocambio": 1.00000000
+        @"concepto": "Compra a crédito"
+    }
+
     ref totales = erp.compras.procesos.totalFactura(db,factura)
-    do erp.compras.procesos.bonificarRemisiones(db,totales)
+    data<"iproveedor"> : @@(totales,"#iproveedor")
+    data<"referencia"> : @@(totales,"$referencia")
+
+    //do erp.compras.procesos.bonificarRemisiones(db,totales)
+    // do erp.compras.procesos.reaplicarPagos(db,totales,data)
+    
     do print(to.json(totales))
 
     do dbr.close(db)

@@ -1,5 +1,9 @@
 var procesar =
 {
+    total:0.00,
+    decs:4,
+    tcd:1,
+
     init()
     {
         const form_contado = document.getElementById("form_liquidacion_contado");
@@ -8,11 +12,35 @@ var procesar =
         const form_noaplica = document.getElementById("form_liquidacion_na");
         const form_devolucion = document.getElementById("form_devolucion");
         
+        if (form_contado) this.contado.init(form_contado);
         if (form_credito) this.credito.init(form_credito);
         if (form_devolucion) this.devolucion.init(form_devolucion);
     },
 
-    contado:{},
+    contado:{
+        form:null, fields:null,
+        
+        init(form)
+        {
+            this.form = form;
+            this.fields = form.elements;
+            const sel_cuenta = this.fields["sel_cuenta"];
+            const txt_importe = this.fields["txt_importe"];
+            
+            sel_cuenta.addEventListener("change", () => {
+                const opt_cuenta = sel_cuenta.options[sel_cuenta.selectedIndex];
+                let tcc = Number(opt_cuenta.getAttribute("data-tcambio") ?? "1");
+                let factor = Math.div(procesar.tcd,tcc);
+                let importe = Number(procesar.total);
+                importe = Math.mul(importe,factor);
+                
+                txt_importe.value = Math.RoundTo(importe,procesar.decs)
+            });
+
+            let e = new Event("change");
+            sel_cuenta.dispatchEvent(e);
+        }
+    },
     credito:{
         form:null, fields:null,
 

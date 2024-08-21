@@ -1,7 +1,16 @@
 #include "dkli.dkh"
 #!
-module "procesos.dkh:erp.compras.procesos"
+module ":erp.compras.procesos"
 {
+    // #include "functions.dkh"
+	// #include "serialize.dkh"
+	// #include "dbr.dkh"
+    // #include "dbr.vars.dkl"
+    // #include "inventario/movimientos.dkh"
+	// #include "efectivo/movimientos.dkh"
+	// #include "cxp/movimientos.dkh"
+	// #include "compras/_lib/config.dk"
+
     @convertir_a_divisa_documento = 1
     @convertir_a_divisa_producto = 2
     
@@ -39,9 +48,20 @@ module "procesos.dkh:erp.compras.procesos"
         for i = 0; i < list.count(relatedDocs)
         {
             ref doc = list.obj(relatedDocs,i)
+            ref inf = dbr.rec(db,"SELECT SUM(cantidad) cantidad, SUM(xfacturar) xfacturar, (SUM(cantidad)-SUM(xfacturar)) facturado  FROM dcompra WHERE fk_compra_detalle = @rcompra",doc)
             
-            if dbr.num(db,"SELECT SUM(IFNULL(xfacturar,cantidad)) FROM dcompra WHERE fk_compra_detalle = @rcompra",doc) == 0 
-            { do erp.compras.procesos.setStatus(db,@@(doc,"#rcompra"),formapago) }
+            if @@(inf,"#facturado") == @@(inf,"#cantidad") {
+                do erp.compras.procesos.setStatus(db,@@(doc,"#rcompra"),formapago)
+            }
+            else if @@(inf,"#facturado") > 0
+            {
+                new status
+                {
+                    @"statusentrega": @@(@EDO_ENTREGA,"#cENTREGADO")
+                    @"statusfacturacion": @@(@EDO_FACTURACION,"#cPARCIALMENTE_FACTURADO")
+                    do dbr.update(db,"compra",status,"sys_pk=@rcompra",doc)
+                }
+            }
             else
             {
                 new status
@@ -54,10 +74,9 @@ module "procesos.dkh:erp.compras.procesos"
         }
 
         if start_transaction { do dbr.commit(db) }
-
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -115,10 +134,9 @@ module "procesos.dkh:erp.compras.procesos"
         }
 
         if start_transaction { do dbr.commit(db) }
-
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -158,17 +176,16 @@ module "procesos.dkh:erp.compras.procesos"
         do dbr.execute(db,sql,item)
 
         if start_transaction { do dbr.commit(db) }
-
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
 
-    actualizarCostoUltimoProducto::&db,&item
+    actualizarCostoUltimoProducto::&db,&item,&compra
     {
-        new prm { @"costoultimo": @@(item,"#precio") }
+        new prm { @"costoultimo": erp.compras.procesos.convertir(@@(item,"#precio"),@@(item,"#tcambio"),@@(compra,"#tipocambio"),@convertir_a_divisa_producto) }
         do dbr.update(db,"producto",prm,"sys_pk=@iproducto",item)
     }
 
@@ -226,7 +243,7 @@ module "procesos.dkh:erp.compras.procesos"
         for i = 0; i < list.count(dcompra)
         {
             ref item = list.obj(dcompra,i)
-            if @@(item,"#doc_partida") != -99
+            if @@(item,"#doc_partida") > 0
             {
                 if not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",item)){
                     action = "recibir"
@@ -239,7 +256,7 @@ module "procesos.dkh:erp.compras.procesos"
                 }
             }
 
-            do erp.compras.procesos.actualizarCostoUltimoProducto(db,item)
+            do erp.compras.procesos.actualizarCostoUltimoProducto(db,item,compra)
 
             if not(@@(item,"#mov_aplicado"))
             {
@@ -274,7 +291,7 @@ module "procesos.dkh:erp.compras.procesos"
 
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -351,7 +368,7 @@ module "procesos.dkh:erp.compras.procesos"
 
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -426,12 +443,11 @@ module "procesos.dkh:erp.compras.procesos"
         }
 
         if start_transaction { do dbr.commit(db) }
-
         return last_id
 
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -439,9 +455,11 @@ module "procesos.dkh:erp.compras.procesos"
     setStatus::&db,icompra,formapago
     {
         namespace "erp.compras.procesos"
+        
+        start_transaction = @false
 
         new params { @"icompra": icompra }
-        ref compra = dbr.rec(db,ftext("SELECT c.documento, (f.sys_pk IS NOT NULL) AS facturado FROM compra c LEFT JOIN compra f ON c.aplicadoa = f.sys_pk AND f.documento = #<@cFACTURA> WHERE c.sys_pk = @icompra;"),params)
+        ref compra = dbr.rec(db,"SELECT c.documento FROM compra c WHERE c.sys_pk = @icompra;",params)
 
         ref fpago_edofin = record.create()
         fpago_edofin<@@(@FORMAS_PAGO,"$cNO_APLICA")> : @@(@EDO_FINANCIERO,"#cNO_APLICA")
@@ -482,10 +500,20 @@ module "procesos.dkh:erp.compras.procesos"
             }
             case @cREMISION
             {
+                ref inf = dbr.rec(db,"SELECT SUM(cantidad) cantidad, SUM(xfacturar) xfacturar, (SUM(cantidad)-SUM(xfacturar)) facturado  FROM dcompra WHERE fk_compra_detalle = @icompra",params)
+
+                statusfacturacion = @@(@EDO_FACTURACION,"#cPOR_FACTURAR")
+                if @@(inf,"#facturado") == @@(inf,"#cantidad") {
+                    statusfacturacion = @@(@EDO_FACTURACION,"#cFACTURADO")
+                }
+                else if @@(inf,"#facturado") > 0 {
+                    statusfacturacion = @@(@EDO_FACTURACION,"#cPARCIALMENTE_FACTURADO")
+                }
+
                 using status
                 {
                     @"statusentrega": @@(@EDO_ENTREGA,"#cENTREGADO")
-                    @"statusfacturacion": if(@@(compra,"#facturado"), @@(@EDO_FACTURACION,"#cFACTURADO"), @@(@EDO_FACTURACION,"#cPOR_FACTURAR"))
+                    @"statusfacturacion": statusfacturacion
                     @"statusfinanciero": field.dnum(fpago_edofin,formapago,@@(@EDO_FINANCIERO,"#cNO_APLICA"))
                 }
                 break
@@ -509,8 +537,6 @@ module "procesos.dkh:erp.compras.procesos"
                 break
             }
         }
-
-        start_transaction = @false
         
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
@@ -521,16 +547,16 @@ module "procesos.dkh:erp.compras.procesos"
         if formapago != @@(@FORMAS_PAGO,"#cNO_APLICA") { do setStatusToRelatedDocs(db,icompra,formapago) }
 
         if start_transaction { do dbr.commit(db) }
-
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
 
     totalFactura::&db,ifactura
     {
+        decs = parse.num(dbr.vars.get(db,"FXCA001"))
         new params
         {
             @"ifactura": ifactura
@@ -538,9 +564,22 @@ module "procesos.dkh:erp.compras.procesos"
             @"factura": @cFACTURA
             @"fp_contado": @FORMAS_PAGO.cCONTADO
             @"fp_credito": @FORMAS_PAGO.cCREDITO
+            @"decs": decs
         }
 
-        sql_factura = "SELECT referencia, iproveedor, (subtotal - descuento1 - descuento2 + impuesto1 + impuesto2 + impuesto3 + impuesto4) total FROM compra WHERE sys_pk=@ifactura"
+        sql_factura = "
+        SELECT
+            f.sys_pk,
+            f.referencia,
+            f.iproveedor,
+            ROUND(f.subtotal - f.descuento1 - f.descuento2 + f.impuesto1 + f.impuesto2 + f.impuesto3 + f.impuesto4, @decs) total,
+            (f.tipocambio / dp.tcambio) factor
+        FROM compra f
+            INNER JOIN proveedor p ON f.iproveedor=p.sys_pk
+            INNER JOIN divisa dp ON p.idivisa=dp.sys_pk
+        WHERE f.sys_pk=@ifactura
+        "
+
         sql_total_contado = "
         SELECT
             IFNULL(SUM((((IFNULL(d.precio,0) * IFNULL(d.cantidad,0))
@@ -609,15 +648,7 @@ module "procesos.dkh:erp.compras.procesos"
                 + IFNULL(d.impuesto3,0)
                 + IFNULL(d.impuesto4,0))
             ) AS facturado,
-            (SUM((((IFNULL(d.precio,0) * IFNULL(d.cantidad,0))
-                - IFNULL(d.descuento1,0)
-                - IFNULL(d.descuento2,0))
-                + IFNULL(d.impuesto1,0)
-                + IFNULL(d.impuesto2,0)
-                + IFNULL(d.impuesto3,0)
-                + IFNULL(d.impuesto4,0)))
-                / (rm.subtotal - rm.descuento1 - rm.descuento2 + rm.impuesto1 + rm.impuesto2 + rm.impuesto3 + rm.impuesto4)
-            ) proporcion,
+            ROUND(SUM((((IFNULL(d.precio,0) * IFNULL(d.cantidad,0)) - IFNULL(d.descuento1,0) - IFNULL(d.descuento2,0)) + IFNULL(d.impuesto1,0) + IFNULL(d.impuesto2,0) + IFNULL(d.impuesto3,0) + IFNULL(d.impuesto4,0))) / (rm.subtotal - rm.descuento1 - rm.descuento2 + rm.impuesto1 + rm.impuesto2 + rm.impuesto3 + rm.impuesto4), @decs) proporcion,
             IFNULL(xp.pagos,0) pagos,
             IFNULL(xp.bonificaciones,0) bonificaciones,
             (IFNULL(xp.haber,0) + IFNULL(xp.intmoratorios,0) - IFNULL(xp.pagos,0) - IFNULL(xp.bonificaciones,0)) AS saldo
@@ -632,23 +663,31 @@ module "procesos.dkh:erp.compras.procesos"
         GROUP BY rm.sys_pk;
         "
 
+        ref factura = dbr.rec(db,sql_factura,params)
+        ref detalles = dbr.list(db,sql_detalle,params)
+
         ref _detalles = record.create()
         _contado = 0
         _credito = 0
-        _directo = 0
+        _directo = (dbr.num(db,sql_total_directo,params) * @@(factura,"#factor"))
         _pagos = 0
         _bonificaciones = 0
 
-        ref detalles = dbr.list(db,sql_detalle,params)
         for i=0; i<list.count(detalles)
         {
             ref obj = list.obj(detalles,i)
 
+            obj<"total"> : round(@@(obj,"#total") * @@(factura,"#factor"), decs)
+            obj<"facturado"> : round(@@(obj,"#facturado") * @@(factura,"#factor"), decs)
+
             pagos = (@@(obj,"#pagos") * @@(obj,"#proporcion"))
             _pagos = _pagos + pagos
-            obj<"pagos"> : pagos
+            obj<"pagos"> : round(pagos,decs)
 
             _bonificaciones = _bonificaciones + @@(obj,"#bonificaciones")
+            obj<"bonificaciones"> : round(@@(obj,"#bonificaciones"),decs)
+
+            obj<"saldo"> : round(@@(obj,"#saldo"),decs)
 
             if @@(obj,"#ifp") == @FORMAS_PAGO.cCONTADO
             {
@@ -664,17 +703,18 @@ module "procesos.dkh:erp.compras.procesos"
             _detalles<@@(obj,"$referencia")+"*"> : obj
         }
 
-        ref factura = dbr.rec(db,sql_factura,params)
         new data
         {
-            @"factura": @@(factura,"$referencia")
+            @"ifactura": @@(factura,"#sys_pk")
+            @"referencia": @@(factura,"$referencia")
             @"iproveedor": @@(factura,"#iproveedor")
+            @"factor": @@(factura,"#factor")
             @"total": @@(factura,"#total")
-            @"contado": _contado
-            @"credito": _credito
-            @"directo": dbr.num(db,sql_total_directo,params)
-            @"pagos": _pagos
-            @"bonificaciones": _bonificaciones
+            @"contado": round(_contado,decs)
+            @"credito": round(_credito,decs)
+            @"directo": round(_directo,decs)
+            @"pagos": round(_pagos,decs)
+            @"bonificaciones": round(_bonificaciones,decs)
             @"detalles*": _detalles
         }
         return data
@@ -696,15 +736,16 @@ module "procesos.dkh:erp.compras.procesos"
         {
             @"aplicable": @false
             @"documento": @cNOTA_DE_CREDITO
-            @"referencia": @@(data,"$factura")+"/BNDC"
+            @"referencia": @@(data,"$referencia")+"/BNDC"
             @"fecha": date_str(now(),"yyyy-MM-dd")
             @"flimite": date_str(now(),"yyyy-MM-dd")
             @"iproveedor": @@(data,"#iproveedor")
             @"tcambio": dbr.num(db,"select d.tcambio from proveedor p inner join divisa d on p.idivisa=d.sys_pk where p.sys_pk=@iproveedor",params)
             @"importe": @@(data,"#credito")
             @"concepto": "Facturación de documento"
+            @"icompra": @@(data,"#ifactura")
         }
-        pk_boni = erp.cxp.movimientos.crearCxP(db,bonificacion)
+        pk_boni = 0
         
         ref lista = list.create_from_fields(detalles)
         for i=0; i<list.count(lista)
@@ -714,6 +755,8 @@ module "procesos.dkh:erp.compras.procesos"
 
             if rem.ifp == @FORMAS_PAGO.cCREDITO
             {
+                if pk_boni == 0 { pk_boni = erp.cxp.movimientos.crearCxP(db,bonificacion) }
+
                 new aplcxp
                 {
                     @"sys_pk": 0
@@ -740,11 +783,92 @@ module "procesos.dkh:erp.compras.procesos"
         }
     }
 
-    devolucion::&db,&data
+    reaplicarPagos::&db,&totales,&data
     {
-        if @@(data,"#documento") != @cNOTA_DE_CREDITO { do rise_error(500,"El documento no es una Nota de Crédito (Devolución).") }
+        ref detalles = @@(totales,"&detalles")
 
         start_transaction = @false
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        new dcxp
+        {
+            @"aplicable": @true
+            @"documento": @@(data,"#documento")
+            @"fecha": date_str(now(),"yyyy-MM-dd")
+            @"flimite": @@(data,"$flimite")
+            @"importe": @@(totales,"#credito") + @@(totales,"#directo")
+            @"concepto": @@(data,"$concepto")
+            @"referencia": @@(data,"$referencia")
+            @"tcambio": dbr.num(db,"select d.tcambio from proveedor p inner join divisa d on p.idivisa=d.sys_pk where p.sys_pk=@iproveedor",data)
+            @"iproveedor": @@(data,"#iproveedor")
+            @"icompra": @@(data,"#icompra")
+        }
+        idcxp = erp.cxp.movimientos.crearCxP(db,dcxp)
+
+        ref lista = list.create_from_fields(detalles)
+        for i=0; i<list.count(lista)
+        {
+            key = list.str(lista,i)
+            ref rem = @@(detalles,"&"+key)
+
+            if rem.ifp == @FORMAS_PAGO.cCREDITO && rem.pagos > 0 && rem.bonificaciones > 0
+            {
+                ref aplicados = dbr.list(db,"SELECT a.sys_pk, a.importe, a.destino, a.aplicadoa FROM aplcxp a INNER JOIN dcxp c ON a.fk_dcxp_aplicadoa=c.sys_pk LEFT JOIN compra d ON c.icompra=d.sys_pk WHERE  ifnull(d.documento,0)<>"+str(@cFACTURA)+" AND a.aplicadoa=@pk_cxp;",rem)
+                for j=0; j<list.count(aplicados)
+                {
+                    ref apl = list.obj(aplicados,j)
+
+                    apl<"impp"> : @@(apl,"#importe") * @@(rem,"#proporcion")
+                    apl<"ifac"> : idcxp
+
+                    do dbr.execute(db,"UPDATE aplcxp SET importe = importe - @impp WHERE sys_pk = @sys_pk",apl)
+
+                    new aplcxp
+                    {
+                        @"sys_pk": 0
+                        @"sys_guid": uuid()
+                        @"sys_dtcreated*": dbr.sql("now()")
+                        @"sys_timestamp*": dbr.sql("now()")
+                        @"sys_recver": 0
+                        @"destino": @@(apl,"#destino")
+                        @"fecha*": dbr.sql("now()")
+                        @"importe": @@(apl,"#impp")
+                        @"fk_dcxp_aplicadoa": idcxp
+                        @"aplicadoa": @@(apl,"#aplicadoa")
+                    }
+                    do dbr.insert(db,"aplcxp",aplcxp)
+
+                    if apl.destino == @CXP_DESTINO_APLICACION_PAGOS
+                    {
+                        do dbr.execute(db,"UPDATE dcxp SET pagos = IFNULL(pagos,0) + @impp WHERE sys_pk = @ifac",apl)
+                        do dbr.execute(db,"UPDATE dcxp SET pagos = IFNULL(pagos,0) - @impp WHERE sys_pk = @aplicadoa",apl)
+                    }
+                    if apl.destino == @CXP_DESTINO_APLICACION_BONIFICACIONES
+                    {
+                        do dbr.execute(db,"UPDATE dcxp SET bonificaciones = IFNULL(bonificaciones,0) + @impp WHERE sys_pk = @ifac",apl)
+                        do dbr.execute(db,"UPDATE dcxp SET bonificaciones = IFNULL(bonificaciones,0) - @impp WHERE sys_pk = @aplicadoa",apl)
+                    }
+                }
+            }
+        }
+
+        if start_transaction { do dbr.commit(db) }
+        exception
+        {
+            if start_transaction { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    devolucion::&db,&data
+    {
+        start_transaction = @false
+
+        if @@(data,"#documento") != @cNOTA_DE_CREDITO { do rise_error(500,"El documento no es una Nota de Crédito (Devolución).") }
         
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
@@ -815,10 +939,9 @@ module "procesos.dkh:erp.compras.procesos"
         }
 
         if start_transaction { do dbr.commit(db) }
-
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -835,13 +958,12 @@ module "procesos.dkh:erp.compras.procesos"
         if @@(data,"#documento") == @cNOTA_DE_CREDITO { do erp.compras.procesos.devolucion(db,data) }
 
         // Establecer los estados correspondientes.
-        do erp.compras.procesos.setStatus(db,@@(data,"#icompra"),@@(@FORMAS_PAGO,"#cNO_APLICA"))
+        do erp.compras.procesos.setStatus(db,@@(data,"#icompra"),@@(@FORMAS_PAGO,"#cCONTADO"))
 
         if start_transaction { do dbr.commit(db) }
-
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -860,10 +982,15 @@ module "procesos.dkh:erp.compras.procesos"
         }
 
         // Generar movimiento de entrada de inventario y aplicar.
-        do erp.inventario.aplicar_mov(db,erp.compras.procesos.entradaInventario(db,icompra,cat_movinv),@false)
+        mov_sys_pk = erp.compras.procesos.entradaInventario(db,icompra,cat_movinv)
+        do erp.inventario.aplicar_mov(db,mov_sys_pk,@false)
         // Realizar retiro a la cuenta.
-        data<"icategoria"> : cat_egreso
-        mov_sys_pk = erp.efectivo.movimientos.retiro(db,data)
+        ref retiro = record.copy(data,"*")
+        factor = dbr.num(db,"SELECT (d.tipocambio/dc.tcambio) factor FROM compra d, chequera c INNER JOIN divisa dc ON c.idivisa=dc.sys_pk WHERE d.sys_pk=@icompra AND c.sys_pk=@icuenta;",data)
+        retiro<"referencia"> : @@(data,"$ref_ret")
+        retiro<"icategoria"> : cat_egreso
+        retiro<"importe"> : @@(data,"#importe") * factor
+        mov_sys_pk = erp.efectivo.movimientos.retiro(db,retiro)
         // Establecer los estados correspondientes.
         do erp.compras.procesos.setStatus(db,icompra,@@(@FORMAS_PAGO,"#cCONTADO"))
         new params
@@ -874,10 +1001,9 @@ module "procesos.dkh:erp.compras.procesos"
         do dbr.execute(db,"UPDATE compra SET imovchequera=@movret WHERE sys_pk = @icompra",params)
 
         if start_transaction { do dbr.commit(db) }
-
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -886,8 +1012,8 @@ module "procesos.dkh:erp.compras.procesos"
     {
         start_transaction = @false
 
-        icompra : data<"icompra">
-        icategoria : data<"icategoria">
+        icompra = @@(data,"#icompra")
+        icategoria = @@(data,"#icategoria")
 
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
@@ -896,16 +1022,32 @@ module "procesos.dkh:erp.compras.procesos"
         
         // Generar movimiento de entrada de inventario y aplicar.
         do erp.inventario.aplicar_mov(db,erp.compras.procesos.entradaInventario(db,icompra,icategoria),@false)
-        // Agregar documento por pagar (dcxp) y afectar el saldo del proveedor.
-        do erp.cxp.movimientos.crearCxP(db,data)
+        
+        if @@(data,"#documento") == @cFACTURA
+        {
+            ref totales = erp.compras.procesos.totalFactura(db,icompra)
+            do erp.compras.procesos.bonificarRemisiones(db,totales)
+            do erp.compras.procesos.reaplicarPagos(db,totales,data)
+        }
+        else
+        {
+            // Agregar documento por pagar (dcxp) y afectar el saldo del proveedor.
+            ref doc = dbr.rec(db,"select c.tipocambio tcd, dp.tcambio tcp, (c.tipocambio/dp.tcambio) factor from compra c inner join proveedor p on c.iproveedor=p.sys_pk inner join divisa dp on p.idivisa=dp.sys_pk where c.sys_pk=@icompra",data)
+            
+            ref dcxp = record.copy(data,"*")
+            dcxp<"importe"> : @@(data,"#importe") * @@(doc,"#factor")
+            dcxp<"tipocambio"> : @@(doc,"#tcp")
+            
+            do erp.cxp.movimientos.crearCxP(db,dcxp)
+        }
+        
         // Establecer los estados correspondientes.
         do erp.compras.procesos.setStatus(db,icompra,@@(@FORMAS_PAGO,"#cCREDITO"))
 
         if start_transaction { do dbr.commit(db) }
-
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -925,10 +1067,9 @@ module "procesos.dkh:erp.compras.procesos"
         do erp.compras.procesos.setStatus(db,icompra,@@(@FORMAS_PAGO,"#cCONSIGNADO"))
 
         if start_transaction { do dbr.commit(db) }
-
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }

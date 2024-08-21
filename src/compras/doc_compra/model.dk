@@ -256,7 +256,7 @@ module "model"
         {
             @url_redir = @DOC_AGREGAR + "?insert="+@@(entity,"$sys_pk")+"&doc="+str(@cREMISION)
         }
-        if nvo_status_admin == cPROCESADO && @@(compra,"#documento") == @cPEDIDO
+        if nvo_status_admin == cPROCESADO
         {
             if not(isnull(@@(compra,"&_detalle")))
             {
@@ -265,7 +265,11 @@ module "model"
                 {
                     ref det = list.obj(detalle,i)
                     if @@(det,"$origen") != "" && not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
-                        do rise_error(500, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$descripcion"))
+                        msg = ""
+                        if @@(compra,"#documento") == @cPEDIDO { msg="No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$descripcion") }
+                        if @@(compra,"#documento") == @cREMISION { msg="No se puede recibir más de la cantidad pedida del producto: "+@@(det,"$descripcion") }
+                        if @@(compra,"#documento") == @cFACTURA { msg="No se puede facturar más de la cantidad recibida del producto: "+@@(det,"$descripcion") }
+                        do rise_error(500, msg)
                     }
                 }
             }
@@ -335,13 +339,17 @@ module "model"
         do doc.setAplicadoAFromDetalle(db,@@(compra,"&_detalle"),compra)
         do doc.valideCantidadDetalle(@@(compra,"&_detalle"))
         
-        if @@(compra,"#documento") == @cPEDIDO && nvo_status_admin == cPROCESADO && not(isnull(@@(compra,"&_detalle"))) {
+        if nvo_status_admin == cPROCESADO && not(isnull(@@(compra,"&_detalle"))) {
             ref detalle = @@(compra,"&_detalle")
             for i = 0; i < list.count(detalle)
             {
                 ref det = list.obj(detalle,i)
                 if @@(det,"$origen") != "" && not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",det)){
-                    do rise_error(0, "No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$descripcion"))
+                    msg = ""
+                    if @@(compra,"#documento") == @cPEDIDO { msg="No se puede pedir más de la cantidad cotizada del producto: "+@@(det,"$descripcion") }
+                    if @@(compra,"#documento") == @cREMISION { msg="No se puede recibir más de la cantidad pedida del producto: "+@@(det,"$descripcion") }
+                    if @@(compra,"#documento") == @cFACTURA { msg="No se puede facturar más de la cantidad recibida del producto: "+@@(det,"$descripcion") }
+                    do rise_error(500, msg)
                 }
             }
         }
@@ -523,6 +531,7 @@ module "model"
             IFNULL((((((c.subtotal - c.descuento1) - c.descuento2) + c.impuesto1) + c.impuesto2) + c.impuesto3) + c.impuesto4,0) AS total,
             sf.const AS edo_financiero,
             fp.const AS forma_pago,
+            ef.const AS edo_facturacion,
             sa.const AS edo_administrativo
         FROM compra AS c
             INNER JOIN proveedor AS pdr ON pdr.sys_pk = c.iproveedor
@@ -531,6 +540,7 @@ module "model"
             INNER JOIN cformaspago AS fp ON fp.id = c.formapago
             INNER JOIN cstatusfinancieros AS sf ON sf.id = c.statusfinanciero
             INNER JOIN cstatusadministrativos AS sa ON sa.id = c.statusadministrativo
+            INNER JOIN cstatusfacturacion AS ef ON ef.id = c.statusfacturacion
         WHERE IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento))=@year)
             AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento))=@month))
             AND IF(IFNULL(@s,'')='', true, c.referencia LIKE CONCAT('%',@s,'%') OR pdr.codigo LIKE CONCAT('%',@s,'%') OR pdr.nombre LIKE CONCAT('%',@s,'%') OR pdr.rfc LIKE CONCAT('%',@s,'%'))
@@ -539,7 +549,7 @@ module "model"
             AND IF(IFNULL(@cdoc,'-1')='-1', true, doc.id = @cdoc)
             AND IF(IFNULL(@stat_finac,'-1')='-1', true, sf.id = @stat_finac)
             AND IF(IFNULL(@stat_admin,'-1')='-1', true, sa.id = @stat_admin)
-        ORDER BY c.sys_dtcreated ASC
+        ORDER BY c.fecha, c.referencia
         LIMIT #<@default_max_rows>;"
 
         sql_cdocumentos = "SELECT d.id, d.const FROM cdocumentos d INNER JOIN cfg_doc_compras dc ON d.id=dc.documento ORDER BY d.id;"

@@ -112,6 +112,11 @@ module "list.dk"
                 @"caption":"Forma de pago"
                 @"align": "center"
             }
+            member @"edo_facturacion"
+            {
+                @"caption":"Estado de facturación"
+                @"align": "center"
+            }
             member @"edo_administrativo"
             {
                 @"caption":"Estado administrativo"

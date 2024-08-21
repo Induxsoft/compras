@@ -47,7 +47,7 @@ module "lib.dk"
     function form(name,type,&obj)
     {
         name = trim(str(name))
-        if isnull(obj) { new obj {} }
+        if isnull(obj) { ref obj:record.create() }
 
         switch str(type)
         {
