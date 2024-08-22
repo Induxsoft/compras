@@ -1,0 +1,23 @@
+#include "dkli.dkh"
+#!
+program ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
+    #include "dbr.localize.dkl"
+
+    ref db = dbr.open("v12demo1@appsdkl")
+    do dbr.localize.init(db)
+
+    ref divisa = dbr.localize.money(db,@dbr.localize.default.money_code)
+    do print(to.json(divisa))
+
+    do dbr.close(db)
+    exception
+    {
+        do dbr.close(db)
+        do print(last_error())
+    }
+}

@@ -24,63 +24,6 @@ module ":erp.compras.procesos"
         }
     }
 
-    setStatusToRelatedDocs::&db,compra_pk,formapago
-    {
-        new params { @"icompra": compra_pk }
-
-        sql_related_docs = "
-        SELECT dc2.fk_compra_detalle rcompra
-        FROM dcompra dc
-            INNER JOIN dcompra dc2 ON dc.doc_partida = dc2.sys_pk
-        WHERE dc.fk_compra_detalle = @icompra
-        GROUP BY dc2.fk_compra_detalle
-        "
-        ref relatedDocs = dbr.list(db,sql_related_docs,params)
-        if list.count(relatedDocs) <= 0 { return }
-
-        start_transaction = @false
-
-        if not(dbr.in_transaction(db)) {
-            do dbr.begin(db)
-            start_transaction = @true
-        }
-        
-        for i = 0; i < list.count(relatedDocs)
-        {
-            ref doc = list.obj(relatedDocs,i)
-            ref inf = dbr.rec(db,"SELECT SUM(cantidad) cantidad, SUM(xfacturar) xfacturar, (SUM(cantidad)-SUM(xfacturar)) facturado  FROM dcompra WHERE fk_compra_detalle = @rcompra",doc)
-            
-            if @@(inf,"#facturado") == @@(inf,"#cantidad") {
-                do erp.compras.procesos.setStatus(db,@@(doc,"#rcompra"),formapago)
-            }
-            else if @@(inf,"#facturado") > 0
-            {
-                new status
-                {
-                    @"statusentrega": @@(@EDO_ENTREGA,"#cENTREGADO")
-                    @"statusfacturacion": @@(@EDO_FACTURACION,"#cPARCIALMENTE_FACTURADO")
-                    do dbr.update(db,"compra",status,"sys_pk=@rcompra",doc)
-                }
-            }
-            else
-            {
-                new status
-                {
-                    @"statusentrega": @@(@EDO_ENTREGA,"#cPOR_ENTREGAR")
-                    @"statusfacturacion": @@(@EDO_FACTURACION,"#cPOR_FACTURAR")
-                }
-                do dbr.update(db,"compra",status,"sys_pk=@rcompra",doc)
-            }
-        }
-
-        if start_transaction { do dbr.commit(db) }
-        exception
-        {
-            if start_transaction { do dbr.rollback(db) }
-            do rise_error(last_error_code(),last_error())
-        }
-    }
-
     asignarLoteSerie::&db,&item,&dcardex
     {
         start_transaction = @false
@@ -243,20 +186,18 @@ module ":erp.compras.procesos"
         for i = 0; i < list.count(dcompra)
         {
             ref item = list.obj(dcompra,i)
-            if @@(item,"#doc_partida") > 0
-            {
-                if not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",item)){
-                    action = "recibir"
-                    operation = "pedida"
-                    if @@(compra,"#documento") == @cFACTURA {
-                        action = "facturar"
-                        operation = "recibida"
-                    }
-                    do rise_error(0, ftext("No se puede #<action> más de la cantidad #<operation> del producto: ")+@@(item,"$producto"))
-                }
-            }
-
-            do erp.compras.procesos.actualizarCostoUltimoProducto(db,item,compra)
+            // if @@(item,"#doc_partida") > 0
+            // {
+            //     if not(dbr.execute(db,"UPDATE dcompra SET xfacturar=(xfacturar-@cantidad) WHERE (xfacturar-@cantidad)>=0 AND sys_pk=@doc_partida;",item)){
+            //         action = "recibir"
+            //         operation = "pedida"
+            //         if @@(compra,"#documento") == @cFACTURA {
+            //             action = "facturar"
+            //             operation = "recibida"
+            //         }
+            //         do rise_error(0, ftext("No se puede #<action> más de la cantidad #<operation> del producto: ")+@@(item,"$producto"))
+            //     }
+            // }
 
             if not(@@(item,"#mov_aplicado"))
             {
@@ -284,6 +225,8 @@ module ":erp.compras.procesos"
                 do erp.compras.procesos.asignarLoteSerie(db,item,dcardex)
                 do dbr.insert(db,"dcardex",dcardex)
             }
+
+            do erp.compras.procesos.actualizarCostoUltimoProducto(db,item,compra)
         }
 
         if start_transaction { do dbr.commit(db) }
@@ -477,6 +420,21 @@ module ":erp.compras.procesos"
             @"statusfinanciero": @@(@EDO_FINANCIERO,"#cNO_APLICA")
         }
 
+        sql_included_docs = "
+        SELECT
+            df.fk_compra_detalle AS icompra,
+            dr.fk_compra_detalle AS rcompra,
+            r.documento AS rdocumento,
+            SUM(dr.cantidad) cantidad,
+            SUM(df.cantidad) facturado,
+            (SUM(dr.cantidad)-SUM(df.cantidad)) xfacturar
+        FROM dcompra df
+            INNER JOIN dcompra dr ON df.doc_partida = dr.sys_pk
+            INNER JOIN compra r ON dr.fk_compra_detalle = r.sys_pk
+        WHERE df.fk_compra_detalle = @icompra
+        GROUP BY dr.fk_compra_detalle;
+        "
+
         switch @@(compra,"#documento")
         {
             case @cCOTIZACION
@@ -500,20 +458,10 @@ module ":erp.compras.procesos"
             }
             case @cREMISION
             {
-                ref inf = dbr.rec(db,"SELECT SUM(cantidad) cantidad, SUM(xfacturar) xfacturar, (SUM(cantidad)-SUM(xfacturar)) facturado  FROM dcompra WHERE fk_compra_detalle = @icompra",params)
-
-                statusfacturacion = @@(@EDO_FACTURACION,"#cPOR_FACTURAR")
-                if @@(inf,"#facturado") == @@(inf,"#cantidad") {
-                    statusfacturacion = @@(@EDO_FACTURACION,"#cFACTURADO")
-                }
-                else if @@(inf,"#facturado") > 0 {
-                    statusfacturacion = @@(@EDO_FACTURACION,"#cPARCIALMENTE_FACTURADO")
-                }
-
                 using status
                 {
                     @"statusentrega": @@(@EDO_ENTREGA,"#cENTREGADO")
-                    @"statusfacturacion": statusfacturacion
+                    @"statusfacturacion": @@(@EDO_FACTURACION,"#cPOR_FACTURAR")
                     @"statusfinanciero": field.dnum(fpago_edofin,formapago,@@(@EDO_FINANCIERO,"#cNO_APLICA"))
                 }
                 break
@@ -524,6 +472,42 @@ module ":erp.compras.procesos"
                 {
                     @"statusentrega": @@(@EDO_ENTREGA,"#cENTREGADO")
                     @"statusfinanciero": field.dnum(fpago_edofin,formapago,@@(@EDO_FINANCIERO,"#cNO_APLICA"))
+                }
+
+                ref includes = dbr.list(db,sql_included_docs,params)
+                for i = 0; i < list.count(includes)
+                {
+                    ref obj = list.obj(includes,i)
+                    if @@(obj,"#rdocumento") == @cREMISION
+                    {
+                        if @@(obj,"#xfacturar") == 0
+                        {
+                            new rstatus
+                            {
+                                @"statusentrega": @@(@EDO_ENTREGA,"#cENTREGADO")
+                                @"statusfacturacion": @@(@EDO_FACTURACION,"#cFACTURADO")
+                            }
+                            do dbr.update(db,"compra",rstatus,"sys_pk=@rcompra",obj)
+                        }
+                        else if @@(obj,"#xfacturar") > 0 && (@@(obj,"#facturado") < @@(obj,"#cantidad"))
+                        {
+                            new rstatus
+                            {
+                                @"statusentrega": @@(@EDO_ENTREGA,"#cENTREGADO")
+                                @"statusfacturacion": @@(@EDO_FACTURACION,"#cPARCIALMENTE_FACTURADO")
+                            }
+                            do dbr.update(db,"compra",rstatus,"sys_pk=@rcompra",obj)
+                        }
+
+                        sql_update_xfacturar = "
+                        UPDATE dcompra AS df
+                            INNER JOIN dcompra AS dr ON df.doc_partida = dr.sys_pk
+                            INNER JOIN compra AS r ON dr.fk_compra_detalle = r.sys_pk
+                        SET df.xfacturar = 0, dr.xfacturar = (dr.xfacturar - df.cantidad)
+                        WHERE df.fk_compra_detalle = @icompra AND dr.fk_compra_detalle = @rcompra;
+                        "
+                        do dbr.execute(db,sql_update_xfacturar,obj)
+                    }
                 }
                 break
             }
@@ -544,7 +528,6 @@ module ":erp.compras.procesos"
         }
 
         do dbr.update(db,"compra",status,"sys_pk = @icompra",params)
-        if formapago != @@(@FORMAS_PAGO,"#cNO_APLICA") { do setStatusToRelatedDocs(db,icompra,formapago) }
 
         if start_transaction { do dbr.commit(db) }
         exception
@@ -986,17 +969,19 @@ module ":erp.compras.procesos"
         do erp.inventario.aplicar_mov(db,mov_sys_pk,@false)
         // Realizar retiro a la cuenta.
         ref retiro = record.copy(data,"*")
+        decs = parse.num(dbr.vars.get(db,"FXCA001"))
         factor = dbr.num(db,"SELECT (d.tipocambio/dc.tcambio) factor FROM compra d, chequera c INNER JOIN divisa dc ON c.idivisa=dc.sys_pk WHERE d.sys_pk=@icompra AND c.sys_pk=@icuenta;",data)
+        
         retiro<"referencia"> : @@(data,"$ref_ret")
         retiro<"icategoria"> : cat_egreso
-        retiro<"importe"> : @@(data,"#importe") * factor
-        mov_sys_pk = erp.efectivo.movimientos.retiro(db,retiro)
+        retiro<"importe"> : round(@@(data,"#importe") * factor, decs)
+        ret_sys_pk = erp.efectivo.movimientos.retiro(db,retiro)
         // Establecer los estados correspondientes.
         do erp.compras.procesos.setStatus(db,icompra,@@(@FORMAS_PAGO,"#cCONTADO"))
         new params
         {
             @"icompra": icompra
-            @"movret": mov_sys_pk
+            @"movret": ret_sys_pk
         }
         do dbr.execute(db,"UPDATE compra SET imovchequera=@movret WHERE sys_pk = @icompra",params)
 
@@ -1035,8 +1020,10 @@ module ":erp.compras.procesos"
             ref doc = dbr.rec(db,"select c.tipocambio tcd, dp.tcambio tcp, (c.tipocambio/dp.tcambio) factor from compra c inner join proveedor p on c.iproveedor=p.sys_pk inner join divisa dp on p.idivisa=dp.sys_pk where c.sys_pk=@icompra",data)
             
             ref dcxp = record.copy(data,"*")
-            dcxp<"importe"> : @@(data,"#importe") * @@(doc,"#factor")
-            dcxp<"tipocambio"> : @@(doc,"#tcp")
+            decs = parse.num(dbr.vars.get(db,"FXCA001"))
+
+            dcxp<"importe"> : round(@@(data,"#importe") * @@(doc,"#factor"), decs)
+            dcxp<"tcambio"> : @@(doc,"#tcp")
             
             do erp.cxp.movimientos.crearCxP(db,dcxp)
         }

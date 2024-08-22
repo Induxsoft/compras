@@ -388,8 +388,8 @@ document.addEventListener("DOMContentLoaded", () =>
         }
         return ok;
     }
-    function updateCotizados()
-    {
+
+    function updateCotizados() {
         if (init_insert) tData.forEach(d=>updateCotizado(d));
     }
     function updateCotizado(producto)
@@ -521,7 +521,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 break;
             case cREMISION:
-                table.changeColumnTitle("cotizado","Pedido");
+                table.changeColumnTitle("cotizado","Recibido");
                 // console.log(idocumento, "cREMISION");
                 if (statusadministrativo === "")
                 {
@@ -552,7 +552,7 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 break;
             case cFACTURA:
-                table.changeColumnTitle("cotizado","Recibido");
+                table.changeColumnTitle("cotizado","Facturado");
                 // console.log(idocumento, "cFACTURA");
                 if (statusadministrativo === "")
                 {

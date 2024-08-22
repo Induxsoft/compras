@@ -20,7 +20,9 @@ module "doc.procesar.dk"
     ref cfgdoc = ifnull(@("&./cfg_doc_compra"),record.create())
 
     decs = parse.num(dbr.vars.get(@("&database"),"FXCA001"))
-    rems_credito = dbr.num(@("&database"),"SELECT COUNT(DISTINCT r.sys_pk) FROM dcompra df INNER JOIN compra r ON df.documento=r.sys_pk WHERE df.fk_compra_detalle = @_entity_id AND r.formapago = 2;",@("&parameters"))
+    rems_credito = dbr.num(@("&database"),"select ifnull(sum(ifnull(cxp.haber,0)+ifnull(cxp.intmoratorios,0)-ifnull(cxp.pagos,0)-ifnull(cxp.bonificaciones,0)),0) saldo
+    from dcompra d inner join compra co on d.documento=co.sys_pk inner join dcxp cxp on cxp.icompra=co.sys_pk 
+    where (d.documento is null or (co.formapago=2 or co.formapago=3)) and co.documento=3 and ifnull(cxp.haber,0)+ifnull(cxp.intmoratorios,0)-ifnull(cxp.pagos,0)-ifnull(cxp.bonificaciones,0)>0 and d.fk_compra_detalle=@_entity_id;",@("&parameters"))
 
     show_form_contado = (not(field.exist(@("&."),"form")) || @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCONTADO'))
     show_form_credito = (field.exist(@("&."),"form") && @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCREDITO'))
@@ -308,7 +310,7 @@ module "doc.procesar.dk"
                                             referencia_retiro = cut(@@(compra,'$referencia'),15)+"/"+uuid()
                                             #$
                                             label(class="form-label" "for"="txt_ref_retiro"){$"Referencia:"}
-                                            input(class="form-control form-control-sm rounded-0" type="text" name="ref_ret" value="#<referencia_retiro>" id="txt_ref_retiro" minlength="3" maxlength="50")
+                                            input(class="form-control form-control-sm rounded-0" type="text" name="ref_ret" value="#<referencia_retiro>" id="txt_ref_retiro" minlength="3" maxlength="50" required="")
                                         }
                                         div(class="col-lg-3 col-md-4")
                                         {

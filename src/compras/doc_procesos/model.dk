@@ -89,25 +89,12 @@ module "model"
     {
         sql_amounts = "
         SELECT
-            IFNULL(SUM(IFNULL(d.precio,0) * IFNULL(d.cantidad,0)),0) AS subtotal,
-            IFNULL(SUM(IFNULL(d.descuento1,0) + IFNULL(d.descuento2,0)),0) AS descuentos,
-            IFNULL(SUM(IFNULL(d.impuesto1,0) + IFNULL(d.impuesto2,0) + IFNULL(d.impuesto3,0) + IFNULL(d.impuesto4,0)),0) AS impuestos,
-            IFNULL(SUM((((((
-                (IFNULL(d.costototal,0) * IFNULL(d.cantidad,0))
-                - IFNULL(d.descuento1,0))
-                - IFNULL(d.descuento2,0))
-                + IFNULL(d.impuesto1,0))
-                + IFNULL(d.impuesto2,0))
-                + IFNULL(d.impuesto3,0))
-                + IFNULL(d.impuesto4,0)
-            ),0) AS total
-        FROM dcompra AS d
-            LEFT JOIN dcardex AS dc ON dc.rcompra = d.sys_pk
-            LEFT JOIN dcompra AS d2 ON d.doc_partida = d2.sys_pk
-            LEFT JOIN dcardex AS dc2 ON dc2.rcompra = d2.sys_pk
-        WHERE
-            d.fk_compra_detalle = @_entity_id
-            AND (dc.rcompra IS NULL AND dc2.rcompra IS NULL)
+            SUM(d.precio * d.cantidad - IFNULL(d.descuento1,0) - IFNULL(d.descuento2,0) + IFNULL(d.impuesto1,0) + IFNULL(d.impuesto2,0) + IFNULL(d.impuesto3,0) + IFNULL(d.impuesto4,0)) total
+        FROM dcompra d
+            INNER JOIN compra c ON d.fk_compra_detalle = c.sys_pk
+            LEFT JOIN compra co ON d.documento = co.sys_pk
+        WHERE (d.documento IS NULL OR (co.formapago = 4 OR co.formapago = 0))
+            AND c.sys_pk = @_entity_id;
         "
         return dbr.rec(db,sql_amounts,params)
     }
