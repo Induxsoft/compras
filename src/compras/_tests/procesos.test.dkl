@@ -11,32 +11,44 @@ program ""
     #include "compras/procesos.dkh"
 
     ref db = dbr.open("v12demo1@appsdkl")
-    factura = 37
+
+    new varval { @"cat_movinv": dbr.vars.get(db,"v12.compras.entrada") }
+    
+    icompra = 128
+    icategoria = dbr.num(db,"select sys_pk from categoria where codigo=@cat_movinv",varval)
 
     new data
     {
-        @"icompra": factura
-        @"iproveedor": 0
-        @"documento": 4
-        @"formapago": 2
+        @"aplicable": @true
+        @"fecha": date_str(now(),"yyyy-MM-dd")
+        @"flimite": date_str(now(),"yyyy-MM-dd")
+        @"documento": @cFACTURA
         @"referencia": ""
-        @"flimite": "2024-08-20"
-        @"tipocambio": 1.00000000
+        @"importe": 0
         @"concepto": "Compra a crédito"
+        @"iproveedor": 0
+        @"icompra": icompra
+        @"icategoria": icategoria
     }
 
-    ref totales = erp.compras.procesos.totalFactura(db,factura)
+    do dbr.begin(db)
+
+    ref totales = erp.compras.procesos.totalFactura(db,icompra)
+    data<"importe"> : @@(totales,"#total")
     data<"iproveedor"> : @@(totales,"#iproveedor")
     data<"referencia"> : @@(totales,"$referencia")
 
-    //do erp.compras.procesos.bonificarRemisiones(db,totales)
-    // do erp.compras.procesos.reaplicarPagos(db,totales,data)
+    do erp.compras.procesos.bonificarRemisiones(db,totales)
+    do erp.compras.procesos.reaplicarPagos(db,totales,data)
     
-    do print(to.json(totales))
+    // do print(to.json(totales))
+    do dbr.commit(db)
+    do print("success")
 
     do dbr.close(db)
     exception
     {
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
         do dbr.close(db)
         do print(last_error())
     }

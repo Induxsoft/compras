@@ -57,7 +57,7 @@ module "model"
                 #<doctypes>
             GROUP BY c.sys_pk
             HAVING SUM(IFNULL(dc.xfacturar,0)) > 0
-            ORDER BY c.fecha
+            ORDER BY c.fecha, c.referencia
             LIMIT #<@default_max_rows>;
         "
         return dbr.list(db,ftext(sql),params)

@@ -138,10 +138,10 @@ document.addEventListener("DOMContentLoaded", () =>
 
     function convertir(value,tcprd,tcdoc,mode) {
         if (mode === convertir_a.divisa_documento) {
-            return Math.RoundTo(Math.div(Math.mul(value,tcprd),tcdoc),8)
+            return Math.RoundTo(Math.div(Math.mul(value,tcprd),tcdoc), DECIMAL_PRECISION)
         }
         if (mode === convertir_a.divisa_producto) {
-            return Math.RoundTo(Math.div(Math.mul(value,tcdoc),tcprd),8)
+            return Math.RoundTo(Math.div(Math.mul(value,tcdoc),tcprd), DECIMAL_PRECISION)
         }
         
         return 0;
@@ -175,14 +175,14 @@ document.addEventListener("DOMContentLoaded", () =>
         let importes = {
             costo: costo,
             cantidad: cantidad,
-            subtotal: subtotal,
-            descuentos: descuentos,
-            impuestos: impuestos,
-            total: total,
-            impuesto1: impuesto1,
-            impuesto2: impuesto2,
-            impuesto3: impuesto3,
-            impuesto4: impuesto4,
+            subtotal: Math.RoundTo(subtotal, DECIMAL_PRECISION),
+            descuentos: Math.RoundTo(descuentos, DECIMAL_PRECISION),
+            impuestos: Math.RoundTo(impuestos, DECIMAL_PRECISION),
+            total: Math.RoundTo(total, DECIMAL_PRECISION),
+            impuesto1: Math.RoundTo(impuesto1, DECIMAL_PRECISION),
+            impuesto2: Math.RoundTo(impuesto2, DECIMAL_PRECISION),
+            impuesto3: Math.RoundTo(impuesto3, DECIMAL_PRECISION),
+            impuesto4: Math.RoundTo(impuesto4, DECIMAL_PRECISION),
         }
 
         return importes;

@@ -29,6 +29,8 @@ module "query_list.dk"
         IFNULL(c.subtotal,0) AS subtotal,
         ((((((IFNULL(c.subtotal,0) - IFNULL(c.descuento1,0)) - IFNULL(c.descuento2,0)) + IFNULL(c.impuesto1,0)) + IFNULL(c.impuesto2,0)) + IFNULL(c.impuesto3,0)) + IFNULL(c.impuesto4,0)) AS total,
         c.tipocambio,
+        dvp.tcambio AS tcdvp,
+        (c.tipocambio/dvp.tcambio) AS factor,
         DATE_FORMAT(c.vencimiento,'%Y-%m-%d') AS vencimiento,
         c.ialmacen,
         c.idivisa,
@@ -42,6 +44,8 @@ module "query_list.dk"
         csf.const edo_facturacion,
         csfi.const edo_financiero
     FROM compra c
+        INNER JOIN proveedor pdr ON c.iproveedor = pdr.sys_pk
+        INNER JOIN divisa dvp ON pdr.idivisa = dvp.sys_pk
         INNER JOIN cdocumentos doc ON c.documento = doc.id
         INNER JOIN divisa dvs ON c.idivisa = dvs.sys_pk
         INNER JOIN cstatusadministrativos csa ON c.statusadministrativo = csa.id

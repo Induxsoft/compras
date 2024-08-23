@@ -89,7 +89,15 @@ module "model"
     {
         sql_amounts = "
         SELECT
-            SUM(d.precio * d.cantidad - IFNULL(d.descuento1,0) - IFNULL(d.descuento2,0) + IFNULL(d.impuesto1,0) + IFNULL(d.impuesto2,0) + IFNULL(d.impuesto3,0) + IFNULL(d.impuesto4,0)) total
+            IFNULL(SUM(
+                (d.precio * d.cantidad)
+                - IFNULL(d.descuento1,0)
+                - IFNULL(d.descuento2,0)
+                + IFNULL(d.impuesto1,0)
+                + IFNULL(d.impuesto2,0)
+                + IFNULL(d.impuesto3,0)
+                + IFNULL(d.impuesto4,0))
+            ,0) total
         FROM dcompra d
             INNER JOIN compra c ON d.fk_compra_detalle = c.sys_pk
             LEFT JOIN compra co ON d.documento = co.sys_pk
@@ -243,20 +251,21 @@ module "model"
 
     doc.cancelar.reverseCxP::&db,&params,&data
     {
-        if @@(data,"#formapago") != @@(@FORMAS_PAGO,"#cCREDITO") { return }
+        if @@(data,"#formapago") != @@(@FORMAS_PAGO,"#cCREDITO") && @@(data,"#formapago") != @@(@FORMAS_PAGO,"#cCONTADO") { return }
 
+        decs = parse.num(dbr.vars.get(db,"FXCA001"))
         new bonificacion
         {
             @"faplicacion": hoy("yyyy-MM-dd")
             @"documento": @cNOTA_DE_CREDITO
             @"fecha": hoy("yyyy-MM-dd")
-            @"notas": "Bonificación por cancelación del documento con referencia " + @@(data,"$referencia")
+            @"notas": "Bonificación por cancelación de compra: " + @@(data,"$referencia")
             @"referencia": @@(data,"$referencia")+"-B"
-            @"tcambio": @@(data,"#tipocambio")
-            @"importe": @@(data,"#total")
+            @"tcambio": @@(data,"#tcdvp")
+            @"importe": round(@@(data,"#total") * @@(data,"#factor"), decs)
             @"iproveedor": @@(data,"#iproveedor")
         }
-
+        
         do erp.cxp.movimientos.bonificarProveedor(db,bonificacion)
     }
 
