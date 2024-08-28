@@ -251,22 +251,131 @@ module "model"
 
     doc.cancelar.reverseCxP::&db,&params,&data
     {
-        if @@(data,"#formapago") != @@(@FORMAS_PAGO,"#cCREDITO") && @@(data,"#formapago") != @@(@FORMAS_PAGO,"#cCONTADO") { return }
+        if @@(data,"#formapago") != @@(@FORMAS_PAGO,"#cCONTADO") && @@(data,"#formapago") != @@(@FORMAS_PAGO,"#cCREDITO") { return }
 
-        decs = parse.num(dbr.vars.get(db,"FXCA001"))
         new bonificacion
         {
             @"faplicacion": hoy("yyyy-MM-dd")
             @"documento": @cNOTA_DE_CREDITO
             @"fecha": hoy("yyyy-MM-dd")
-            @"notas": "Bonificación por cancelación de compra: " + @@(data,"$referencia")
-            @"referencia": @@(data,"$referencia")+"-B"
-            @"tcambio": @@(data,"#tcdvp")
-            @"importe": round(@@(data,"#total") * @@(data,"#factor"), decs)
+            @"notas": "Cancelación de documento"
+            @"referencia": @@(data,"$referencia")+"/BNDC"
             @"iproveedor": @@(data,"#iproveedor")
         }
-        
-        do erp.cxp.movimientos.bonificarProveedor(db,bonificacion)
+
+        if @@(data,"#formapago") == @@(@FORMAS_PAGO,"#cCONTADO")
+        {
+            sql_pago = "
+            SELECT
+                mov.egreso,
+                dvs.tcambio
+            FROM movcuenta mov
+                INNER JOIN chequera chq ON mov.icuenta = chq.sys_pk
+                INNER JOIN divisa dvs ON chq.idivisa = dvs.sys_pk
+            WHERE mov.sys_pk = @imovchequera
+            "
+            ref pago = dbr.rec(db,sql_pago,data)
+
+            decs = parse.num(dbr.vars.get(db,"FXCA001"))
+            factor = div(@@(pago,"#tcambio"),@@(data,"#tcdvp"))
+
+            bonificacion<"tcambio"> : @@(data,"#tcdvp")
+            bonificacion<"importe"> : round(@@(pago,"#egreso") * factor, decs)
+
+            do erp.cxp.movimientos.bonificarProveedor(db,bonificacion)
+        }
+
+        if @@(data,"#formapago") == @@(@FORMAS_PAGO,"#cCREDITO")
+        {
+            ref dcxp = dbr.rec(db,"SELECT sys_pk, haber, pagos, bonificaciones FROM dcxp WHERE icompra=@sys_pk AND documento=@documento",data)
+            ref boni = dbr.rec(db,"SELECT sys_pk, debe FROM dcxp WHERE icompra=@sys_pk AND documento=5",data)
+
+            bonificacion<"tipocambio"> : @@(data,"#tcdvp")
+            bonificacion<"importe"> : @@(dcxp,"#haber")
+            bonificacion<"pkparent"> : @@(dcxp,"#sys_pk")
+            // Liberar pagos y bonificaciones
+            if (@@(dcxp,"#pagos")+@@(dcxp,"#bonificaciones")) > 0
+            {
+                ref aplcxp = dbr.list(db,"SELECT sys_pk, importe, destino, fk_dcxp_aplicadoa, aplicadoa FROM aplcxp WHERE fk_dcxp_aplicadoa=@sys_pk",dcxp)
+                for i=0; i<list.count(aplcxp)
+                {
+                    ref apl = list.obj(aplcxp,i)
+                    
+                    if apl.destino == @CXP_DESTINO_APLICACION_PAGOS {
+                        do dbr.execute(db,"UPDATE dcxp SET pagos = (IFNULL(pagos,0) - @importe) WHERE sys_pk = @fk_dcxp_aplicadoa",apl)
+                        do dbr.execute(db,"UPDATE dcxp SET pagos = (IFNULL(pagos,0) + @importe) WHERE sys_pk = @aplicadoa",apl)
+                    }
+                    if apl.destino == @CXP_DESTINO_APLICACION_BONIFICACIONES {
+                        do dbr.execute(db,"UPDATE dcxp SET bonificaciones = (IFNULL(bonificaciones,0) - @importe) WHERE sys_pk = @fk_dcxp_aplicadoa",apl)
+                        do dbr.execute(db,"UPDATE dcxp SET bonificaciones = (IFNULL(bonificaciones,0) + @importe) WHERE sys_pk = @aplicadoa",apl)
+                    }
+
+                    do dbr.delete(db,"aplcxp","sys_pk=@sys_pk",apl)
+                }
+
+                ref aplcxp = dbr.list(db,"SELECT sys_pk, importe, destino, fk_dcxp_aplicadoa, aplicadoa FROM aplcxp WHERE aplicadoa=@sys_pk",dcxp)
+                for i=0; i<list.count(aplcxp)
+                {
+                    ref apl = list.obj(aplcxp,i)
+                    
+                    if apl.destino == @CXP_DESTINO_APLICACION_PAGOS {
+                        do dbr.execute(db,"UPDATE dcxp SET xaplicar = (IFNULL(xaplicar,0) + @importe) WHERE sys_pk = @fk_dcxp_aplicadoa",apl)
+                        do dbr.execute(db,"UPDATE dcxp SET pagos = (IFNULL(pagos,0) - @importe) WHERE sys_pk = @aplicadoa",apl)
+                    }
+                    if apl.destino == @CXP_DESTINO_APLICACION_BONIFICACIONES {
+                        do dbr.execute(db,"UPDATE dcxp SET xaplicar = (IFNULL(xaplicar,0) + @importe) WHERE sys_pk = @fk_dcxp_aplicadoa",apl)
+                        do dbr.execute(db,"UPDATE dcxp SET bonificaciones = (IFNULL(bonificaciones,0) - @importe) WHERE sys_pk = @aplicadoa",apl)
+                    }
+
+                    do dbr.delete(db,"aplcxp","sys_pk=@sys_pk",apl)
+                }
+            }
+
+            if not(isnull(boni))
+            {
+                ref bonificados = dbr.list(db,"SELECT sys_pk, importe, destino, fk_dcxp_aplicadoa, aplicadoa FROM aplcxp WHERE fk_dcxp_aplicadoa=@sys_pk",boni)
+                for i=0; i<list.count(bonificados)
+                {
+                    ref apl = list.obj(bonificados,i)
+
+                    do dbr.execute(db,"UPDATE dcxp SET bonificaciones = (IFNULL(bonificaciones,0)-@importe) WHERE sys_pk = @aplicadoa",apl)
+                    do dbr.delete(db,"aplcxp","sys_pk=@sys_pk",apl)
+                }
+
+                new nota_cargo
+                {
+                    @"documento": @cNOTA_DE_CARGO
+                    @"flimite": hoy("yyyy-MM-dd")
+                    @"fecha": hoy("yyyy-MM-dd")
+                    @"referencia": @@(data,"$referencia")+"/CB"
+                    @"concepto": "Cancelación de bonificaciones a otros documentos"
+                    @"tcambio": @@(data,"#tcdvp")
+                    @"iproveedor": @@(data,"#iproveedor")
+                    @"importe": @@(boni,"#debe")
+                    @"icompra": @@(data,"#sys_pk")
+                }
+                
+                new aplcxp
+                {
+                    @"sys_pk": 0
+                    @"sys_guid": uuid()
+                    @"sys_dtcreated*": dbr.sql("now()")
+                    @"sys_timestamp*": dbr.sql("now()")
+                    @"sys_recver": 0
+                    @"destino": @CXP_DESTINO_APLICACION_BONIFICACIONES
+                    @"fecha*": dbr.sql("now()")
+                    @"importe": @@(boni,"#debe")
+                    @"fk_dcxp_aplicadoa": @@(boni,"#sys_pk")
+                    @"aplicadoa": erp.cxp.movimientos.crearCxP(db,nota_cargo)
+                }
+
+                ref apl = record.copy(aplcxp,"importe,aplicadoa")
+                do dbr.insert(db,"aplcxp",aplcxp)
+                do dbr.execute(db,"UPDATE dcxp SET bonificaciones = (IFNULL(bonificaciones,0)+@importe) WHERE sys_pk = @aplicadoa",apl)
+            }
+
+            do erp.cxp.movimientos.bonificarCxP(db,bonificacion)
+        }
     }
 
     doc.cancelar::&db,&params,&data
@@ -283,6 +392,8 @@ module "model"
         "
 
         ref entity = entity.read(db,params)
+        desaplicar_mov = parse.bool(dbr.vars.get(db,"v12.compras.01"))
+        eliminar_mov = parse.bool(dbr.vars.get(db,"v12.compras.02"))
 
         do dbr.apps.action.pre("GA14")
         do dbr.begin(db)
@@ -305,9 +416,27 @@ module "model"
                 do dbr.execute(db,ftext(sql_liberar_documentos),params)
 
                 // Realizar la salida de todos los productos que entraron por este documento al mismo costo de la entrada.
-                mov_sys_pk = erp.compras.procesos.salidaInventarioMismoCostoEntrada(db,@@(data,"#sys_pk"))
-                if mov_sys_pk <= 0 { break }
-                do erp.inventario.aplicar_mov(db,mov_sys_pk,@false)
+                if desaplicar_mov
+                {
+                    ref mov = dbr.rec(db,"SELECT sys_pk FROM cardex WHERE doccompra=@sys_pk",entity)
+                    do erp.inventario.desaplicar_mov(db,@@(mov,"#sys_pk"))
+
+                    if eliminar_mov {
+                        do dbr.delete(db,"dcardex","fk_cardex_movimientos=@sys_pk",mov)
+                        do dbr.delete(db,"cardex","sys_pk=@sys_pk",mov)
+                    }
+
+                    exception
+                    {
+                        mov_sys_pk = erp.compras.procesos.salidaInventarioMismoCostoEntrada(db,@@(data,"#sys_pk"))
+                        if mov_sys_pk > 0 { do erp.inventario.aplicar_mov(db,mov_sys_pk,@true) }
+                    }
+                }
+                else
+                {
+                    mov_sys_pk = erp.compras.procesos.salidaInventarioMismoCostoEntrada(db,@@(data,"#sys_pk"))
+                    if mov_sys_pk > 0 { do erp.inventario.aplicar_mov(db,mov_sys_pk,@true) }
+                }
 
                 // Generar un movimiento a CxP inverso al que hubiere generado.
                 do doc.cancelar.reverseCxP(db,params,entity)
@@ -321,9 +450,27 @@ module "model"
                 do dbr.execute(db,ftext(sql_liberar_documentos),params)
 
                 // Realizar la salida de todos los productos que entraron por este documento al mismo costo de la entrada, con excepción de las entradas que se habían realizado por remisiones consolidadas en la factura.
-                mov_sys_pk = erp.compras.procesos.salidaInventarioMismoCostoEntrada(db,@@(data,"#sys_pk"))
-                if mov_sys_pk <= 0 { break }
-                do erp.inventario.aplicar_mov(db,mov_sys_pk,@false)
+                if desaplicar_mov
+                {
+                    ref mov = dbr.rec(db,"SELECT sys_pk FROM cardex WHERE doccompra=@sys_pk",entity)
+                    do erp.inventario.desaplicar_mov(db,@@(mov,"#sys_pk"))
+
+                    if eliminar_mov {
+                        do dbr.delete(db,"dcardex","fk_cardex_movimientos=@sys_pk",mov)
+                        do dbr.delete(db,"cardex","sys_pk=@sys_pk",mov)
+                    }
+
+                    exception
+                    {
+                        mov_sys_pk = erp.compras.procesos.salidaInventarioMismoCostoEntrada(db,@@(data,"#sys_pk"))
+                        if mov_sys_pk > 0 { do erp.inventario.aplicar_mov(db,mov_sys_pk,@true) }
+                    }
+                }
+                else
+                {
+                    mov_sys_pk = erp.compras.procesos.salidaInventarioMismoCostoEntrada(db,@@(data,"#sys_pk"))
+                    if mov_sys_pk > 0 { do erp.inventario.aplicar_mov(db,mov_sys_pk,@true) }
+                }
 
                 // Generar un movimiento a CxP inverso al que hubiere generado.
                 do doc.cancelar.reverseCxP(db,params,entity)

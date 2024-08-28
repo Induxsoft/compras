@@ -95,6 +95,7 @@ module ":erp.compras.procesos"
             start_transaction = @true
         }
 
+        if isnull(dcardex) { ref dcardex:record.create() }
         if trim(@@(item,"$sys_info")) != ""
         {
             ref info = from.json(trim(@@(item,"$sys_info")))
@@ -155,7 +156,7 @@ module ":erp.compras.procesos"
         //#region entradaInventario()
         start_transaction = @false
 
-        sql_compra = "SELECT c.referencia, c.tipocambio, c.ialmacen, c.documento FROM compra c WHERE c.sys_pk = @icompra;"
+        sql_compra = "SELECT c.sys_pk, c.referencia, c.tipocambio, c.ialmacen, c.documento FROM compra c WHERE c.sys_pk = @icompra;"
         sql_dcompra = "
         SELECT 
             d.sys_pk,
@@ -195,8 +196,9 @@ module ":erp.compras.procesos"
             @"sys_dtcreated*": now()
             @"sys_timestamp*": now()
             @"sys_recver": 0
-            @"referencia": @@(compra,"$referencia")
             @"fecha*": now()
+            @"referencia": @@(compra,"$referencia")
+            @"doccompra": @@(compra,"#sys_pk")
             @"icategoria": icategoria
         }
         pk_cardex = 0
@@ -335,7 +337,11 @@ module ":erp.compras.procesos"
         //#region salidaInventarioMismoCostoEntrada()
         start_transaction = @false
 
-        new params { @"icompra": parse.num(icompra) }
+        new params
+        {
+            @"icompra": parse.num(icompra)
+            @"cat_movinv": dbr.vars.get(db,"v12.compras.devinv")
+        }
 
         sql_compra = "SELECT c.referencia, c.tipocambio, c.ialmacen, c.documento FROM compra c WHERE c.sys_pk = @icompra;"
         sql_dcompra = "
@@ -376,15 +382,18 @@ module ":erp.compras.procesos"
             @"sys_recver": 0
             @"referencia": @@(compra,"$referencia")+"-S"+"/"+uuid()
             @"fecha*": now()
-            @"icategoria": 6 // [0003] Otros egresos
+            @"icategoria": dbr.num(db,"select sys_pk from categoria where codigo=@cat_movinv",params)
         }
-        do dbr.insert(db,"cardex",cardex)
-        
-        last_id = dbr.num(db,"select last_insert_id();",@null)
+        pk_cardex = 0
 
         for i = 0; i < list.count(dcompra)
         {
             ref itm = list.obj(dcompra,i)
+
+            if pk_cardex == 0 {
+                do dbr.insert(db,"cardex",cardex)
+                pk_cardex = dbr.num(db,"select last_insert_id();",@null)
+            }
             
             ref dcardex = record.copyex(itm, @null, "ialmacen,iproducto,entradas,cargos,cpromedio,tipocambio,ilote,iserie,rcompra", ",", "entradas:salidas,cargos:abonos", ":")
             using dcardex
@@ -394,14 +403,14 @@ module ":erp.compras.procesos"
                 @"sys_dtcreated*": now()
                 @"sys_timestamp*": now()
                 @"sys_recver": 0
-                @"fk_cardex_movimientos": last_id
+                @"fk_cardex_movimientos": pk_cardex
             }
             do erp.compras.procesos.devolverLoteSerie(db,itm,@null)
             do dbr.insert(db,"dcardex",dcardex)
         }
 
         if start_transaction { do dbr.commit(db) }
-        return last_id
+        return pk_cardex
 
         exception
         {
@@ -652,6 +661,12 @@ module ":erp.compras.procesos"
             obj<"total"> : round(@@(obj,"#total") * @@(factura,"#factor"), decs)
             obj<"facturado"> : round(@@(obj,"#facturado") * @@(factura,"#factor"), decs)
 
+            sql="select ifnull(sum(a.importe),0) from aplcxp a inner join dcxp cxp on a.fk_dcxp_aplicadoa=cxp.sys_pk left join compra c on cxp.icompra=c.sys_pk where a.aplicadoa=@pk_cxp and a.destino=3 and c.documento is null"
+            bonis = round(dbr.num(db,sql,obj), decs)
+
+            obj<"proporcion_pagos"> : div(@@(obj,"#proporcion"), div(@@(obj,"#pagos")+bonis,@@(obj,"#bonificaciones") + @@(obj,"#pagos")))
+            if @@(obj,"#proporcion_pagos")>1 { obj<"proporcion_pagos"> : 1 }
+            
             pagos = round(@@(obj,"#pagos") * @@(obj,"#proporcion"), decs)
             _pagos = _pagos + pagos
             obj<"pagos"> : pagos
@@ -696,8 +711,8 @@ module ":erp.compras.procesos"
     bonificarRemisiones::&db,&data
     {
         //#region bonificarRemisiones()
-        new params { @"iproveedor": @@(data,"#iproveedor") }
         ref detalles = @@(data,"&detalles")
+        new params { @"iproveedor": @@(data,"#iproveedor") }
 
         start_transaction = @false
 
@@ -788,20 +803,17 @@ module ":erp.compras.procesos"
         ref lista = list.create_from_fields(detalles)
         for i=0; i<list.count(lista)
         {
-            // do rise_error(1,"hay remisiones incluidas")
             key = list.str(lista,i)
             ref rem = @@(detalles,"&"+key)
 
             if rem.ifp == @FORMAS_PAGO.cCREDITO && (rem.pagos > 0 || rem.bonificaciones > 0)
             {
-                // do rise_error(2,"hay remisiones a credito con pagos ó bonificaciones")
-                ref aplicados = dbr.list(db,"SELECT a.sys_pk, a.importe, a.destino, a.aplicadoa FROM aplcxp a INNER JOIN dcxp c ON a.fk_dcxp_aplicadoa=c.sys_pk LEFT JOIN compra d ON c.icompra=d.sys_pk WHERE  ifnull(d.documento,0)<>"+str(@cFACTURA)+" AND a.aplicadoa=@pk_cxp;",rem)
+                ref aplicados = dbr.list(db,"SELECT a.sys_pk, a.importe, a.destino, a.fk_dcxp_aplicadoa, a.aplicadoa FROM aplcxp a INNER JOIN dcxp c ON a.fk_dcxp_aplicadoa=c.sys_pk LEFT JOIN compra d ON c.icompra=d.sys_pk WHERE  ifnull(d.documento,0)<>"+str(@cFACTURA)+" AND a.aplicadoa=@pk_cxp;",rem)
                 for j=0; j<list.count(aplicados)
                 {
-                    // do rise_error(3,"reaplicando...")
                     ref apl = list.obj(aplicados,j)
 
-                    apl<"impp"> : round(@@(apl,"#importe") * @@(rem,"#proporcion"), decs)
+                    apl<"impp"> : round(@@(apl,"#importe") * @@(rem,"#proporcion_pagos"), decs)
                     apl<"ifac"> : idcxp
 
                     do dbr.execute(db,"UPDATE aplcxp SET importe = importe - @impp WHERE sys_pk = @sys_pk",apl)
@@ -816,20 +828,18 @@ module ":erp.compras.procesos"
                         @"destino": @@(apl,"#destino")
                         @"fecha*": dbr.sql("now()")
                         @"importe": @@(apl,"#impp")
-                        @"fk_dcxp_aplicadoa": idcxp
-                        @"aplicadoa": @@(apl,"#aplicadoa")
+                        @"fk_dcxp_aplicadoa": @@(apl,"#fk_dcxp_aplicadoa")
+                        @"aplicadoa": idcxp
                     }
                     do dbr.insert(db,"aplcxp",aplcxp)
 
                     if apl.destino == @CXP_DESTINO_APLICACION_PAGOS
                     {
-                        // do rise_error(4,"aplicación pagos")
                         do dbr.execute(db,"UPDATE dcxp SET pagos = IFNULL(pagos,0) + @impp WHERE sys_pk = @ifac",apl)
                         do dbr.execute(db,"UPDATE dcxp SET pagos = IFNULL(pagos,0) - @impp WHERE sys_pk = @aplicadoa",apl)
                     }
                     if apl.destino == @CXP_DESTINO_APLICACION_BONIFICACIONES
                     {
-                        // do rise_error(4,"aplicación bonis")
                         do dbr.execute(db,"UPDATE dcxp SET bonificaciones = IFNULL(bonificaciones,0) + @impp WHERE sys_pk = @ifac",apl)
                         do dbr.execute(db,"UPDATE dcxp SET bonificaciones = IFNULL(bonificaciones,0) - @impp WHERE sys_pk = @aplicadoa",apl)
                     }

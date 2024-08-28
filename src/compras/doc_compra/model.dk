@@ -53,6 +53,7 @@ module "model"
                 INNER JOIN dcompra dc ON c.sys_pk = dc.fk_compra_detalle
             WHERE c.statusadministrativo = 3
                 AND c.iproveedor = @proveedor
+                AND c.idivisa = @idivisa
                 AND IF(IFNULL(@search,'%')='%', true, c.referencia LIKE CONCAT('%',@search,'%'))
                 #<doctypes>
             GROUP BY c.sys_pk
@@ -92,6 +93,8 @@ module "model"
 
     doc.prepareView::&db,&params,&data
     {
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
+
         sql_divisas = "SELECT sys_pk, codigo, tcambio, CONCAT(codigo,' [',descripcion,']') AS text FROM divisa ORDER BY sys_pk ASC;"
         sql_almacenes = "SELECT sys_pk, descripcion FROM almacen ORDER BY sys_pk ASC;"
         sql_documentos = "SELECT id, const FROM cdocumentos doc INNER JOIN cfg_doc_compras cfg ON cfg.documento = doc.id ORDER BY doc.id ASC;"
@@ -505,6 +508,7 @@ module "model"
     {
         do dbr.apps.action.grant("GA10")
 
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
         params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
         params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))
 

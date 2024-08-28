@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () =>
     let selDocumento = document.getElementById("sel_documento");
     let selDivisa = document.getElementById("sel_divisa");
     let txtTipoCambio = document.getElementById("txt_tipocambio");
-    let txt_statusadministrativo = document.getElementById("txt_statusadministrativo")
+    let txt_statusadministrativo = document.getElementById("txt_statusadministrativo");
     let txt_detalle_compra = document.getElementById("txt_detalle_compra");
     
     let tblActionBar = document.getElementById("tbl_action_bar");
@@ -363,7 +363,6 @@ document.addEventListener("DOMContentLoaded", () =>
         let URL_BUSCAR_PRODUCTO = InduxsoftCrudlModel.UrlReplace(ikProducto.getAttribute("data-source"),data);
         let URL_BUSCAR_DOCUMENT = InduxsoftCrudlModel.UrlReplace(ikDocInsert.getAttribute("data-source"),{ proveedor:data.sys_pk });
         
-        txtTipoCambio.value = data.tcambio;
         ikProducto.setAttribute("data-source",URL_BUSCAR_PRODUCTO);
         ikDocInsert.setAttribute("data-source",URL_BUSCAR_DOCUMENT);
     }
@@ -415,6 +414,7 @@ document.addEventListener("DOMContentLoaded", () =>
         if (!data) return;
         changeURLImport(data);
         selDivisa.value = data.idivisa;
+        txtTipoCambio.value = data.tcambio;
     });
 
     ikProducto.addEventListener("change", function(data) {
@@ -436,6 +436,12 @@ document.addEventListener("DOMContentLoaded", () =>
         
         let url = surl.replace("@zimpuesto",zimpuesto);
         url = InduxsoftCrudlModel.UrlAddParameter(url,"idivisa",idivisa);
+        return url;
+    }
+
+    ikDocInsert.onBeforeSearch = function(surl) {
+        let idivisa = Number(selDivisa.value);
+        let url = InduxsoftCrudlModel.UrlAddParameter(surl,"idivisa",idivisa);
         return url;
     }
 

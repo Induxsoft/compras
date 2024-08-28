@@ -18,6 +18,8 @@ module "list.dk"
 
     ref titles = ifnull(@("&./titles"),record.create())
 
+    @DECIMAL_PRECISION = @("#parameters/decimals")
+
     get<"filter-mode">: ifstr(trim(@@(get,"filter-mode"))!="", @@(get,"filter-mode"), "month")
     get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
     get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
@@ -92,7 +94,7 @@ module "list.dk"
                 @"align": "end"
                 @"format": @true
                 @"thousandssep": @true
-                @"decs": 6
+                @"decs": @DECIMAL_PRECISION
             }
             member @"total"
             {
@@ -100,7 +102,7 @@ module "list.dk"
                 @"align": "end"
                 @"format": @true
                 @"thousandssep": @true
-                @"decs": 2
+                @"decs": @DECIMAL_PRECISION
             }
             member @"edo_financiero"
             {

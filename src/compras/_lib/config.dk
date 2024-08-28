@@ -20,6 +20,7 @@ module "config.dk"
 	@cREMISION = 3
 	@cFACTURA = 4
 	@cNOTA_DE_CREDITO = 5
+	@cNOTA_DE_CARGO = 17
 	@cDEPOSITO = 65
 
 	// Número máximo de filas a mostrar en lista

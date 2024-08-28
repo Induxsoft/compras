@@ -14,7 +14,7 @@ program ""
 
     new varval { @"cat_movinv": dbr.vars.get(db,"v12.compras.entrada") }
     
-    icompra = 128
+    icompra = 223
     icategoria = dbr.num(db,"select sys_pk from categoria where codigo=@cat_movinv",varval)
 
     new data
@@ -41,7 +41,6 @@ program ""
     do erp.compras.procesos.bonificarRemisiones(db,totales)
     do erp.compras.procesos.reaplicarPagos(db,totales,data)
     
-    // do print(to.json(totales))
     do dbr.commit(db)
     do print("success")
 

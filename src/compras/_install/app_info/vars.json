@@ -111,6 +111,46 @@
                         "showfield":"descripcion"
                     }
                 }
+            },
+            {
+                "varname": "v12.compras.01",
+                "vardefault": "1",
+                "varvalue": "1",
+                "varcaption": "Intentar desaplicar entradas al cancelar compras",
+                "varhelp": "",
+                "vartype": "bool",
+                "varinput": {
+                    "control": "select",
+                    "source":{
+                        "type":"list",
+                        "values":[
+                            {"val":"1", "txt":"Sí"},
+                            {"val":"0", "txt":"No"}
+                        ],
+                        "showfield":"txt",
+                        "keyfield":"val"
+                    }
+                }
+            },
+            {
+                "varname": "v12.compras.02",
+                "vardefault": "1",
+                "varvalue": "1",
+                "varcaption": "Eliminar movimiento desaplicado al cancelar",
+                "varhelp": "",
+                "vartype": "bool",
+                "varinput": {
+                    "control": "select",
+                    "source":{
+                        "type":"list",
+                        "values":[
+                            {"val":"1", "txt":"Sí"},
+                            {"val":"0", "txt":"No"}
+                        ],
+                        "showfield":"txt",
+                        "keyfield":"val"
+                    }
+                }
             }
         ]
     }

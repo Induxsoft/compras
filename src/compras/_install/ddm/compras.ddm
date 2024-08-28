@@ -565,7 +565,14 @@ model "erp.compras"
 
     entity "cardex" : "TableModel"
     {
+        @"aplicado" bool
+        @"valuado" bool
+        @"fecha" date
         @"referencia" string(255) unique required
+        @"descripcion" string(8192)
+        @"doccompra" ref:"compra"
+        // @"docorden" ref:"orden"
+        // @"docventa" ref:"venta"
         @"icategoria" ref:"categoria" required
     }
     // Contiene cada partida del movimiento (la entrada o salida de un producto)
