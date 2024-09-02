@@ -31,11 +31,17 @@ module "doc.procesar.dk"
         AND (IFNULL(cxp.haber,0)+IFNULL(cxp.intmoratorios,0)-IFNULL(cxp.pagos,0)-IFNULL(cxp.bonificaciones,0)) > 0
         AND d.fk_compra_detalle=@_entity_id;
     "
-    rems_credito = dbr.num(@("&database"),sql_rems_credito,@("&parameters"))
 
-    show_form_contado = (not(field.exist(@("&."),"form")) || @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCONTADO'))
-    show_form_credito = (field.exist(@("&."),"form") && @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCREDITO'))
-    show_form_consignado = (field.exist(@("&."),"form") && @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCONSIGNADO'))
+    print_opt_contado = (dbr.num(@("&database"),sql_rems_credito,@("&parameters")) == 0)
+    exist_fd = field.exist(@("&."),"form")
+    factor = (@@(compra,"#tipocambio") / @@(dtprov,"#tcambio"))
+    imp_credito = round(@@(amounts,"#total") * factor, decs)
+    // Sí, proveedor no tiene crédito ilimitado (-1) y el saldo más el importe actual supera el límite de crédito establecido.
+    lim_cred_exced = (not(@@(dtprov,"#limitecredito")==-1) && (imp_credito + @@(dtprov,"#saldo")) > @@(dtprov,"#limitecredito"))
+
+    show_form_contado = (print_opt_contado && (not(exist_fd) || @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCONTADO')))
+    show_form_credito = (not(print_opt_contado) || (exist_fd && @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCREDITO')))
+    show_form_consignado = (exist_fd && @("#./form/formapago") == @@(@FORMAS_PAGO,'#cCONSIGNADO'))
 
     new sel_documento
     {
@@ -291,7 +297,7 @@ module "doc.procesar.dk"
             div(class="accordion" id="opciones_liquidacion")
             {
                 #!
-                if rems_credito == 0
+                if print_opt_contado == 0
                 {#$
                 div(class="accordion-item")
                 {
@@ -373,6 +379,8 @@ module "doc.procesar.dk"
                     {
                         div(class="accordion-body")
                         {
+                            div(class="alert alert-warning overflow-auto mb-2 fw-500 #<ifstr(lim_cred_exced,'','d-none')>" id="alrt_credito"){$"Al procesar el documento se estará excediendo el límite de crédito del proveedor. ¿Desea continuar con la operación?"}
+                            
                             form(class="row" action="./" method="POST" id="form_liquidacion_credito")
                             {
                                 input(type="hidden" name="icompra" value="#<@@(compra,'#sys_pk')>")
@@ -412,12 +420,8 @@ module "doc.procesar.dk"
 
                                         div(class="d-flex gap-2 align-items-center justify-content-end my-2")
                                         {
-                                            #!
-                                            factor = (@@(compra,"#tipocambio") / @@(dtprov,"#tcambio"))
-                                            importe = round(@@(amounts,"#total") * factor, decs)
-                                            #$
                                             label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                                            input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<importe>" disabled="")
+                                            input(class="form-control form-control-sm rounded-0 w-25" type="number" name="importe" id="txt_importe" value="#<imp_credito>" disabled="")
                                         }
                                     }
 
