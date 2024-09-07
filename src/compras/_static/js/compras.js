@@ -588,12 +588,14 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 break;
             case cNOTA_DE_CREDITO:
+                table.changeColumnTitle("cotizado","Devuelto");
                 // console.log(idocumento, "cNOTA_DE_CREDITO");
                 if (statusadministrativo === "")
                 {
                     show_btn_guardar = true;
                     show_btn_cerrar = true;
                     show_btn_procesar = true;
+                    show_btn_insert_doc = true;
                 }
                 else if (statusadministrativo == EDO_ADMIN.cNO_APLICA){}
                 else if (statusadministrativo == EDO_ADMIN.cABIERTO)
@@ -602,6 +604,7 @@ document.addEventListener("DOMContentLoaded", () =>
                     show_btn_cerrar = true;
                     show_btn_procesar = true;
                     show_btn_cancelar = true;
+                    show_btn_insert_doc = true;
                 }
                 else if (statusadministrativo == EDO_ADMIN.cCERRADO)
                 {

@@ -1,0 +1,44 @@
+#include "dkli.dkh"
+#!
+module "ReportController"
+{
+    switch @@(@http_context,"$request/get/_entity_id")
+    {
+        case "compras-netas-totales" //este es el link de la url
+        {
+            @form_view = "compras.netas.totales.dk" // iniciar llamar la vista
+            point @read to Report.ComprasNetasTotales //inciamos el modelo con el query
+            break
+        }
+        case "compras-por-facturar"
+        {
+            @form_view = "compras.por.facturar.dk" 
+            point @read to Report.ComprasPorFacturar 
+            break
+        }
+        case "compras-por-linea"
+        {
+            @form_view = "compras.por.linea.dk"
+            point @read to Report.ComprasPorLinea 
+            break
+        }
+        case "compras-por-proveedor"
+        {
+            @form_view = "compras.por.proveedor.dk" 
+            point @read to Report.ComprasPorProveedor 
+            break
+        }
+        case "devoluciones-por-proveedor"
+        {
+            @form_view = "devoluciones.por.proveedor.dk" 
+            point @read to Report.DevolucionesPorProveedor 
+            break
+        }
+
+
+        default
+        {
+            point @read to Report.NotImplemented
+        }
+    }
+}

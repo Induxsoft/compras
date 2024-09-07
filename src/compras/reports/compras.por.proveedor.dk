@@ -1,0 +1,290 @@
+#include "dkli.dkh"
+#!
+module "Compras netas totales"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "../_lib/config.dk"
+    #include "../_lib/lib.dk"
+
+    do @context.begin(@crud_context)
+    
+
+    //llamar la consultas de almacen, linea, marca y el filtro
+    //do rise_error(23,to.json(almacenes))//coidgo para generar error 
+    ref almacenes= @("&./almacen")
+    ref linea= @("&./linea")
+    ref marca= @("&./marca")
+
+  //  ref todo =@("&./todo") // codigo para listar tados de todos
+    ref data = @("&./lista")// codigo para listar todos los datos de la 
+
+
+
+    ref titles = ifnull(@("&./titles"),record.create())
+
+    // aqui se cortan los decimales
+    @DECIMAL_PRECISION = @("#parameters/decimals")
+
+    new nav_config
+    {
+        @"title": "Compras por Proveedor"
+        @"urlexit": "javascript:window.history.back()"
+    }
+
+    #$
+    div(class="container v12-list-view" id="view")
+    {
+        section(class="bg-white" id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+            style
+            {$'
+                tr th { font-size:.9rem; outline:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+                tr td { font-size:.8rem; }
+            '}
+
+        #!
+        if @("error/message") != ""{
+            #$
+            p{"#<@('error/message')>"}
+        }
+        #$
+            form(class="" action="./" method="GET" id="form-filter")
+            {
+                div(class="d-flex align-items-center gap-1 mb-1")
+                {
+                    div(class="d-flex gap-1 flex-grow-1")
+                    {
+                        div(class="d-inline-flex gap-1")
+                        {
+                            input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<@('$parameters/finicial')>" title="Fecha inicial")
+                            input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<@('$parameters/ffinal')>" title="Fecha final")
+                           
+                           //aqui hacemos el llenado del select mediante la consulta a la base de datos
+                            select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/ialmacen=@pkalmacen')>" title="Almacen")
+                            {
+                             #!
+                                for i = 0; i < list.count(almacenes); i+1 //listamos todo los datos de los almacenes 
+                                    {
+                                        ref obj = list.obj(almacenes,i)
+                                            #$
+                                            option(class="bg-light-gray" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
+                                            {
+                                            "#<@@(obj,'descripcion')>"  //agregamos los datos de la descripcion al select
+                                            }
+                  
+                                        #!     
+                                  }
+                                  #$
+                                  //para visualizar todo los datos
+                                  option(class="bg-light-gray" value="")
+                                  {
+                                    "Todo"
+                                  }
+                              }
+                        
+                            select(class="form-control form-control-sm rounded-0" name="pklinea" value="#<@('$parameters/ailinea=@')>" title="Linea")
+                            {
+                                #!
+                                for i = 0; i < list.count(linea); i+1
+                                    {
+                                          ref obj = list.obj(linea,i)
+                                            #$
+                                            option(class="bg-light-gray" value="#<@@(obj,'sys_pk')>")
+                                            {
+                                            "#<@@(obj,'descripcion')>"
+                                            }
+                                  #!     
+                                  }
+                                  #$
+                            }
+                           
+                            select(class="form-control form-control-sm rounded-0" name="pkmarca" value="#<@('$parameters/imarca=@pkmarca')>" title="Marca")
+                            {
+                                #!
+                                for i = 0; i < list.count(marca); i+1
+                                    {
+                                        ref obj = list.obj(marca,i)
+                                            #$
+                                            option(class="bg-light-gray" value="#<@@(obj,'sys_pk')>")
+                                            {
+                                            "#<@@(obj,'descripcion')>"
+                                            }
+                                    #!     
+                                }
+                                #$
+                            }
+
+
+
+                    }
+                    div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
+                }
+            }
+        }
+
+        div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") {
+        div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);")
+        {
+            section(class="bg-white p-1" id="work_area")
+            {
+                p(class="text-center mb-0"){$"#<@@(titles,'$title')>"}
+                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle')>"}
+                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle_2')>"}
+
+                div(class="row")
+                {
+                    div(class="col-3")
+                    {
+                        //se comento porque no queremos que aparezca el usuario
+                       //small(class="d-block"){ $ "#<cut(@('$http/session/user/name'),25)>" }
+                        small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                    }
+                    div(class="col-6")//subtitulo
+                    {
+                        h5(class="text-center"){$"Compras por Proveedor"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        $""
+                    }
+                }
+                
+
+
+                table(class="table table-sm table-bordered my-2")
+                {
+                    thead{
+                                th(scope="col")
+                                    {"Fecha"}
+                                th(scope="col")
+                                    {"Referencia"}
+                                th(scope="col")
+                                    {"Código "}
+                                th(scope="col")
+                                    {"Descripción "}
+                                th(scope="col")
+                                  {"Unidad"}
+                                th(scope="col")
+                                  {"Compras"}
+                                th(scope="col")
+                                  {"Subtotal "}
+                                th(scope="col")
+                                  {"Impuestos"}
+                                th(scope="col")
+                                  {"Total"}
+                                th(scope="col")
+                                  {"Proveedor"}
+                     }
+
+                 tbody
+                    {
+                        $""
+                        #!
+                        doc=""
+                        bonis=0
+                        pagos=0
+                        compras=0//variables para sumario
+                        subtotal=0 
+                        impuestos=0
+                        total=0
+                        for i = 0; i < list.count(data); i+1
+                        {
+                            ref obj = list.obj(data,i)
+                            compras = compras + @@(obj,'#Compras')
+                            subtotal = subtotal + @@(obj,'#Subtotal')
+                            impuestos = impuestos + @@(obj,'#Impuestos')
+                            total = total + @@(obj,'#total')
+                            //if doc!=obj.aplicacion
+                           // {
+                                #$
+                                tr(class="bg-light-gray")
+                                {
+                                    td(class="" )
+                                    {
+                                        $"#<@@(obj,'$Fecha')>"
+                                    }
+                                    td(class="" )
+                                    {
+                                        $"#<@@(obj,'$Referencia')>"
+                                    }
+                                    td(class="" )
+                                    {
+                                        $"#<@@(obj,'$Codigo')>"
+                                    }
+                                    td(class="" )
+                                    {
+                                        $"#<@@(obj,'$Descripcion')>"
+                                    }
+
+                                    td(class="")
+                                    {
+                                        $"#<@@(obj,'$Unidad')>"
+                                    }
+
+                                    td(class="text-end" )
+                                    {
+                                        $"#<number_format(@@(obj,'$Compras'))>"
+                                    }
+
+                                   //agreamos la columa sumario
+                                    td(class="text-end")
+                                    {
+                                        $"$ #<number_format(@@(obj,'#Subtotal'))>"
+                                    }
+
+                                    td(class="text-end" )
+                                    {
+                                        $"#<number_format(@@(obj,'$Impuestos'))>"
+                                    }
+
+                                    td(class="text-end")
+                                    {
+                                        $"#<number_format(@@(obj,'$Total'))>"
+                                    }
+                                    td(class="")
+                                    {
+                                        $"#<@@(obj,'$Proveedor')>"
+                                    }
+                                }
+                         //   }
+                            #$
+                         /*  tr
+                            {
+                                td(class="text-center"){$"#<@@(obj,'$fapl')>"}
+                                td(class=""){$"#<@@(obj,'$origen')> (#<@@(obj,'$kapp')>)"}
+                                td(class="text-end"){$"$ #<number_format(@@(obj,'#bonificaciones'))>"}
+                                td(class="text-end"){$"$ #<number_format(@@(obj,'#pagos'))>"}
+                            }
+                            #!
+                            bonis=bonis+@@(obj,"#bonificaciones")
+                            pagos=pagos+@@(obj,"#pagos") */
+                        }
+                       
+                        #$
+                        tr(class="group-summary")
+                        {
+                            $""
+                            td(colspan="5"){""}
+                            td(class="text-end fw-bold"){$"$ #<number_format(compras)>"}
+                            td(class="text-end fw-bold"){$"$ #<number_format(subtotal)>"}
+                            td(class="text-end fw-bold"){$"$ #<number_format(impuestos)>"}
+                            td(class="text-end fw-bold"){$"$ #<number_format(total)>"}
+                        }
+                    }
+                }
+
+                p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
+            }
+        }}
+
+        // script(type="text/javascript"){$''}
+    }
+    #!
+    do @context.end()
+  }
+}

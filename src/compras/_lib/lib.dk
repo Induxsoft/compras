@@ -32,6 +32,13 @@ module "lib.dk"
         }
     }
 
+    function number_format(value)
+    {
+        number = parse.num(value)
+        format = "#"+@THOUSANDS_SEPARATOR+"0"+@DECIMAL_SEPARATOR+padright("",@DECIMAL_PRECISION,"0")
+        return format(number,format)
+    }
+
     function _post_get()
     {
         if not(isset("@http_context")) && isset("@crud_context") { ref @http_context = ifnull(@@(@crud_context,"&http"),record.create()) }

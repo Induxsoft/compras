@@ -1,2 +1,3 @@
 "pack_id","app_id","app_title","created","app_info"
 "compras","compras.compras","Compras",2023-12-05T23:59:59,"Administración de Requisición, Pedido, Remisión y Factura"
+"compras","compras.reports","Informes de compras",2024-09-02T23:59:59,"Informes de compras"

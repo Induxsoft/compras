@@ -4,3 +4,10 @@
 "GA12","Editar documento de compra","Detalles","","/!/compras/compras/@_src_context_item_id/","0","compras.compras","DET01B","1","action"
 "GA13","Procesar documento de compra","Procesar","","/!/compras/procesos/@_src_context_item_id/procesar/","0","compras.compras","DET01B","1","action"
 "GA14","Cancelar documento de compra","Cancelar","","/!/compras/procesos/@_src_context_item_id/cancelar/","0","compras.compras","DET01B","1","action"
+
+"GA21","Compras netas totales","C.N.T","","/!/compras/reports/compras-netas-totales/","0","compras.compras","DET01B","0","report"
+"GA22","Compras por Factura","C.P.F","","/!/compras/reports/compras-por-factura/","0","compras.compras","DET01B","0","report"
+"GA23","Compras por Linea","C.P.L","","/!/compras/reports/compras-por-linea/","0","compras.compras","DET01B","0","report"
+"GA24","Compras por Proveedor","C.P.P","","/!/compras/reports/compras-por-proveedor/","0","compras.compras","DET01B","0","report"
+"GA25","Devoluciones por Proveedor","D.P.P","","/!/compras/reports/devoluciones-por-proveedor/","0","compras.compras","DET01B","0","report"
+"GA26","Compras Brutas por Proveedor","C.B.P","","/!/compras/reports/compras-por-proveedor/","0","compras.compras","DET01B","0","report"
