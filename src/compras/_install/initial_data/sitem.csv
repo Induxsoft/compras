@@ -7,11 +7,11 @@ GA12,Editar documento de compra,compras.compras
 GA13,Procesar documento de compra,compras.compras
 GA14,Cancelar documento de compra,compras.compras
 GA15,Re-abrir documento de compra,compras.compras
-
 compras.reports,Informes de compras,compras
+GA20,Informes de compras,compras.reports
 GA21,Compras Netas Totales,compras.reports
-GA22,Compras por Factura,compras.reports
-GA23,Compras por Linea,compras.reports
-GA24,Compras por Proveedor,compras.reports
-GA25,Devoluciones por Proveedor,compras.reports
-GA26,Compras Brutas por Proveedor,compras.reports
+GA22,Compras por facturar,compras.reports
+GA23,Compras por línea,compras.reports
+GA24,Compras por proveedor,compras.reports
+GA25,Devoluciones por proveedor,compras.reports
+GA26,Compras Brutas por proveedor,compras.reports

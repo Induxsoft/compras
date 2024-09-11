@@ -23,6 +23,8 @@ module "Reportes de compras:Report"
         do prepareDefaultReportData(db,data)
     }
 
+
+
     prepareDefaultReportData::&db,&data
     {
         using data
@@ -37,21 +39,22 @@ module "Reportes de compras:Report"
         }
     }
 
+
     ComprasNetasTotales::&db,&params
     {
     // do rise_error(99,to.json(params))
-     do dbr.apps.action.grant("GA21")
+    do dbr.apps.action.grant("GA21")
 
     sql_compras_netos_totales = "SELECT p.Codigo, p.Descripcion,p.Unidad,
-    sum(case when (c.documento=3 or c.documento=4) then dc.cantidad else 0 end)-sum(case when c.documento=5 then dc.cantidad else 0 end) as Compras,
-    (sum(case when (c.documento=3 or c.documento=4) then dc.cantidad*dc.costototal else 0 end)-sum(case when c.documento=5 then dc.cantidad*dc.costototal else 0 end)) as Subtotal,
-    (sum(case when (c.documento=3 or c.documento=4) then (dc.impuesto1+dc.impuesto2+dc.impuesto3+dc.impuesto4) else 0 end)-sum(case when c.documento=5 then (dc.impuesto1+dc.impuesto2+dc.impuesto3+dc.impuesto4) else 0 end)) as Impuestos,
-    ((sum(case when (c.documento=3 or c.documento=4) then dc.cantidad*dc.costototal else 0 end)-sum(case when c.documento=5 then dc.cantidad*dc.costototal else 0 end)))+((sum(case when (c.documento=3 or c.documento=4) then (dc.impuesto1+dc.impuesto2+dc.impuesto3+dc.impuesto4) else 0 end)-sum(case when c.documento=5 then (dc.impuesto1+dc.impuesto2+dc.impuesto3+dc.impuesto4) else 0 end))) as Total
-    FROM dcompra dc
-    inner join compra c on dc.Fk_Compra_Detalle=c.sys_pk
-    inner join producto p on dc.iproducto=p.sys_pk
-    where c.statusadministrativo<>99 and c.aplicadoa is null  and (c.fecha>=@finicio and c.fecha<=@ffinal) AND (c.ialmacen=@pkalmacen or p.ilinea=@pklinea or p.imarca=@pkmarca)
-    GROUP BY p.DESCRIPCION having (sum(case when (c.documento=3 or c.documento=4) then dc.cantidad else 0 end)-sum(case when c.documento=5 then dc.cantidad else 0 end))>0;"
+ sum(case when (c.documento=3 or c.documento=4) then dc.cantidad else 0 end)-sum(case when c.documento=5 then dc.cantidad else 0 end) as Compras,
+(sum(case when (c.documento=3 or c.documento=4) then dc.cantidad*dc.costototal else 0 end)-sum(case when c.documento=5 then dc.cantidad*dc.costototal else 0 end)) as Subtotal,
+(sum(case when (c.documento=3 or c.documento=4) then (dc.impuesto1+dc.impuesto2+dc.impuesto3+dc.impuesto4) else 0 end)-sum(case when c.documento=5 then (dc.impuesto1+dc.impuesto2+dc.impuesto3+dc.impuesto4) else 0 end)) as Impuestos,
+((sum(case when (c.documento=3 or c.documento=4) then dc.cantidad*dc.costototal else 0 end)-sum(case when c.documento=5 then dc.cantidad*dc.costototal else 0 end)))+((sum(case when (c.documento=3 or c.documento=4) then (dc.impuesto1+dc.impuesto2+dc.impuesto3+dc.impuesto4) else 0 end)-sum(case when c.documento=5 then (dc.impuesto1+dc.impuesto2+dc.impuesto3+dc.impuesto4) else 0 end))) as Total
+ FROM dcompra dc
+inner join compra c on dc.Fk_Compra_Detalle=c.sys_pk
+inner join producto p on dc.iproducto=p.sys_pk
+where c.statusadministrativo<>99 and c.aplicadoa is null  and (c.fecha>=@finicial and c.fecha<=@ffinal) AND (c.ialmacen=@pkalmacen and if(@pklinea is null,true,p.ilinea=@pklinea) and if(@pkmarca is null,true,p.imarca=@pkmarca))
+ GROUP BY p.DESCRIPCION having (sum(case when (c.documento=3 or c.documento=4) then dc.cantidad else 0 end)-sum(case when c.documento=5 then dc.cantidad else 0 end))>0;"
 
 
     //codigo para para haer consultas de toda la lista ialmacen<>0
@@ -155,7 +158,7 @@ FROM dcompra dc
  inner join compra c on c.sys_pk=dc.fk_compra_detalle
  inner join producto p on p.sys_pk=dc.iproducto
  inner join linea l on l.sys_pk=p.ilinea
-where c.statusadministrativo<>99 and c.aplicadoa is null  and (c.fecha>=@finicial and c.fecha<=@ffinal) AND (c.ialmacen<>0 or p.ilinea=@pklinea or p.imarca=@pkmarca)
+where c.statusadministrativo<>99 and c.aplicadoa is null  and (c.fecha>=@finicial and c.fecha<=@ffinal) AND c.ialmacen=@pkalmacen 
 having (sum(case when (c.documento=3 or c.documento=4) then dc.cantidad else 0 end)-sum(case when c.documento=5 then dc.cantidad else 0 end))>0
 ORDER BY l.Descripcion;
 "
@@ -166,13 +169,13 @@ ORDER BY l.Descripcion;
 
     //consultas oara el select
     //pk consulta de almacen
-   // sql_pkalmacen = "SELECT * from almacen;"
+    sql_pkalmacen = "SELECT * from almacen;"
 
     // pk consulta de linea
-    sql_pklinea = "SELECT * from linea;"
+   // sql_pklinea = "SELECT * from linea;"
 
     //pk consulta marca
-    sql_pkmarca = "SELECT * from marca;"
+   // sql_pkmarca = "SELECT * from marca;"
 
 
 
@@ -184,10 +187,7 @@ ORDER BY l.Descripcion;
         new data
         {
             // para acceder y * para regresar los valores
-         //   @"almacen*": dbr.list(db,sql_pkalmacen,params)//resive dos parametros
-            @"linea*": dbr.list(db,sql_pklinea,params)//resive dos parametros
-            @"marca*": dbr.list(db,sql_pkmarca,params)//resive dos parametros
-          
+             @"almacen*": dbr.list(db,sql_pkalmacen,params)//resive dos parametros 
          //   @"todo*": dr.list(db,sql_totales,params)
 
             @"lista*": dbr.list(db,ftext(sql_compras_por_linea),params)
@@ -214,7 +214,7 @@ ORDER BY l.Descripcion;
 FROM (((dcompra AS dc INNER JOIN Producto p ON dc.iproducto = p.Sys_PK)
 INNER JOIN Compra c ON dc.fk_compra_detalle = c.Sys_PK)
 INNER JOIN Proveedor pv ON c.IProveedor = pv.Sys_PK)
-WHERE (c.documento=3 or c.documento=4) and c.aplicadoa is null and c.statusadministrativo<>99 and (c.Fecha>=@finicial AND c.Fecha<=@ffinal) AND (c.ialmacen=@pkalmacen or p.ilinea=@pklinea or p.imarca=@pkmarca) 
+WHERE (c.documento=3 or c.documento=4) and c.aplicadoa is null and c.statusadministrativo<>99 and (c.Fecha>=@finicial AND c.Fecha<=@ffinal) AND (c.ialmacen=@pkalmacen and if(@pklinea is null,true,p.ilinea=@pklinea) and if(@pkmarca is null,true,p.imarca=@pkmarca))
 ORDER BY pv.Nombre,c.fecha,c.sys_DTCReated;"
 
 
@@ -259,18 +259,17 @@ ORDER BY pv.Nombre,c.fecha,c.sys_DTCReated;"
     {
 
     // do rise_error(99,to.json(params))
-     do dbr.apps.action.grant("GA25")
+    do dbr.apps.action.grant("GA25")
 
-    sql_devoluciones_por_proveedor = "SELECT c.Fecha, c.Referencia, p.Codigo, p.Descripcion, p.Unidad, dc.Cantidad, 
-((dc.Cantidad*dc.Precio)-dc.Descuento1-dc.Descuento2) AS Subtotal,
-(dc.Impuesto1+dc.Impuesto2+dc.Impuesto3+dc.Impuesto4) AS Impuestos, 
-(((dc.Cantidad*dc.Precio)-dc.Descuento1-dc.Descuento2)+(dc.Impuesto1+dc.Impuesto2+dc.Impuesto3+dc.Impuesto4)) AS Total, 
-prv.Nombre AS Proveedor
-FROM (((dcompra dc INNER JOIN Producto p ON dc.iProducto = p.Sys_PK) 
-INNER JOIN Compra c ON dc.fk_compra_detalle = c.Sys_PK) 
-INNER JOIN Proveedor prv ON c.IProveedor = Prv.Sys_PK) 
-WHERE (c.Documento=5) AND c.aplicadoa is null and c.statusadministrativo<>99 and (c.Fecha>=@finicial AND c.Fecha<=@ffinal) AND (c.ialmacen=@pkalmacen or p.ilinea=@pklinea or p.imarca=@pkmarca)  
-ORDER BY Prv.Nombre,c.sys_DTCReated;"
+    sql_devoluciones_por_proveedor = "SELECT c.Fecha, c.Referencia, p.Codigo, p.Descripcion, p.Unidad, (dc.Cantidad) AS Compras,
+((dc.Cantidad*dc.Precio)-dc.Descuento1-dc.Descuento2) AS Subtotal, 
+(dc.Impuesto1+dc.Impuesto2+dc.Impuesto3+dc.Impuesto4) AS Impuestos,
+(((dc.Cantidad*dc.Precio)-dc.Descuento1-dc.Descuento2)+(dc.Impuesto1+dc.Impuesto2+dc.Impuesto3+dc.Impuesto4)) AS Total, pv.Nombre AS Proveedor
+FROM (((dcompra AS dc INNER JOIN Producto p ON dc.iproducto = p.Sys_PK)
+INNER JOIN Compra c ON dc.fk_compra_detalle = c.Sys_PK)
+INNER JOIN Proveedor pv ON c.IProveedor = pv.Sys_PK)
+WHERE (c.documento=3 or c.documento=4) and c.aplicadoa is null and c.statusadministrativo<>99 and (c.Fecha>=@finicial AND c.Fecha<=@ffinal) AND (c.ialmacen=@pkalmacen and if(@pklinea is null,true,p.ilinea=@pklinea) and if(@pkmarca is null,true,p.imarca=@pkmarca))
+ORDER BY pv.Nombre,c.fecha,c.sys_DTCReated;"
 
 
     //codigo para para haer consultas de toda la lista ialmacen<>0
@@ -309,22 +308,22 @@ ORDER BY Prv.Nombre,c.sys_DTCReated;"
     }
     
 
+    
     ComprasBrutasPorProveedor::&db,&params
     {
 
 
     // do rise_error(99,to.json(params))
-     do dbr.apps.action.grant("GA26")
+    do dbr.apps.action.grant("GA26")
 
-    sql_compras_brutas_por_proveedor = "
-SELECT c.Fecha, c.Referencia, p.Codigo, p.Descripcion, p.Unidad, if(c.documento=5,(dc.Cantidad)*-1,(dc.Cantidad)) AS Compras,
+    sql_compras_brutas_por_proveedor = "SELECT c.Fecha, c.Referencia, p.Codigo, p.Descripcion, p.Unidad, if(c.documento=5,(dc.Cantidad)*-1,(dc.Cantidad)) AS Compras,
 ((if(c.documento=5,(dc.Cantidad)*-1,(dc.Cantidad))*dc.Precio)-dc.Descuento1-dc.Descuento2) AS Subtotal,
 if(c.documento=5,(dc.Impuesto1+dc.Impuesto2+dc.Impuesto3+dc.Impuesto4)*-1,(dc.Impuesto1+dc.Impuesto2+dc.Impuesto3+dc.Impuesto4)) AS Impuestos,
 (((if(c.documento=5,(dc.Cantidad)*-1,(dc.Cantidad))*dc.Precio)-dc.Descuento1-dc.Descuento2)+(if(c.documento=5,(dc.Impuesto1+dc.Impuesto2+dc.Impuesto3+dc.Impuesto4)*-1,(dc.Impuesto1+dc.Impuesto2+dc.Impuesto3+dc.Impuesto4)))) AS Total, pv.Nombre AS Proveedor
 FROM (((dcompra AS dc INNER JOIN Producto p ON dc.iproducto = p.Sys_PK)
 INNER JOIN Compra c ON dc.fk_compra_detalle = c.Sys_PK)
 INNER JOIN Proveedor pv ON c.IProveedor = pv.Sys_PK)
-WHERE  c.statusadministrativo<>99 and c.aplicadoa is null and  (c.Fecha>=@finicial  AND c.Fecha<=@ffinal) AND (c.ialmacen=@pkalmacen or p.ilinea=@pklinea or p.imarca=@pkmarca)  
+WHERE  c.statusadministrativo<>99 and c.aplicadoa is null and  (c.Fecha>=@finicial  AND c.Fecha<=@ffinal) AND (c.ialmacen=@pkalmacen and if(@pklinea is null,true,p.ilinea=@pklinea) and if(@pkmarca is null,true,p.imarca=@pkmarca) ) 
 ORDER BY pv.Nombre,c.fecha,c.sys_DTCReated;"
 
 
@@ -365,9 +364,9 @@ ORDER BY pv.Nombre,c.fecha,c.sys_DTCReated;"
         return data //retorna la data
         exception{ do catch() }
 
-
-
     }
+   
+
 
     NotImplemented::&db,&params { do rise_error(404,"Reporte no implementado") }
 

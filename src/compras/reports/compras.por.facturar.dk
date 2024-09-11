@@ -26,11 +26,11 @@ module "Compras por facturar"
 
     ref titles = ifnull(@("&./titles"),record.create())
 
-    @DECIMAL_PRECISION = @("#parameters/decimals")
+    @DECIMAL_PRECISION =4//@("#parameters/decimals")
 
     new nav_config
     {
-        @"title": "Compras por Factura"
+        @"title": "Compras por Facturar"
         @"urlexit": "javascript:window.history.back()"
     }
 
@@ -62,18 +62,19 @@ module "Compras por facturar"
                     {
                         div(class="d-inline-flex gap-1")
                         {
-                            input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<@('$parameters/finicial')>" title="Fecha inicial")
-                            input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<@('$parameters/ffinal')>" title="Fecha final")
+                        
+                         input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<@('$parameters/finicial')>" title="Fecha inicial")
+                         input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<@('$parameters/ffinal')>" title="Fecha final")
                            
                            //aqui hacemos el llenado del select mediante la consulta a la base de datos
-                            select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/ialmacen=@pkalmacen')>" title="Almacen")
+                            select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
                             {
                              #!
                                 for i = 0; i < list.count(almacenes); i+1 //listamos todo los datos de los almacenes 
                                     {
                                         ref obj = list.obj(almacenes,i)
                                             #$
-                                            option(class="bg-light-gray" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
+                                            option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
                                             {
                                             "#<@@(obj,'descripcion')>"  //agregamos los datos de la descripcion al select
                                             }
@@ -113,7 +114,7 @@ module "Compras por facturar"
                     }
                     div(class="col-6")//subtitulo
                     {
-                        h5(class="text-center"){$"Compras por Factura "}
+                        h5(class="text-center"){$"Compras por Facturar"}
                     }
                     div(class="col-3 text-end")
                     {
@@ -136,7 +137,7 @@ module "Compras por facturar"
                             th(scope="col")
                             {"Subtotal"}
                             th(scope="col")
-                            {"Impuesto"}
+                            {"Impuestos"}
                             th(scope="col")
                             {"Total"}
                             th(scope="col")

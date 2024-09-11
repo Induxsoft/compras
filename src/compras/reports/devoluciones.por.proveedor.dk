@@ -65,36 +65,15 @@ module "Compras netas totales"
                             input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<@('$parameters/ffinal')>" title="Fecha final")
                            
                            //aqui hacemos el llenado del select mediante la consulta a la base de datos
-                            select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/ialmacen=@pkalmacen')>" title="Almacen")
-                            {
-                             #!
-                                for i = 0; i < list.count(almacenes); i+1 //listamos todo los datos de los almacenes 
-                                    {
-                                        ref obj = list.obj(almacenes,i)
-                                            #$
-                                            option(class="bg-light-gray" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
-                                            {
-                                            "#<@@(obj,'descripcion')>"  //agregamos los datos de la descripcion al select
-                                            }
-                  
-                                        #!     
-                                  }
-                                  #$
-                                  //para visualizar todo los datos
-                                  option(class="bg-light-gray" value="")
-                                  {
-                                    "Todo"
-                                  }
-                              }
                         
-                            select(class="form-control form-control-sm rounded-0" name="pklinea" value="#<@('$parameters/ailinea=@')>" title="Linea")
+                            select(class="form-control form-control-sm rounded-0" name="pklinea" value="#<@('$parameters/pklinea')>" title="Linea")
                             {
                                 #!
                                 for i = 0; i < list.count(linea); i+1
                                     {
                                           ref obj = list.obj(linea,i)
                                             #$
-                                            option(class="bg-light-gray" value="#<@@(obj,'sys_pk')>")
+                                            option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pklinea'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
                                             {
                                             "#<@@(obj,'descripcion')>"
                                             }
@@ -103,20 +82,38 @@ module "Compras netas totales"
                                   #$
                             }
                            
-                            select(class="form-control form-control-sm rounded-0" name="pkmarca" value="#<@('$parameters/imarca=@pkmarca')>" title="Marca")
+                            select(class="form-control form-control-sm rounded-0" name="pkmarca" value="#<@('$parameters/pkmarca')>" title="Marca")
                             {
                                 #!
                                 for i = 0; i < list.count(marca); i+1
                                     {
                                         ref obj = list.obj(marca,i)
                                             #$
-                                            option(class="bg-light-gray" value="#<@@(obj,'sys_pk')>")
+                                            option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkmarca'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
                                             {
                                             "#<@@(obj,'descripcion')>"
                                             }
                                     #!     
                                 }
                                 #$
+                            }
+
+                            select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
+                            {
+                             #!
+                                for i = 0; i < list.count(almacenes); i+1 //listamos todo los datos de los almacenes 
+                                    {
+                                        ref obj = list.obj(almacenes,i)
+                                            #$
+                                            option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
+                                            {
+                                            "#<@@(obj,'descripcion')>"  //agregamos los datos de la descripcion al select
+                                            }
+                  
+                                        #!     
+                                  }
+                                  #$
+                                  //para visualizar todo los datos
                             }
 
 
@@ -169,10 +166,10 @@ module "Compras netas totales"
                                     {"Descripción "}
                                 th(scope="col")
                                   {"Unidad"}
+                                 th(scope="col")
+                                  {"Compras"}
                                 th(scope="col")
-                                  {"Cantidad"}
-                                th(scope="col")
-                                  {"Subtotal "}
+                                  {"Subtotal"}
                                 th(scope="col")
                                   {"Impuestos"}
                                 th(scope="col")
@@ -228,8 +225,8 @@ module "Compras netas totales"
 
                                     td(class="text-end" )
                                     {
-                                         $"#<@@(obj,'$Cantidad')>"
-                                        $"#<number_format(@@(obj,'$Cantidad'))>"
+                                        // $"#<@@(obj,'$Cantidad')>"
+                                        $"#<number_format(@@(obj,'$Compras'))>"
                                     }
 
                                    //agreamos la columa sumario

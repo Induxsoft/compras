@@ -18,7 +18,7 @@ module "Compras netas totales"
     ref marca= @("&./marca")
 
   //  ref todo =@("&./todo") // codigo para listar tados de todos
-    ref data = @("&./list")// codigo para listar todos los datos de la 
+    ref data = @("&./lista")// codigo para listar todos los datos de la 
 
 
 
@@ -29,7 +29,7 @@ module "Compras netas totales"
 
     new nav_config
     {
-        @"title": "Compras Netas Totales"
+        @"title": "Compras Brutas por Proveedor"
         @"urlexit": "javascript:window.history.back()"
     }
 
@@ -65,24 +65,7 @@ module "Compras netas totales"
                             input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<@('$parameters/ffinal')>" title="Fecha final")
                            
                            //aqui hacemos el llenado del select mediante la consulta a la base de datos
-                            select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
-                            {
-                             #!
-                                for i = 0; i < list.count(almacenes); i+1 //listamos todo los datos de los almacenes 
-                                    {
-                                        ref obj = list.obj(almacenes,i)
-                                            #$
-                                            option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
-                                            {
-                                            "#<@@(obj,'descripcion')>"  //agregamos los datos de la descripcion al select
-                                            }
-                  
-                                        #!     
-                                  }
-                                  #$
-                                  //para visualizar todo los datos
-
-                              }
+                           
                         
                             select(class="form-control form-control-sm rounded-0" name="pklinea" value="#<@('$parameters/pklinea')>" title="Linea")
                             {
@@ -115,8 +98,27 @@ module "Compras netas totales"
                                 }
                                 #$
                             }
-         
-                        //  input(class="form-control form-control-sm rounded-0" type="text" name="pklinea" value="#<@('$parameters/ffinal')>" title="Linea")
+
+                            select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
+                            {
+                             #!
+                                for i = 0; i < list.count(almacenes); i+1 //listamos todo los datos de los almacenes 
+                                    {
+                                        ref obj = list.obj(almacenes,i)
+                                            #$
+                                            option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
+                                            {
+                                            "#<@@(obj,'descripcion')>"  //agregamos los datos de la descripcion al select
+                                            }
+                  
+                                        #!     
+                                  }
+                                  #$
+                                  //para visualizar todo los datos
+
+                            }
+
+
 
                     }
                     div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
@@ -143,7 +145,7 @@ module "Compras netas totales"
                     }
                     div(class="col-6")//subtitulo
                     {
-                        h5(class="text-center"){$"Compras Netas Totales"}
+                        h5(class="text-center"){$"Compras Brutas por Proveedor"}
                     }
                     div(class="col-3 text-end")
                     {
@@ -156,6 +158,10 @@ module "Compras netas totales"
                 table(class="table table-sm table-bordered my-2")
                 {
                     thead{
+                                th(scope="col")
+                                    {"Fecha"}
+                                th(scope="col")
+                                    {"Referencia"}
                                 th(scope="col")
                                     {"Código "}
                                 th(scope="col")
@@ -170,6 +176,8 @@ module "Compras netas totales"
                                   {"Impuestos"}
                                 th(scope="col")
                                   {"Total"}
+                                th(scope="col")
+                                  {"Proveedor"}
                      }
 
                  tbody
@@ -179,15 +187,15 @@ module "Compras netas totales"
                         doc=""
                         bonis=0
                         pagos=0
-                        compras=0
-                        subtotal=0 //variables para sumario
+                        compras=0//variables para sumario
+                        subtotal=0 
                         impuestos=0
                         total=0
                         for i = 0; i < list.count(data); i+1
                         {
                             ref obj = list.obj(data,i)
-                            compras = compras + @@(obj,'#Compras') //contador sumario
-                            subtotal = subtotal + @@(obj,'#Subtotal') //contador sumario
+                            compras = compras + @@(obj,'#Compras')
+                            subtotal = subtotal + @@(obj,'#Subtotal')
                             impuestos = impuestos + @@(obj,'#Impuestos')
                             total = total + @@(obj,'#total')
                             //if doc!=obj.aplicacion
@@ -195,6 +203,14 @@ module "Compras netas totales"
                                 #$
                                 tr(class="bg-light-gray")
                                 {
+                                    td(class="" )
+                                    {
+                                        $"#<@@(obj,'$Fecha')>"
+                                    }
+                                    td(class="" )
+                                    {
+                                        $"#<@@(obj,'$Referencia')>"
+                                    }
                                     td(class="" )
                                     {
                                         $"#<@@(obj,'$Codigo')>"
@@ -217,7 +233,7 @@ module "Compras netas totales"
                                    //agreamos la columa sumario
                                     td(class="text-end")
                                     {
-                                        $"$ #<number_format(@@(obj,'#Subtotal'))>" //formateamos cadenas
+                                        $"$ #<number_format(@@(obj,'#Subtotal'))>"
                                     }
 
                                     td(class="text-end" )
@@ -228,6 +244,10 @@ module "Compras netas totales"
                                     td(class="text-end")
                                     {
                                         $"#<number_format(@@(obj,'$Total'))>"
+                                    }
+                                    td(class="")
+                                    {
+                                        $"#<@@(obj,'$Proveedor')>"
                                     }
                                 }
                          //   }
@@ -248,8 +268,8 @@ module "Compras netas totales"
                         tr(class="group-summary")
                         {
                             $""
-                            td(colspan="3"){""}
-                             td(class="text-end fw-bold"){$"$ #<number_format(compras)>"}
+                            td(colspan="5"){""}
+                            td(class="text-end fw-bold"){$"$ #<number_format(compras)>"}
                             td(class="text-end fw-bold"){$"$ #<number_format(subtotal)>"}
                             td(class="text-end fw-bold"){$"$ #<number_format(impuestos)>"}
                             td(class="text-end fw-bold"){$"$ #<number_format(total)>"}
