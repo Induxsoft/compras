@@ -126,10 +126,11 @@ module "doc.pedido.dk"
         @"title": ifstr(is_new, "Nuevo documento", @@(compra,"$referencia"))
         @"buttons*": nav_buttons
         @"urlexit": @DOC_COMPRAS
+        @"print_mode": 1 // 0-window.print() 1-v12PrintHTML()
         member @"hidden" { @"print": if(enable_editing, @true, @false) }
     }
 
-    #$ div(class="container" id="view")
+    #$ div(class="container-lg" id="view")
     {
         link(href="#<@CSS_MAIN>" rel="stylesheet")
         style
@@ -152,10 +153,10 @@ module "doc.pedido.dk"
 
             div(class="d-flex gap-2 #<ifstr(is_new,'d-none','')>")
             {
-                small{b{$"Edo. administrativo: "} $"#<@@(compra,'$edo_admin')>"}
-                small{b{$"Edo. entrega: "} $"#<@@(compra,'$edo_entrega')>"}
-                small{b{$"Edo. facturación: "} $"#<@@(compra,'$edo_facturacion')>"}
-                small{b{$"Edo. financiero: "} $"#<@@(compra,'$edo_financiero')>"}
+                small{b{$"E. Administrativo: "} $"#<@@(compra,'$edo_admin')>"}
+                small{b{$"E. Entrega: "} $"#<@@(compra,'$edo_entrega')>"}
+                small{b{$"E. Facturación: "} $"#<@@(compra,'$edo_facturacion')>"}
+                small{b{$"E. Financiero: "} $"#<@@(compra,'$edo_financiero')>"}
             }
 
             nav
@@ -164,13 +165,14 @@ module "doc.pedido.dk"
                 {
                     button(class="nav-link py-1 active" id="nav-general-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-general" type="button" role="tab" "aria-controls"="nav-general" "aria-selected"="true"){$"General"}
                     button(class="nav-link py-1" id="nav-mrdata-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-mrdata" type="button" role="tab" "aria-controls"="nav-mrdata" "aria-selected"="false"){$"Más datos"}
+                    button(class="nav-link py-1" id="nav-productos-tab" hidden="" "data-bs-toggle"="tab" "data-bs-target"="#nav-productos" type="button" role="tab" "aria-controls"="nav-productos" "aria-selected"="false"){$"Productos"}
                 }
             }
         }
 
         section(id="work_area")
         {
-            div(class="show-on-print")
+            div(class="show-on-print printable-element")
             {
                 p(class="text-center my-0"){$"#<@@(titles,'$title')>"}
                 p(class="text-center my-0"){$"#<@@(titles,'$subtitle')>"}
@@ -196,7 +198,7 @@ module "doc.pedido.dk"
                 }
             }
 
-            section(class="show-on-print" id="master")
+            section(class="show-on-print printable-element")
             {
                 table(class="table table-sm table-bordered")
                 {
@@ -229,7 +231,7 @@ module "doc.pedido.dk"
                     {
                         tr
                         {
-                            th(class="bg-light-gray"){$"Proveedor:"}
+                            th(class="text-start bg-light-gray"){$"Proveedor:"}
                             td{$"#<@@(dtprov,'$codigo')>"}
                             td{$"#<@@(dtprov,'$nombre')>"}
                         }
@@ -331,6 +333,8 @@ module "doc.pedido.dk"
                             }
                         }
                     }
+
+                    div(class="tab-pane fade" id="nav-productos" role="tabpanel" "aria-labelledby"="nav-productos-tab"){$""}
                 }
 
                 input(type="hidden" name="sys_pk" value="#<@@(compra,'#sys_pk')>" id="txt_sys_pk")
@@ -369,13 +373,24 @@ module "doc.pedido.dk"
                 ){$""}
             }
             // div(class="alert alert-danger rounded-0 mb-1 py-0 d-none" role="alert" id="tbl_alerts"){$""}
-            div(class="border border-top-0 #<ifstr(enable_editing,'','disable-form')>" id="div_tbl_productos" style="width:auto; min-width:100%; max-height:55vh; display:flex;")
+            div(class="border border-top-0" id="div_tbl_productos" style="width:auto; min-width:100%; max-height:55vh; display:flex;")
             {
-                "edit-table"(id="tbl_productos" data="#<to.json(dcompra)>" "auto-confirm"="true" style="width:100%;"
+                "edit-table"(id="tbl_productos" data="#<to.json(dcompra)>" class="printable-element" style="width:100%;"
+                "#<ifstr(not(enable_editing),'readonly','')>"="true"
+                "auto-confirm"="true"
                 "row-height"="1.2rem"
                 "control-styles"="
                     tr th { font-size:.9rem; font-weight:500 !important; outline:none !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
                     tr td { font-size:.8rem; }
+                    tr td[data-cell='Origen'],
+                    tr td[data-cell='Cotizado'],
+                    tr td[data-cell='Subtotal'],
+                    tr td[data-cell='Impuestos'],
+                    tr td[data-cell='Importe']
+                    {
+                        background-color:#FAFAFA;
+                        color:#000;
+                    }
                     #__table_input { font-size:unset !important; }
 
                     @media print
@@ -389,11 +404,11 @@ module "doc.pedido.dk"
                     {
                         "edit-tr"
                         {
+                            "edit-th"(type="NoEditable" field="origen" textalign="center"){$"Origen"}
                             "edit-th"(type="Text" field="codigo" button="true"){$"Código"}
                             "edit-th"(type="Text" field="descripcion" button="true"){$"Descripción"}
                             "edit-th"(type="Select" field="unidad" options="{}"){$"Unidad"}
                             "edit-th"(type="Number" field="precio" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Precio"}
-                            "edit-th"(type="NoEditable" field="origen" textalign="center"){$"Origen"}
                             "edit-th"(type="NoEditable" field="cotizado" textalign="center"){$"Cotizado"}
                             "edit-th"(type="Number" field="cantidad" textalign="center"){$"Cantidad"}
                             "edit-th"(type="NoEditable" field="subtotal" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Subtotal"}
@@ -418,7 +433,7 @@ module "doc.pedido.dk"
 
         section(id="bottom_area")
         {
-            div(class="d-flex justify-content-between w-100 bg-light p-2 border")
+            div(class="d-flex justify-content-between w-100 bg-light p-2 border printable-element")
             {
                 b{$"Subtotal: " span(id="lbl_subtotal"){$""}}
                 b{$"Descuento: " span(id="lbl_descuento"){$""}}

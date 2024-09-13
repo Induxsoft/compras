@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => 
 {
     let error_span = document.getElementById("err-msg");
-    let mainActionBar = document.getElementById("main_action_bar");
     let btnGuardarDoc = document.getElementById("btn-guardar");
     let btnCerrarDoc = document.getElementById("btn-cerrar");
     let btnProcesarDoc = document.getElementById("btn-procesar");
@@ -11,6 +10,11 @@ document.addEventListener("DOMContentLoaded", () =>
     let btnFacturar = document.getElementById('btn-facturar');
     let btnProcesarText = document.getElementById('btn-procesar-text');
 
+    const nav_general_tab = document.getElementById("nav-general-tab");
+    const nav_productos_tab = document.getElementById("nav-productos-tab");
+    const nav_productos = document.getElementById("nav-productos");
+    
+    const work_area = document.getElementById("work_area");
     let formPedido = document.getElementById("form_pedido");
     let ikProveedor = document.getElementById("sel_proveedor");
     let ikProducto = document.getElementById("sel_producto");
@@ -21,10 +25,10 @@ document.addEventListener("DOMContentLoaded", () =>
     let txt_statusadministrativo = document.getElementById("txt_statusadministrativo");
     let txt_detalle_compra = document.getElementById("txt_detalle_compra");
     
-    let tblActionBar = document.getElementById("tbl_action_bar");
+    const tbl_act_bar = document.getElementById("tbl_action_bar");
     let btnAddRow = document.getElementById("btn-add-row");
     let btnDelRow = document.getElementById("btn-del-row");
-    let divTableProductos = document.getElementById("div_tbl_productos")
+    const div_tbl_prod = document.getElementById("div_tbl_productos")
     let lblSubtotal = document.getElementById("lbl_subtotal");
     let lblDescuento = document.getElementById("lbl_descuento");
     let lblImpuesto = document.getElementById("lbl_impuesto");
@@ -53,6 +57,36 @@ document.addEventListener("DOMContentLoaded", () =>
     updateCotizados();
     table._printRows();
     if (ikProveedor && Object.keys(ikProveedor.getValue()).length > 0) changeURLImport(ikProveedor.getValue());
+
+    let show_tab_productos = false;
+    function onResize()
+    {
+        let body_width = document.body.offsetWidth;
+        let h = Math.sub(work_area.offsetHeight, Math.add(formPedido.offsetHeight,tbl_act_bar.offsetHeight));
+
+        if (body_width < 576) {
+            if (!show_tab_productos) {
+                show_tab_productos = true;
+                nav_productos_tab.hidden = false;
+                
+                nav_productos.appendChild(tbl_act_bar);
+                nav_productos.appendChild(div_tbl_prod);
+            }
+            h = Math.sub(work_area.offsetHeight,tbl_act_bar.offsetHeight);
+        }
+        else if (body_width > 575 && show_tab_productos) {
+            show_tab_productos = false;
+            nav_productos_tab.hidden = true;
+            nav_general_tab.click();
+            
+            work_area.appendChild(tbl_act_bar);
+            work_area.appendChild(div_tbl_prod);
+        }
+
+        div_tbl_prod.style.maxHeight = (h-12)+"px";
+    }
+    setTimeout(()=>{onResize()},500);
+    window.addEventListener("resize", (e) => onResize());
 
     function trigger(element,event) {
         if (element) {
