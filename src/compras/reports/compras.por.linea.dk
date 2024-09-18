@@ -53,37 +53,46 @@ module "Compras por linea"
         #$
             form(class="" action="./" method="GET" id="form-filter")
             {
-                div(class="d-flex align-items-center gap-1 mb-1")
+                div(class="align-items-center gap-1 mb-1")
                 {
-                    div(class="d-flex gap-1 flex-grow-1")
+                    div(class="gap-1 flex-grow-1")
                     {
-                        div(class="d-inline-flex gap-1")
+                        div(class="row")
                         {
-                            input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<@('$parameters/finicial')>" title="Fecha inicial")
-                            input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<@('$parameters/ffinal')>" title="Fecha final")
-                           
+                            div(class="col-md-2"){
+                               span(class="text-dark"){"Fecha Inicial"}
+                               input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<@('$parameters/finicial')>" title="Fecha inicial")
+                            }
+                            div(class="col-md-2"){
+                               span(class="text-dark"){"Fecha Final"}
+                               input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<@('$parameters/ffinal')>" title="Fecha final")
+                            }
                              //aqui hacemos el llenado del select mediante la consulta a la base de datos
-                             select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
-                            {
-                                #!
-                                for i = 0; i < list.count(almacenes); i+1
-                                    {
-                                          ref obj = list.obj(almacenes,i)
-                                            #$
-                                            option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
-                                            {
-                                            "#<@@(obj,'descripcion')>"
-                                            }
-                                  #!     
-                                  }
-                                  #$
+                            div(class="col-md-2"){
+                            span(class="text-dark"){"Fecha Final"}
+                                select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
+                                {
+                                    #!
+                                    for i = 0; i < list.count(almacenes); i+1
+                                        {
+                                            ref obj = list.obj(almacenes,i)
+                                                #$
+                                                option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
+                                                {
+                                                "#<@@(obj,'descripcion')>"
+                                                }
+                                    #!     
+                                    }
+                                    #$
+                                }
+                            }
+                        
+                            div(class="col-md-6 mt-4"){
+                                  div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
                             }
 
-                        
-
                     }
-                    div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
-                }
+              }
             
             
            }

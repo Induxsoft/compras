@@ -98,11 +98,6 @@ where c.statusadministrativo<>99 and c.aplicadoa is null  and (c.fecha>=@finicia
 
     ComprasPorFacturar::&db,&params
     {
-        // validacion del permiso
-        // consulta
-        // validacion de filtros
-        // retorno de respuesta
-        // control de exception
 
          // do rise_error(99,to.json(params))
     do dbr.apps.action.grant("GA22") // permisos para acceder
@@ -207,7 +202,7 @@ ORDER BY l.Descripcion;
     // do rise_error(99,to.json(params))
     do dbr.apps.action.grant("GA24")
 
-    sql_compras_por_proveedor = "SELECT c.Fecha, c.Referencia, p.Codigo, p.Descripcion, p.Unidad, (dc.Cantidad) AS Compras,
+    sql_compras_por_proveedor = "SELECT pv.sys_pk,c.Fecha, c.Referencia, p.Codigo, p.Descripcion, p.Unidad, (dc.Cantidad) AS Compras,
 ((dc.Cantidad*dc.Precio)-dc.Descuento1-dc.Descuento2) AS Subtotal, 
 (dc.Impuesto1+dc.Impuesto2+dc.Impuesto3+dc.Impuesto4) AS Impuestos,
 (((dc.Cantidad*dc.Precio)-dc.Descuento1-dc.Descuento2)+(dc.Impuesto1+dc.Impuesto2+dc.Impuesto3+dc.Impuesto4)) AS Total, pv.Nombre AS Proveedor
@@ -215,7 +210,7 @@ FROM (((dcompra AS dc INNER JOIN Producto p ON dc.iproducto = p.Sys_PK)
 INNER JOIN Compra c ON dc.fk_compra_detalle = c.Sys_PK)
 INNER JOIN Proveedor pv ON c.IProveedor = pv.Sys_PK)
 WHERE (c.documento=3 or c.documento=4) and c.aplicadoa is null and c.statusadministrativo<>99 and (c.Fecha>=@finicial AND c.Fecha<=@ffinal) AND (c.ialmacen=@pkalmacen and if(@pklinea is null,true,p.ilinea=@pklinea) and if(@pkmarca is null,true,p.imarca=@pkmarca))
-ORDER BY pv.Nombre,c.fecha,c.sys_DTCReated;"
+ORDER BY pv.Nombre;"
 
 
     //codigo para para haer consultas de toda la lista ialmacen<>0
