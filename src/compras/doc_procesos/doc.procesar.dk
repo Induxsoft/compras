@@ -297,7 +297,7 @@ module "doc.procesar.dk"
             div(class="accordion" id="opciones_liquidacion")
             {
                 #!
-                if print_opt_contado == 0
+                if print_opt_contado
                 {#$
                 div(class="accordion-item")
                 {
