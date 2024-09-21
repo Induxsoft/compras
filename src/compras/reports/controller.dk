@@ -34,12 +34,13 @@ module "ReportController"
             point @read to Report.DevolucionesPorProveedor 
             break
         }
+        /*
         case "compras-brutas-por-proveedor"
         {
             @form_view = "compras.brutas.por.proveedor.dk" 
             point @read to Report.ComprasBrutasPorProveedor
             break
-        }
+        } */
 
         default
         {

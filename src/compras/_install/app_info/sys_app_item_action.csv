@@ -10,4 +10,5 @@
 "GA23","Compras por línea","C.P.L","","/!/compras/reports/compras-por-linea/","0","compras.compras","DET01B","0","report"
 "GA24","Compras por proveedor","P.P.P","","/!/compras/reports/compras-por-proveedor/","0","compras.compras","DET01B","0","report"
 "GA25","Devoluciones por proveedor","D.P.P","","/!/compras/reports/devoluciones-por-proveedor/","0","compras.compras","DET01B","0","report"
-"GA26","Compras Brutas por proveedor","D.P.P","","/!/compras/reports/compras-brutas-por-proveedor/","0","compras.compras","DET01B","0","report"
+
+ 

@@ -67,6 +67,7 @@ module "list.dk"
     new table_definition
     {
         @"datatable*": docs
+        @"tableheight": "96%"
         @"leyend": "Mostrando las primeras # compras ordenadas por fecha"
         member @"columns"
         {
@@ -242,7 +243,7 @@ module "list.dk"
             div(class="show-on-print"){p(class="fixed-bottom text-center my-1"){$"#<@@(titles,'$footer')>"}}
         }
 
-        // section(class="container-fluid" id="bottom_area"){}
+        section(class="container-fluid" id="bottom_area"){}
 
         script(type="text/javascript")
         {$'

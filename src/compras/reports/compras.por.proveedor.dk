@@ -52,6 +52,14 @@ module "Compras netas totales"
             #$
             p{"#<@('error/message')>"}
         }
+                #!
+        fechai = @('$parameters/finicial')
+        fechaf = @('$parameters/ffinal')
+        if fechai == "" || fechaf == ""
+        {
+            fechai = date_str(now(), "yyyy-MM-dd")
+            fechaf = date_str(now(), "yyyy-MM-dd")
+        }
         #$
             form(class="" action="./" method="GET" id="form-filter")
             {
@@ -63,17 +71,18 @@ module "Compras netas totales"
                         {
                             div(class="col-md-2"){
                                  span(class="text-dark"){"Fecha Inicial"}
-                                 input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<@('$parameters/finicial')>" title="Fecha inicial")
+                                 input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<fechai>" title="Fecha inicial")
                             }
                             div(class="col-md-2"){
                                  span(class="text-dark"){"Fecha Final"}
-                                 input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<@('$parameters/ffinal')>" title="Fecha final")
+                                 input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<fechaf>" title="Fecha final")
                             }
                            //aqui hacemos el llenado del select mediante la consulta a la base de datos
                             div(class="col-md-2"){
                             span(class="text-dark"){"Línea"}
                                 select(class="form-control form-control-sm rounded-0" name="pklinea" value="#<@('$parameters/pklinea')>" title="Linea")
                                 {
+                                    option(value="*"){"Todos"}
                                     #!
                                     for i = 0; i < list.count(linea); i+1
                                         {
@@ -92,6 +101,7 @@ module "Compras netas totales"
                             span(class="text-dark"){"Marca"}
                                 select(class="form-control form-control-sm rounded-0" name="pkmarca" value="#<@('$parameters/pkmarca')>" title="Marca")
                                 {
+                                    option(value="*"){"Todos"}
                                     #!
                                     for i = 0; i < list.count(marca); i+1
                                         {
@@ -111,6 +121,7 @@ module "Compras netas totales"
 
                                 select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
                                 {
+                                    option(value="*"){"Todos"}
                                 #!
                                     for i = 0; i < list.count(almacenes); i+1 //listamos todo los datos de los almacenes 
                                         {
@@ -125,7 +136,6 @@ module "Compras netas totales"
                                     }
                                     #$
                                     //para visualizar todo los datos
-    
                                 }
                             }
                             div(class="col-md-2 mt-4"){

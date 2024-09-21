@@ -51,7 +51,7 @@ module "model"
             FROM compra c
                 INNER JOIN cdocumentos cd ON c.documento = cd.id
                 INNER JOIN dcompra dc ON c.sys_pk = dc.fk_compra_detalle
-            WHERE c.statusadministrativo = 3
+            WHERE (c.statusadministrativo = 3 OR (c.documento = 1 AND c.statusadministrativo = 2))
                 AND c.iproveedor = @proveedor
                 AND c.idivisa = @idivisa
                 AND IF(IFNULL(@search,'%')='%', true, c.referencia LIKE CONCAT('%',@search,'%'))

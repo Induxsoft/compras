@@ -53,6 +53,14 @@ module "Compras por facturar"
         #$
             p{"#<@('error/message')>"}
         }
+        #!
+        fechai = @('$parameters/finicial')
+        fechaf = @('$parameters/ffinal')
+        if fechai == "" || fechaf == ""
+        {
+            fechai = date_str(now(), "yyyy-MM-dd")
+            fechaf = date_str(now(), "yyyy-MM-dd")
+        }
         #$
             form(class="" action="./" method="GET" id="form-filter")
             {
@@ -64,20 +72,23 @@ module "Compras por facturar"
                         {
                          div(class="col-md-2"){
                          span(class="text-dark"){"Fecha Inicial"}
-                            input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<@('$parameters/finicial')>" title="Fecha inicial")
+                            input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<fechai>" title="Fecha inicial")
                           }
                         div(class="col-md-2"){
                         span(class="text-dark"){"Fecha Final"}
-                           input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<@('$parameters/ffinal')>" title="Fecha final")
+                           input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<fechaf>" title="Fecha final")
                          }
                            //aqui hacemos el llenado del select mediante la consulta a la base de datos
                         div(class="col-md-2"){
                         span(class="text-dark"){"Almacén"}
                             select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
                             {
+                                  option(value="*"){"Todos"}
                              #!
                                 for i = 0; i < list.count(almacenes); i+1 //listamos todo los datos de los almacenes 
                                     {
+
+
                                         ref obj = list.obj(almacenes,i)
                                             #$
                                             option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key

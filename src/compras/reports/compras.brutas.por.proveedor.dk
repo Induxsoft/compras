@@ -52,6 +52,15 @@ module "Compras netas totales"
             #$
             p{"#<@('error/message')>"}
         }
+        #!
+           fechai = @('$parameters/finicial')
+           fechaf = @('$parameters/ffinal')
+         
+            if fechai == "" || fechaf == ""
+            {
+                fechai = date_str(now(), "yyyy-MM-dd")
+                fechaf = date_str(now(), "yyyy-MM-dd")
+            }
         #$
             form(class="" action="./" method="GET" id="form-filter")
             {
@@ -64,12 +73,12 @@ module "Compras netas totales"
                             div(class="col-md-2")
                             {
                             span(class=" text-dark"){"Fecha Inicial"}
-                            input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<@('$parameters/finicial')>" title="Fecha Inicial")
+                            input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<fechai>" title="Fecha Inicial")
                             }
                             div(class="col-md-2")
                             {
                             span(class=" text-dark"){"Fecha Final"}
-                            input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<@('$parameters/ffinal')>" title="Fecha Final")
+                            input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<fechaf>" title="Fecha Final")
                             }
                            //aqui hacemos el llenado del select mediante la consulta a la base de datos
                            
