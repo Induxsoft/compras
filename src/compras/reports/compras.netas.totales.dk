@@ -29,7 +29,7 @@ module "Compras netas totales"
     new nav_config
     {
         @"title": "Compras Netas Totales"
-        @"urlexit": "javascript:window.history.back()"
+        @"urlexit": @DOC_COMPRAS
     }
 
     #$
@@ -46,24 +46,25 @@ module "Compras netas totales"
                 tr td { font-size:.8rem; }
             '}
 
-        #!
-        if @("error/message") != ""{
-            #$
-            p{"#<@('error/message')>"}
+            #!
+            if @("error/message") != ""
+            {
+                #$
+                p{"#<@('error/message')>"}
+                
+            }
+
+            #!
+            fechai = @('$parameters/finicial')
+            fechaf = @('$parameters/ffinal')
             
-        }
+            if fechai == "" || fechaf == ""
+            {
+                fechai = date_str(now(), "yyyy-MM-dd")
+                fechaf = date_str(now(), "yyyy-MM-dd")
+            }
 
-        #!
-        fechai = @('$parameters/finicial')
-        fechaf = @('$parameters/ffinal')
-         
-        if fechai == "" || fechaf == ""
-        {
-            fechai = date_str(now(), "yyyy-MM-dd")
-            fechaf = date_str(now(), "yyyy-MM-dd")
-        }
-
-        #$
+            #$
             form(class="" action="./" method="GET" id="form-filter")
             {
                 div(class="align-items-center gap-1 mb-1")
@@ -84,45 +85,41 @@ module "Compras netas totales"
                             }
                             div(class="col-md-2")
                             {
-                            span(class=" text-dark"){"Almacén"}
-                            select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
-                            {
-                                 option(value="*"){"Todos"}
-                             #!
-                                for i = 0; i < list.count(almacenes); i+1 //listamos todo los datos de los almacenes 
+                                span(class="text-dark"){"Almacén"}
+                                select(class="form-select form-select-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
+                                {
+                                    option(value="*"){"Todos"}
+                                    #!
+                                    for i = 0; i < list.count(almacenes) //listamos todo los datos de los almacenes 
                                     {
                                         ref obj = list.obj(almacenes,i)
-                                            #$
-                                            option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
-                                            {
+                                        #$
+                                        option(class="" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
+                                        {
                                             "#<@@(obj,'descripcion')>"  //agregamos los datos de la descripcion al select
-                                            }
-                  
-                                        #!     
-                                  }
-                                  #$
-                                  //para visualizar todo los datos
-                              }
+                                        }    
+                                    }
+                                    #$
+                                }
                             }
                             
 
 
                             div(class="col-md-2")
                             {
-                            span(class=" text-dark"){"Línea"}
-                                select(class="form-control form-control-sm rounded-0" name="pklinea" value="#<@('$parameters/pklinea')>" title="Linea")
+                                span(class=" text-dark"){"Línea"}
+                                select(class="form-select form-select-sm rounded-0" name="pklinea" value="#<@('$parameters/pklinea')>" title="Linea")
                                 {
                                     option(value="*"){"Todos"}
                                     #!
-                                    for i = 0; i < list.count(linea); i+1
+                                    for i = 0; i < list.count(linea)
+                                    {
+                                        ref obj = list.obj(linea,i)
+                                        #$
+                                        option(class="" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pklinea'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
                                         {
-                                            ref obj = list.obj(linea,i)
-                                                #$
-                                                option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pklinea'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
-                                                {
-                                                "#<@@(obj,'descripcion')>"
-                                                }
-                                    #!     
+                                            "#<@@(obj,'descripcion')>"
+                                        }   
                                     }
                                     #$
                                 }
@@ -130,20 +127,19 @@ module "Compras netas totales"
                             
                             div(class="col-md-2")
                             {
-                             span(class=" text-dark"){"Marca"}
-                                select(class="form-control form-control-sm rounded-0" name="pkmarca" value="#<@('$parameters/pkmarca')>" title="Marca")
+                                span(class=" text-dark"){"Marca"}
+                                select(class="form-select form-select-sm rounded-0" name="pkmarca" value="#<@('$parameters/pkmarca')>" title="Marca")
                                 {
                                      option(value="*"){"Todos"}
                                     #!
-                                    for i = 0; i < list.count(marca); i+1
+                                    for i = 0; i < list.count(marca)
+                                    {
+                                        ref obj = list.obj(marca,i)
+                                        #$
+                                        option(class="" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkmarca'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
                                         {
-                                            ref obj = list.obj(marca,i)
-                                                #$
-                                                option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkmarca'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
-                                                {
-                                                "#<@@(obj,'descripcion')>"
-                                                }
-                                        #!     
+                                            "#<@@(obj,'descripcion')>"
+                                        }    
                                     }
                                     #$
                                 }
@@ -153,41 +149,43 @@ module "Compras netas totales"
                             {
                               div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
                             }
+                        }
                     }
                 }
             }
-        }
 
-        div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") {
-        div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);")
-        {
-            section(class="bg-white p-1" id="work_area")
+            div(class="bg-light w-100 p-2" style="max-height:80vh; overflow-y:auto;") 
             {
-                p(class="text-center mb-0"){$"#<@@(titles,'$title')>"}
-                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle')>"}
-                p(class="text-center mb-0"){$"#<@@(titles,'$subtitle_2')>"}
+                div(class="" style="box-shadow: inset 0 -3em 3em rgba(0, 0, 0, 0.1), 0.3em 0.3em 1em rgba(0, 0, 0, 0.3);")
+                {
+                    section(class="bg-white p-1" id="work_area")
+                    {
+                        p(class="text-center mb-0"){$"#<@@(titles,'$title')>"}
+                        p(class="text-center mb-0"){$"#<@@(titles,'$subtitle')>"}
+                        p(class="text-center mb-0"){$"#<@@(titles,'$subtitle_2')>"}
 
-                div(class="row")
-                {
-                    div(class="col-3")
-                    {
-                        //se comento porque no queremos que aparezca el usuario
-                       //small(class="d-block"){ $ "#<cut(@('$http/session/user/name'),25)>" }
-                        small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
-                    }
-                    div(class="col-6")//subtitulo
-                    {
-                        h5(class="text-center"){$"Compras Netas Totales"}
-                    }
-                    div(class="col-3 text-end")
-                    {
-                        $""
-                    }
-                }
-                
-                table(class="table table-sm table-bordered my-2")
-                {
-                    thead{
+                        div(class="row")
+                        {
+                            div(class="col-3")
+                            {
+                                //se comento porque no queremos que aparezca el usuario
+                            //small(class="d-block"){ $ "#<cut(@('$http/session/user/name'),25)>" }
+                                small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                            }
+                            div(class="col-6")//subtitulo
+                            {
+                                h5(class="text-center"){$"Compras Netas Totales"}
+                            }
+                            div(class="col-3 text-end")
+                            {
+                                $""
+                            }
+                        }
+                        
+                        table(class="table table-sm table-bordered my-2")
+                        {
+                            thead
+                            {
                                 th(scope="col"){"Código "}
                                 th(scope="col"){"Descripción "}
                                 th(scope="col"){"Unidad"}
@@ -195,73 +193,59 @@ module "Compras netas totales"
                                 th(scope="col"){"Subtotal "}
                                 th(scope="col"){"Impuestos"}
                                 th(scope="col"){"Total"}
-                     }
-
-                 tbody
-                    {
-                        $""
-                        #!
-                        doc=""
-                        bonis=0
-                        pagos=0
-                        compras=0
-                        subtotal=0 //variables para sumario
-                        impuestos=0
-                        total=0
-
-                        for i = 0; i < list.count(data); i+1
-                        {
-                            ref obj = list.obj(data,i)
-                            compras = compras + @@(obj,'#Compras') //contador sumario
-                            subtotal = subtotal + @@(obj,'#Subtotal') //contador sumario
-                            impuestos = impuestos + @@(obj,'#Impuestos')
-                            total = total + @@(obj,'#total')
-                            //if doc!=obj.aplicacion
-                           // {
-                                #$
-                                tr(class="bg-light-gray")
-                                {
-                                    td(class="" ){$"#<@@(obj,'$Codigo')>"}
-                                    td(class=""){$"#<@@(obj,'$Descripcion')>"}
-                                    td(class=""){$"#<@@(obj,'$Unidad')>"}
-                                    td(class="text-end") {$"#<number_format(@@(obj,'$Compras'))>"}
-                                   //agreamos la columa sumario
-                                    td(class="text-end"){$"$ #<number_format(@@(obj,'#Subtotal'))>"}
-                                    td(class="text-end"){$"#<number_format(@@(obj,'$Impuestos'))>"}
-                                    td(class="text-end"){$"#<number_format(@@(obj,'$Total'))>"
-                                }
-                         //   }
-                            #$
-                         /*  tr
-                            {
-                                td(class="text-center"){$"#<@@(obj,'$fapl')>"}
-                                td(class=""){$"#<@@(obj,'$origen')> (#<@@(obj,'$kapp')>)"}
-                                td(class="text-end"){$"$ #<number_format(@@(obj,'#bonificaciones'))>"}
-                                td(class="text-end"){$"$ #<number_format(@@(obj,'#pagos'))>"}
                             }
-                            #!
-                            bonis=bonis+@@(obj,"#bonificaciones")
-                            pagos=pagos+@@(obj,"#pagos") */
-                        }
-                       
-                        #$
-                        tr(class="group-summary")
-                        {
-                            $""
-                            td(colspan="3"){""}
-                             td(class="text-end fw-bold"){$"$ #<number_format(compras)>"}
-                            td(class="text-end fw-bold"){$"$ #<number_format(subtotal)>"}
-                            td(class="text-end fw-bold"){$"$ #<number_format(impuestos)>"}
-                            td(class="text-end fw-bold"){$"$ #<number_format(total)>"}
+
+                            tbody
+                            {
+                                $""
+                                #!
+                                doc=""
+                                bonis=0
+                                pagos=0
+                                compras=0
+                                subtotal=0 //variables para sumario
+                                impuestos=0
+                                total=0
+
+                                for i = 0; i < list.count(data); i+1
+                                {
+                                    ref obj = list.obj(data,i)
+                                    compras = compras + @@(obj,'#Compras') //contador sumario
+                                    subtotal = subtotal + @@(obj,'#Subtotal') //contador sumario
+                                    impuestos = impuestos + @@(obj,'#Impuestos')
+                                    total = total + @@(obj,'#total')
+                                    #$
+                                    tr
+                                    {
+                                        td(class="" ){$"#<@@(obj,'$Codigo')>"}
+                                        td(class=""){$"#<@@(obj,'$Descripcion')>"}
+                                        td(class=""){$"#<@@(obj,'$Unidad')>"}
+                                        td(class="text-end") {$"#<number_format(@@(obj,'$Compras'))>"}
+                                        //agreamos la columa sumario
+                                        td(class="text-end"){$"$ #<number_format(@@(obj,'#Subtotal'))>"}
+                                        td(class="text-end"){$"$ #<number_format(@@(obj,'$Impuestos'))>"}
+                                        td(class="text-end"){$"$ #<number_format(@@(obj,'$Total'))>"}
+                                    }
+                                    
+                                }
+                            }
+                            tfoot
+                            {
+                                tr(class="group-summary")
+                                {
+                                    td(colspan="4"){""}
+                                    // td(class="text-end fw-bold"){$"#<number_format(compras)>"}
+                                    td(class="text-end fw-bold"){$"$ #<number_format(subtotal)>"}
+                                    td(class="text-end fw-bold"){$"$ #<number_format(impuestos)>"}
+                                    td(class="text-end fw-bold"){$"$ #<number_format(total)>"}
+                                }
+                            }
+
+                            p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
                         }
                     }
                 }
-
-                p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
             }
-        }}
+        }
     }
-    #!
-    do @context.end()
-  }
 }

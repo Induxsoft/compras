@@ -30,7 +30,7 @@ module "Compras netas totales"
     new nav_config
     {
         @"title": "Devoluciones por Proveedor"
-        @"urlexit": "javascript:window.history.back()"
+        @"urlexit":@DOC_COMPRAS
     }
     #!
         fechai = @('$parameters/finicial')
@@ -82,7 +82,7 @@ module "Compras netas totales"
                             div(class="col-md-2")
                             {
                             span(class="text-dark"){"Línea"}                      
-                                select(class="form-control form-control-sm rounded-0" name="pklinea" value="#<@('$parameters/pklinea')>" title="Linea")
+                                select(class="form-select form-select-sm rounded-0" name="pklinea" value="#<@('$parameters/pklinea')>" title="Linea")
                                 {
                                     option(value="*"){"Todos"}
                                     #!
@@ -90,7 +90,7 @@ module "Compras netas totales"
                                         {
                                             ref obj = list.obj(linea,i)
                                                 #$
-                                                option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pklinea'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
+                                                option( "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pklinea'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
                                                 {
                                                 "#<@@(obj,'descripcion')>"
                                                 }
@@ -103,7 +103,7 @@ module "Compras netas totales"
                             div(class="col-md-2")
                             {
                             span(class="text-dark"){"Marca"}  
-                                select(class="form-control form-control-sm rounded-0" name="pkmarca" value="#<@('$parameters/pkmarca')>" title="Marca")
+                                select(class="form-select form-select-sm rounded-0" name="pkmarca" value="#<@('$parameters/pkmarca')>" title="Marca")
                                 {
                                     option(value="*"){"Todos"}
                                     #!
@@ -111,7 +111,7 @@ module "Compras netas totales"
                                         {
                                             ref obj = list.obj(marca,i)
                                                 #$
-                                                option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkmarca'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
+                                                option( "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkmarca'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
                                                 {
                                                 "#<@@(obj,'descripcion')>"
                                                 }
@@ -123,7 +123,7 @@ module "Compras netas totales"
                             div(class="col-md-2")
                             {
                             span(class="text-dark"){"Almacén"}  
-                                select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacén")
+                                select(class="form-select form-select-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacén")
                                 {
                                     option(value="*"){"Todos"}
                                 #!
@@ -131,7 +131,7 @@ module "Compras netas totales"
                                         {
                                             ref obj = list.obj(almacenes,i)
                                                 #$
-                                                option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
+                                                option("#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
                                                 {
                                                 "#<@@(obj,'descripcion')>"  //agregamos los datos de la descripcion al select
                                                 }
@@ -222,79 +222,67 @@ module "Compras netas totales"
                             subtotal = subtotal + @@(obj,'#Subtotal')
                             impuestos = impuestos + @@(obj,'#Impuestos')
                             total = total + @@(obj,'#total')
-                            //if doc!=obj.aplicacion
-                           // {
-                                #$
-                                tr(class="bg-light-gray")
-                                {
-                                    td(class="" )
-                                    {
-                                        $"#<@@(obj,'$Fecha')>"
-                                    }
-                                    td(class="" )
-                                    {
-                                        $"#<@@(obj,'$Referencia')>"
-                                    }
-                                    td(class="" )
-                                    {
-                                        $"#<@@(obj,'$Codigo')>"
-                                    }
-                                    td(class="" )
-                                    {
-                                        $"#<@@(obj,'$Descripcion')>"
-                                    }
-
-                                    td(class="")
-                                    {
-                                        $"#<@@(obj,'$Unidad')>"
-                                    }
-
-                                    td(class="text-end" )
-                                    {
-                                        // $"#<@@(obj,'$Cantidad')>"
-                                        $"#<number_format(@@(obj,'$Compras'))>"
-                                    }
-
-                                   //agreamos la columa sumario
-                                    td(class="text-end")
-                                    {
-                                        $"$ #<number_format(@@(obj,'#Subtotal'))>"
-                                    }
-
-                                    td(class="text-end" )
-                                    {
-                                        $"#<number_format(@@(obj,'$Impuestos'))>"
-                                    }
-
-                                    td(class="text-end")
-                                    {
-                                        $"#<number_format(@@(obj,'$Total'))>"
-                                    }
-                                    td(class="")
-                                    {
-                                        $"#<@@(obj,'$Proveedor')>"
-                                    }
-                                }
-                         //   }
+  
                             #$
-                         /*  tr
+                            tr(class="")
                             {
-                                td(class="text-center"){$"#<@@(obj,'$fapl')>"}
-                                td(class=""){$"#<@@(obj,'$origen')> (#<@@(obj,'$kapp')>)"}
-                                td(class="text-end"){$"$ #<number_format(@@(obj,'#bonificaciones'))>"}
-                                td(class="text-end"){$"$ #<number_format(@@(obj,'#pagos'))>"}
+                                td(class="" )
+                                {
+                                    $"#<@@(obj,'$Fecha')>"
+                                }
+                                td(class="" )
+                                {
+                                    $"#<@@(obj,'$Referencia')>"
+                                }
+                                td(class="" )
+                                {
+                                    $"#<@@(obj,'$Codigo')>"
+                                }
+                                td(class="" )
+                                {
+                                    $"#<@@(obj,'$Descripcion')>"
+                                }
+
+                                td(class="")
+                                {
+                                    $"#<@@(obj,'$Unidad')>"
+                                }
+
+                                td(class="text-end" )
+                                {
+                                    // $"#<@@(obj,'$Cantidad')>"
+                                    $"#<number_format(@@(obj,'$Compras'))>"
+                                }
+
+                                //agreamos la columa sumario
+                                td(class="text-end")
+                                {
+                                    $"$ #<number_format(@@(obj,'#Subtotal'))>"
+                                }
+
+                                td(class="text-end" )
+                                {
+                                    $"#<number_format(@@(obj,'$Impuestos'))>"
+                                }
+
+                                td(class="text-end")
+                                {
+                                    $"#<number_format(@@(obj,'$Total'))>"
+                                }
+                                td(class="")
+                                {
+                                    $"#<@@(obj,'$Proveedor')>"
+                                }
                             }
-                            #!
-                            bonis=bonis+@@(obj,"#bonificaciones")
-                            pagos=pagos+@@(obj,"#pagos") */
+                            #$
                         }
                        
                         #$
                         tr(class="group-summary")
                         {
                             $""
-                            td(colspan="5"){""}
-                            td(class="text-end fw-bold"){$"$ #<number_format(compras)>"}
+                            td(colspan="6"){""}
+                            // td(class="text-end fw-bold"){$"#<number_format(compras)>"}
                             td(class="text-end fw-bold"){$"$ #<number_format(subtotal)>"}
                             td(class="text-end fw-bold"){$"$ #<number_format(impuestos)>"}
                             td(class="text-end fw-bold"){$"$ #<number_format(total)>"}

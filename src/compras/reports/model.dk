@@ -42,48 +42,46 @@ module "Reportes de compras:Report"
 
     ComprasNetasTotales::&db,&params
     {
-    // do rise_error(99,to.json(params))
-    do dbr.apps.action.grant("GA21")
+        // do rise_error(99,to.json(params))
+        do dbr.apps.action.grant("GA21")
 
 
-    sql_compras_netos_totales = "
-SELECT p.Codigo, p.Descripcion,
-p.Unidad, sum(case when ( c.documento = 3  or c.documento = 4) then dc.cantidad ELSE 0 end
-) - sum( case when c.documento = 5 then dc.cantidad ELSE 0 end
-) as Compras, (sum(case when (c.documento = 3 or c.documento = 4) then dc.cantidad * dc.costototal else 0
-end) - SUM( case when c.documento = 5 then dc.cantidad * dc.costototal else 0 end)) as Subtotal, (sum(case when (c.documento = 3
-or c.documento = 4) then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4 )ELSE 0 end) - sum(case
-when c.documento = 5 then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4 ) ELSE 0 end)) as Impuestos,((sum( case when (c.documento = 3 or c.documento = 4) then dc.cantidad * dc.costototal ELSE 0 end) - SUM( case
-when c.documento = 5 then dc.cantidad * dc.costototal ELSE 0 end))) +((SUM( case when (c.documento = 3
-or c.documento = 4) then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4) ELSE 0 end) - sum(
-case when c.documento = 5 then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4) ELSE 0 END ) )) as Total
-FROM   dcompra dc
-inner join compra c on dc.Fk_Compra_Detalle = c.sys_pk
-inner join producto p on dc.iproducto = p.sys_pk
-where c.statusadministrativo <> 99
-and c.aplicadoa  
-and (c.fecha >= @finicial and c.fecha <= @ffinal) AND (
-if(IFNULL(@pkalmacen, '*') = '*',TRUE,   c.ialmacen = @pkalmacen)
-AND if(IFNULL(@pklinea, '*') = '*',TRUE, p.ilinea = @pklinea)
-AND if(IFNULL(@pkmarca, '*') = '*',TRUE, p.imarca = @pkmarca))
-GROUP BY p.DESCRIPCION HAVING (sum(case when ( c.documento = 3 or c.documento = 4)
-then dc.cantidad ELSE 0 END ) - SUM(case when c.documento = 5 then dc.cantidad ELSE 0 END )) > 0;"
+        sql_compras_netos_totales = "
+        SELECT p.Codigo, p.Descripcion,
+        p.Unidad, sum(case when ( c.documento = 3  or c.documento = 4) then dc.cantidad ELSE 0 end
+        ) - sum( case when c.documento = 5 then dc.cantidad ELSE 0 end
+        ) as Compras, (sum(case when (c.documento = 3 or c.documento = 4) then dc.cantidad * dc.costototal else 0
+        end) - SUM( case when c.documento = 5 then dc.cantidad * dc.costototal else 0 end)) as Subtotal, (sum(case when (c.documento = 3
+        or c.documento = 4) then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4 )ELSE 0 end) - sum(case
+        when c.documento = 5 then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4 ) ELSE 0 end)) as Impuestos,((sum( case when (c.documento = 3 or c.documento = 4) then dc.cantidad * dc.costototal ELSE 0 end) - SUM( case
+        when c.documento = 5 then dc.cantidad * dc.costototal ELSE 0 end))) +((SUM( case when (c.documento = 3
+        or c.documento = 4) then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4) ELSE 0 end) - sum(
+        case when c.documento = 5 then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4) ELSE 0 END ) )) as Total
+        FROM   dcompra dc
+        inner join compra c on dc.Fk_Compra_Detalle = c.sys_pk
+        inner join producto p on dc.iproducto = p.sys_pk
+        where c.statusadministrativo <> 99
+        and c.aplicadoa  
+        and (c.fecha >= @finicial and c.fecha <= @ffinal) AND (
+        if(IFNULL(@pkalmacen, '*') = '*',TRUE,   c.ialmacen = @pkalmacen)
+        AND if(IFNULL(@pklinea, '*') = '*',TRUE, p.ilinea = @pklinea)
+        AND if(IFNULL(@pkmarca, '*') = '*',TRUE, p.imarca = @pkmarca))
+        GROUP BY p.DESCRIPCION HAVING (sum(case when ( c.documento = 3 or c.documento = 4)
+        then dc.cantidad ELSE 0 END ) - SUM(case when c.documento = 5 then dc.cantidad ELSE 0 END )) > 0;"
 
 
-    //codigo para para haer consultas de toda la lista ialmacen<>0
-    //c.ialmacen=@pkalmacen
+        //codigo para para haer consultas de toda la lista ialmacen<>0
+        //c.ialmacen=@pkalmacen
 
-    //consultas oara el select
-    //pk consulta de almacen
-    sql_pkalmacen = "SELECT * from almacen;"
+        //consultas oara el select
+        //pk consulta de almacen
+        sql_pkalmacen = "SELECT * from almacen;"
 
-    // pk consulta de linea
-    sql_pklinea = "SELECT * from linea;"
+        // pk consulta de linea
+        sql_pklinea = "SELECT * from linea;"
 
-    //pk consulta marca
-    sql_pkmarca = "SELECT * from marca;"
-
-
+        //pk consulta marca
+        sql_pkmarca = "SELECT * from marca;"
 
         conditions = ""
         if not(field.exist(params,"fil_fcorte")) { params<"fil_fcorte"> : hoy("yyyy-MM-dd") }
@@ -96,11 +94,7 @@ then dc.cantidad ELSE 0 END ) - SUM(case when c.documento = 5 then dc.cantidad E
             @"almacen*": dbr.list(db,sql_pkalmacen,params)//resive dos parametros
             @"linea*": dbr.list(db,sql_pklinea,params)//resive dos parametros
             @"marca*": dbr.list(db,sql_pkmarca,params)//resive dos parametros
-          
-         //   @"todo*": dr.list(db,sql_totales,params)
-
             @"list*": dbr.list(db,ftext(sql_compras_netos_totales),params)
-          
         }
         
         do prepareView(db,params,data)

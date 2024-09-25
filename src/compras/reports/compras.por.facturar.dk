@@ -31,7 +31,7 @@ module "Compras por facturar"
     new nav_config
     {
         @"title": "Compras por Facturar"
-        @"urlexit": "javascript:window.history.back()"
+        @"urlexit":@DOC_COMPRAS
     }
 
     #$
@@ -81,23 +81,19 @@ module "Compras por facturar"
                            //aqui hacemos el llenado del select mediante la consulta a la base de datos
                         div(class="col-md-2"){
                         span(class="text-dark"){"Almacén"}
-                            select(class="form-control form-control-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
+                            select(class="form-select form-select-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
                             {
                                   option(value="*"){"Todos"}
                              #!
                                 for i = 0; i < list.count(almacenes); i+1 //listamos todo los datos de los almacenes 
+                                {
+                                    ref obj = list.obj(almacenes,i)
+                                    #$
+                                    option(class="" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
                                     {
-
-
-                                        ref obj = list.obj(almacenes,i)
-                                            #$
-                                            option(class="bg-light-gray" "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
-                                            {
-                                            "#<@@(obj,'descripcion')>"  //agregamos los datos de la descripcion al select
-                                            }
-                  
-                                    #!     
-                                  }
+                                    "#<@@(obj,'descripcion')>"  //agregamos los datos de la descripcion al select
+                                    }    
+                                }
                                   #$
                               }
                         }
@@ -186,7 +182,7 @@ module "Compras por facturar"
 
 
                                 #$
-                                tr(class="bg-light-gray")
+                                tr(class="")
                                 {
                                     td(class="" )
                                     {
@@ -204,16 +200,16 @@ module "Compras por facturar"
 
                                     td(class="text-end" )
                                     {
-                                        $"#<number_format(@@(obj,'$SubTotal'))>"
+                                        $"$ #<number_format(@@(obj,'$SubTotal'))>"
                                          //$"$ #<number_format(@@(obj,'#Subtotal'))>"
                                     }
                                     td(class="text-end")
                                     {
-                                        $"#<number_format(@@(obj,'$Impuestos'))>"
+                                        $"$ #<number_format(@@(obj,'$Impuestos'))>"
                                     }
                                     td(class="text-end")
                                     {
-                                        $"#<number_format(@@(obj,'$Total'))>"
+                                        $"$ #<number_format(@@(obj,'$Total'))>"
                                     }
 
                                     td(class="" )
@@ -233,13 +229,13 @@ module "Compras por facturar"
                     }
 
                     tr(class="group-summary")
-                        {
-                            $""
-                            td(colspan="3"){""}
-                            td(class="text-end fw-bold"){$"$ #<number_format(subtotal)>"}
-                            td(class="text-end fw-bold"){$"$ #<number_format(impuestos)>"}
-                            td(class="text-end fw-bold"){$"$ #<number_format(total)>"}
-                        }
+                    {
+                        $""
+                        td(colspan="3"){""}
+                        td(class="text-end fw-bold"){$"$ #<number_format(subtotal)>"}
+                        td(class="text-end fw-bold"){$"$ #<number_format(impuestos)>"}
+                        td(class="text-end fw-bold"){$"$ #<number_format(total)>"}
+                    }
                  } 
                
             }

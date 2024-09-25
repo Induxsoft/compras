@@ -28,7 +28,7 @@ module "Compras por linea"
     new nav_config
     {
         @"title": "Compras por Línea "
-        @"urlexit": "javascript:window.history.back()"
+        @"urlexit": @DOC_COMPRAS
     }
 
     #$
@@ -77,7 +77,7 @@ module "Compras por linea"
                             }
                              //aqui hacemos el llenado del select mediante la consulta a la base de datos
                             div(class="col-md-2"){
-                            span(class="text-dark"){"Fecha Final"}
+                            span(class="text-dark"){"Almacén"}
                                 select(class="form-select form-select-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacen")
                                 {
                                     option(value="*"){"Todos"}
@@ -172,7 +172,7 @@ module "Compras por linea"
 
 
                                 #$
-                                tr(class="bg-light-gray")
+                                tr
                                 {
                                     td(class="" )
                                     {
@@ -185,7 +185,7 @@ module "Compras por linea"
 
                                     td(class="text-end")
                                     {
-                                        $"#<number_format(@@(obj,'$Importe'))>"
+                                        $"$#<number_format(@@(obj,'$Importe'))>"
                                      //  $"#<number_format(@@(obj,'$SubTotal'))>"
                                     }
                                 }

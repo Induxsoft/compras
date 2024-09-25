@@ -6,9 +6,7 @@
 "GA14","Cancelar documento de compra","Cancelar","","/!/compras/procesos/@_src_context_item_id/cancelar/","0","compras.compras","DET01B","1","action"
 
 "GA21","Compras Netas Totales","C.N.T","","/!/compras/reports/compras-netas-totales/","0","compras.compras","DET01B","0","report"
-"GA22","Compras por facturar","C.P.F","","/!/compras/reports/compras-por-factura/","0","compras.compras","DET01B","0","report"
+"GA22","Compras por facturar","C.P.F","","/!/compras/reports/compras-por-facturar/","0","compras.compras","DET01B","0","report"
 "GA23","Compras por línea","C.P.L","","/!/compras/reports/compras-por-linea/","0","compras.compras","DET01B","0","report"
 "GA24","Compras por proveedor","P.P.P","","/!/compras/reports/compras-por-proveedor/","0","compras.compras","DET01B","0","report"
 "GA25","Devoluciones por proveedor","D.P.P","","/!/compras/reports/devoluciones-por-proveedor/","0","compras.compras","DET01B","0","report"
-
- 
