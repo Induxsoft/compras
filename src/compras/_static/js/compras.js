@@ -432,6 +432,14 @@ document.addEventListener("DOMContentLoaded", () =>
             producto.cotizado = (producto.usado + producto.cantidad) + "/" + producto.cantidad_constante;
         }
     }
+
+    if (is_insert) {
+        for (let i = 0; i < tData.length; i++) {
+            const producto = tData[i];
+            if (Object.keys(producto).length == 0 || !producto.doc_partida) continue;
+            actualizarProducto(producto,i);
+        }
+    }
     
     sel_divisa_disable = false;
     function disableSelDivisa(v)
@@ -499,7 +507,7 @@ document.addEventListener("DOMContentLoaded", () =>
         btnProcText = "Procesar";
 
         setURLInsertDoc(idocumento);
-
+        
         switch (idocumento) {
             case cCOTIZACION:
                 // console.log(idocumento, "cCOTIZACION");

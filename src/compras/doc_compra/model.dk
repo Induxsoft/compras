@@ -425,6 +425,11 @@ module "model"
                     ref entity = entity.update(db,params,data)
                 }
                 else if nvo_status_admin == cPROCESADO {
+                    if @@(compra,"#documento") == @cPEDIDO {
+                        compra<"statusadministrativo"> : cPROCESADO
+                        ref entity = entity.update(db,params,compra)
+                        break
+                    }
                     // Redirigir
                     redir = @true
                     //@url_redir = @DOC_PROCESAR
@@ -600,11 +605,38 @@ module "model"
         do dbr.apps.action.grant("GA10")
 
         new data {}
-        if trim(@@(params,"$doc")) != ""
+        if @@(params,"#insert") > 0
         {
-            using data { @"compra*": record.create() }
-            data<"compra/documento">: @@(params,"#doc") //dbr.num(db,"SELECT id FROM cdocumentos WHERE const=@doc",params)
+            new p
+            {
+                @"_entity_id": @@(params,"#insert")
+                @"icompra": @@(params,"insert")
+            }
+
+            ref compra = entity.read(db,p)
+            using compra
+            {
+                @"sys_pk": 0
+                @"sys_recver": 0
+                @"documento": @@(params,"#doc")
+                @"referencia": ""
+                @"fecha": ""
+                @"fentrega": ""
+                @"vencimiento": ""
+                @"fembarque": ""
+                @"formapago": ""
+                @"statusadministrativo": ""
+                @"statusentrega": ""
+                @"statusfacturacion": ""
+                @"statusfinanciero": ""
+            }
+            
+            using data
+            {
+                @"compra*": compra
+            }
         }
+
         do doc.prepareView(db,params,data)
         return data
 

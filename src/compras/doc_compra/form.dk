@@ -14,8 +14,6 @@ module "doc.pedido.dk"
     do @context.begin(@crud_context)
     empty_rows = "[{},{},{},{},{},{},{},{},{},{}]"
 
-    init_insert = @('$parameters/insert')
-
     ref listDivisas = ifnull(@('&./list_divisas'),list.create())
     ref listAlmacenes = ifnull(@('&./list_almacenes'),list.create())
     ref listDocumentos = ifnull(@('&./list_documentos'),list.create())
@@ -32,6 +30,8 @@ module "doc.pedido.dk"
     @DECIMAL_PRECISION = parse.num(dbr.vars.getd(@("&database"),"FXCA001",@DECIMAL_PRECISION))
 
     is_new = (@_entity_id == "_new")
+    is_insert = (is_new && @("#parameters/insert")>0)
+    init_insert = @('$parameters/insert')
 
     if not(isnull(@@(@crud_context,"&error")))
     {
@@ -98,6 +98,7 @@ module "doc.pedido.dk"
         @"text_field": "descripcion"
         @"selected": form("ialmacen","nm",compra)
     }
+    
     new_line_char="\n"
     break_line_tag="<br>"
 
@@ -475,6 +476,7 @@ module "doc.pedido.dk"
                 const compras_series_inhab = #<@compras_series_inhab>;
 
                 const url_detalle_doc = "#<@URL_DETALLE_DOCUMENTO>";
+                const is_insert = #<is_insert>;
                 const init_insert = "#<init_insert>";
 
                 const EDO_ENTREGA = #<form("statusentrega","nm",compra)>;
