@@ -1,0 +1,57 @@
+#include "dkli.dkh"
+#!
+program "Controlador de eventos de Cuentas por Pagar"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "./lib.dk"
+
+    do @context.begin(@event_context)
+
+    ref db = @("&database")
+    ref params = @("&eventdata/parameters")
+    ref data = @("&eventdata/input")
+
+    // do dir.ensure("_tests/logs/")
+    switch @("$event")
+    {
+        case "pos_GC13"
+        {
+            // Pagar documento
+            // do file.wtext("_tests/logs/___pos_GC13_context.json", to.json(@event_context))
+            do SaldarCompra(db,@@(params,"#_entity_id"))
+            break
+        }
+        case "pos_GC14"
+        {
+            // Bonificar documento
+            // do file.wtext("_tests/logs/___pos_GC14_context.json", to.json(@event_context))
+            do SaldarCompra(db,@@(params,"#_entity_id"))
+            break
+        }
+        case "pos_GC15"
+        {
+            // IntMoratorios documento
+            // do file.wtext("_tests/logs/___pos_GC15_context.json", to.json(@event_context))
+            do SaldarCompra(db,@@(params,"#_entity_id"))
+            break
+        }
+        case "pos_GC16"
+        {
+            // Aplicar pagos
+            // do file.wtext("_tests/logs/___pos_GC16_context.json", to.json(@event_context))
+            do SaldarCompra(db,@("#eventdata/output/id_destino"))
+            break
+        }
+        case "pos_GC17"
+        {
+            // Desaplicar pagos
+            // do file.wtext("_tests/logs/___pos_GC17_context.json", to.json(@event_context))
+            do SaldarCompra(db,@("#eventdata/output/id_destino"))
+            break
+        }
+    }
+
+    do @context.end()
+}

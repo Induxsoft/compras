@@ -31,12 +31,16 @@ module "list.dk"
         {
             @"name": "cdoc"
             @"class": "induxsoft-form-select"
+            @"title": "Filtrar por tipo de documento"
             @"onchange": "document.querySelector('#form_filter').submit();"
         }
         @"text_field": "const"
         @"value_field": "id"
+        @"first_text": "(Documentos)"
+        @"first_value": "-1"
         @"selected": field.dstr(get, "cdoc", "-1")
     }
+
     new def_status_finc
     {
         @"datatable*": @('&./cstatusFinc')
@@ -44,12 +48,16 @@ module "list.dk"
         {
             @"name": "stat_finac"
             @"class": "induxsoft-form-select"
+            @"title": "Filtrar por estados financieros"
             @"onchange": "document.querySelector('#form_filter').submit();"
         }
         @"text_field": "const"
         @"value_field": "id"
+        @"first_text": "(Estados financieros)"
+        @"first_value": "-1"
         @"selected": field.dstr(get, "stat_finac", "-1")
     }
+    
     new def_status_admin
     {
         @"datatable*": @('&./cstatusAdmn')
@@ -57,10 +65,13 @@ module "list.dk"
         {
             @"name": "stat_admin"
             @"class": "induxsoft-form-select"
+            @"title": "Filtrar por estados administrativos"
             @"onchange": "document.querySelector('#form_filter').submit();"
         }
         @"text_field": "const"
         @"value_field": "id"
+        @"first_text": "(Estados administrativos)"
+        @"first_value": "-1"
         @"selected": field.dstr(get, "stat_admin", "-1")
     }
 

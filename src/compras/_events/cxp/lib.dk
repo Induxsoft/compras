@@ -1,0 +1,28 @@
+#include "dkli.dkh"
+#!
+module "CxP-Compras"
+{
+    #include "compras/_lib/config.dk"
+
+    function SaldarCompra(&db,idcxp)
+    {
+        new params
+        {
+            @"_entity_id": idcxp
+        }
+
+        sql_dcxp = "
+        SELECT
+            cxp.icompra,
+            IFNULL(SUM(IFNULL(cxp.haber,0)+IFNULL(cxp.intmoratorios,0)-IFNULL(cxp.pagos,0)-IFNULL(cxp.bonificaciones,0)),0) saldo
+        FROM dcxp cxp 
+        WHERE cxp.sys_pk = @_entity_id;
+        "
+        ref dcxp = dbr.rec(db,sql_dcxp,params)
+        
+        if @@(dcxp,"#saldo") == 0 { dcxp<"edofin"> : @EDO_FINANCIERO.cSALDADO }
+        else { dcxp<"edofin"> : @EDO_FINANCIERO.cCON_ADEUDO }
+        
+        do dbr.execute(db,"UPDATE compra SET statusfinanciero = @edofin WHERE sys_pk = @icompra",dcxp)
+    }
+}

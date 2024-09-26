@@ -1,0 +1,2 @@
+sender_id,event_handler
+"DET01E","compras/_events/cxp/evhandler.dkl"

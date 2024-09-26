@@ -514,6 +514,7 @@ module "model"
         do dbr.apps.action.grant("GA10")
 
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
+        if not(field.exist(params,"stat_admin")){ params<"stat_admin"> : "-2" }
         params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
         params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))
 
@@ -549,7 +550,7 @@ module "model"
             AND IF(IFNULL(@datefrom,'')='', true, (DATE(IF(IFNULL(@tdate,'0')='0',c.fecha,c.vencimiento)) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
             AND IF(IFNULL(@cdoc,'-1')='-1', true, doc.id = @cdoc)
             AND IF(IFNULL(@stat_finac,'-1')='-1', true, sf.id = @stat_finac)
-            AND IF(IFNULL(@stat_admin,'-1')='-1', true, sa.id = @stat_admin)
+            AND IF(IFNULL(@stat_admin,'-1')='-1', true, IF(@stat_admin<>'-2', sa.id = @stat_admin, sa.id <> 99))
         ORDER BY c.fecha, c.referencia
         LIMIT #<@default_max_rows>;"
 
@@ -561,12 +562,19 @@ module "model"
         ref cstatusAdmn = dbr.list(db, sql_cstatusAdmn, @null)
         ref cstatusFinc = dbr.list(db, sql_cstatusFinc, @null)
 
+        new edo_adm_vigente
+        {
+            @"id": -2
+            @"const": "cVigentes"
+        }
+        do list.ins(cstatusAdmn,0,edo_adm_vigente)
+
         new response
         {
             @"docs*": dbr.list(db, ftext(sql), params)
-            @"cdocumentos*": prepare_filter(cdocumentos)
-            @"cstatusAdmn*": prepare_filter(cstatusAdmn)
-            @"cstatusFinc*": prepare_filter(cstatusFinc)
+            @"cdocumentos*": cdocumentos
+            @"cstatusAdmn*": cstatusAdmn
+            @"cstatusFinc*": cstatusFinc
         }
         do prepareDefaultReportData(db,response)
 
@@ -648,17 +656,6 @@ module "model"
             do dbr.apps.action.log()
             do rise_error(code,error)
         }
-    }
-
-    prepare_filter::list
-    {
-        new record
-        {
-            @"id": "-1"
-            @"const": "Todos"
-        }
-        do list.ins(list, 0, record)
-        return list
     }
 
     doc.addSerieLote::&db,&detalle

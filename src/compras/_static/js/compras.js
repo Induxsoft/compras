@@ -380,10 +380,10 @@ document.addEventListener("DOMContentLoaded", () =>
     function colorearTabla(td,idxRow,idxCol,field)
     {
         let obj = tData[idxRow];
-        if (obj && obj.doc_partida)
+        if (obj && obj.doc_partida && (field!="cantidad" && field!="notas"))
         {
-            td.style.backgroundColor = '#888';
-            td.style.color = '#FFF';
+            td.style.backgroundColor = "#FFFFE1"; //#888
+            td.style.color = "#0000FF"; //#FFF
         }
     }
     function toggleColumns()
@@ -836,16 +836,20 @@ document.addEventListener("DOMContentLoaded", () =>
         let coldef = e.sender.GetColumnDefOfTd(e.td);
         let field = coldef.field;
 
-        if (!["lote","fcad","serie"].includes(field)) return;
-
         let curr_row = table.RowIndexOfTd(e.td);
         let curr_col = table.ColIndexOfTd(e.td);
         let data_row = table.DataArray[curr_row];
 
-        // Deshabilitar edición a las celdas de lote, caducidad y serie si el producto no lo requiere.
-        if ((field === "lote" || field === "fcad") && !data_row.reqlote) table.Columns[curr_col].type = "NoEditable";
-        else if (field === "serie" && !data_row.reqserie) table.Columns[curr_col].type = "NoEditable";
-        else table.Columns[curr_col].type = tColdef[curr_col].type;
+        table.Columns[curr_col].type = tColdef[curr_col].type;
+        if (Object.keys(data_row??{}).length == 0) return;
+
+        /**
+         * Deshabilitar edición.
+         * 
+         * Filas incluidas por un documento tercero a excepción de [cantidad,notas].
+         * A las celdas de lote, caducidad y serie si el producto no lo requiere.
+         */
+        if ((data_row.doc_partida && (field!="cantidad" && field!="notas")) || ((field=="lote" || field=="fcad") && !data_row.reqlote) || (field=="serie" && !data_row.reqserie)) table.Columns[curr_col].type = "NoEditable";
     }
 
     table.Events[tEvents.StartEdition] = function(e) {

@@ -421,7 +421,7 @@ module "doc.pedido.dk"
                                 "edit-th"(type="Date" field="fcad"){$"Caducidad"}
                             }
                             #! if not(@compras_series_inhab) {
-                                #$ "edit-th"(type="Text" field="edt_serie"){$"Serie"}
+                                #$ "edit-th"(type="Text" field="serie"){$"Serie"}
                             }
                             "edit-th"(type="Memo" field="notas"){$"Notas"}
                         }
