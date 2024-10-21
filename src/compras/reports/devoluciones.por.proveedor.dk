@@ -200,8 +200,6 @@ module "Compras netas totales"
                                   {"Impuestos"}
                                 th(scope="col")
                                   {"Total"}
-                                th(scope="col")
-                                  {"Proveedor"}
                      }
 
                  tbody
@@ -215,68 +213,94 @@ module "Compras netas totales"
                         subtotal=0 
                         impuestos=0
                         total=0
-                        for i = 0; i < list.count(data); i+1
+
+                        pv_sys_pk= 0
+                        pv_compras= 0
+                        pv_subtotal= 0
+                        pv_impuestos= 0
+                        pv_total= 0
+                        for i = 0; i < list.count(data)
                         {
                             ref obj = list.obj(data,i)
                             compras = compras + @@(obj,'#Compras')
                             subtotal = subtotal + @@(obj,'#Subtotal')
                             impuestos = impuestos + @@(obj,'#Impuestos')
                             total = total + @@(obj,'#total')
-  
+
+                            if pv_sys_pk != @@(obj,"#sys_pk")
+                            {
+
+                                if pv_sys_pk != 0
+                                {
+                                    #$
+                                    tr
+                                    {
+                                        td(colspan="4"){""}
+                                        td(class="text-end fw-bold"){"Totales"}
+                                        td(class="text-end fw-bold"){$"$ #<number_format(pv_compras)>"}
+                                        td(class="text-end fw-bold"){$"$ #<number_format(pv_subtotal)>"}
+                                        td(class="text-end fw-bold"){$"$ #<number_format(pv_impuestos)>"}
+                                        td(class="text-end fw-bold"){$"$ #<number_format(pv_total)>"}
+                                    }
+                                    #!
+                                    pv_compras= 0
+                                    pv_subtotal= 0
+                                    pv_impuestos= 0
+                                    pv_total= 0
+                                }
+                                #$
+                                tr(class="")         
+                                {
+                                    td(class="fw-bold" colspan="8"){$"#<@@(obj,'$Proveedor')>"}
+                                }
+                                #!
+                                pv_sys_pk=@@(obj,"#sys_pk")
+                            }
+                            pv_compras=pv_compras + @@(obj,'#Compras')
+                            pv_subtotal= pv_subtotal + @@(obj,'#Subtotal')
+                            pv_impuestos= pv_impuestos + @@(obj,'#Impuestos')
+                            pv_total= pv_total + @@(obj,'#total')
+
                             #$
                             tr(class="")
                             {
-                                td(class="" )
-                                {
-                                    $"#<@@(obj,'$Fecha')>"
-                                }
-                                td(class="" )
-                                {
-                                    $"#<@@(obj,'$Referencia')>"
-                                }
-                                td(class="" )
-                                {
-                                    $"#<@@(obj,'$Codigo')>"
-                                }
-                                td(class="" )
-                                {
-                                    $"#<@@(obj,'$Descripcion')>"
-                                }
-
-                                td(class="")
-                                {
-                                    $"#<@@(obj,'$Unidad')>"
-                                }
-
-                                td(class="text-end" )
-                                {
-                                    // $"#<@@(obj,'$Cantidad')>"
-                                    $"#<number_format(@@(obj,'$Compras'))>"
-                                }
-
-                                //agreamos la columa sumario
-                                td(class="text-end")
-                                {
-                                    $"$ #<number_format(@@(obj,'#Subtotal'))>"
-                                }
-
-                                td(class="text-end" )
-                                {
-                                    $"#<number_format(@@(obj,'$Impuestos'))>"
-                                }
-
-                                td(class="text-end")
-                                {
-                                    $"#<number_format(@@(obj,'$Total'))>"
-                                }
-                                td(class="")
-                                {
-                                    $"#<@@(obj,'$Proveedor')>"
-                                }
+                                td(class="" ){$"#<@@(obj,'$Fecha')>"}
+                                td(class="" ){$"#<@@(obj,'$Referencia')>"}
+                                td(class="" ){$"#<@@(obj,'$Codigo')>"}
+                                td(class="" ){$"#<@@(obj,'$Descripcion')>"}
+                                td(class=""){$"#<@@(obj,'$Unidad')>"}
+                                td(class="text-end" ){$"#<number_format(@@(obj,'$Compras'))>"}
+                                td(class="text-end"){$"$ #<number_format(@@(obj,'#Subtotal'))>"}
+                                td(class="text-end" ){$"#<number_format(@@(obj,'$Impuestos'))>"}
+                                td(class="text-end"){$"#<number_format(@@(obj,'$Total'))>"}
                             }
                             #$
                         }
-                       
+                        #!
+                        if list.count(data) > 0 
+                        {
+                        
+                            pv_compras=pv_compras + compras
+                            pv_subtotal= pv_subtotal + subtotal
+                            pv_impuestos= pv_impuestos + impuestos
+                            pv_total= pv_total + total
+
+                            #$
+                            tr
+                            {
+                                td(colspan="5"){""}
+                                td(class="text-end fw-bold"){"Total"}
+                                td(class="text-end fw-bold"){$"$ #<number_format(pv_compras)>"}
+                                td(class="text-end fw-bold"){$"$ #<number_format(pv_subtotal)>"}
+                                td(class="text-end fw-bold"){$"$ #<number_format(pv_impuestos)>"}
+                                td(class="text-end fw-bold"){$"$ #<number_format(pv_total)>"}
+                            }
+                            #!
+                            pv_compras= 0
+                            pv_subtotal= 0
+                            pv_impuestos= 0
+                            pv_total= 0
+                        } 
                         #$
                         tr(class="group-summary")
                         {

@@ -42,32 +42,155 @@ module "Reportes de compras:Report"
 
     ComprasNetasTotales::&db,&params
     {
-        // do rise_error(99,to.json(params))
         do dbr.apps.action.grant("GA21")
+
+        if trim(@@(params,"$finicial"))==""{params<"finicial">:date_str(now(),"yyyy-MM-dd")}
+        if trim(@@(params,"$ffinal"))==""{params<"ffinal">:date_str(now(),"yyyy-MM-dd")}
+        if trim(@@(params,"$pkalmacen"))==""{params<"pkalmacen">:"*"}       
+        if trim(@@(params,"$pklinea"))==""{params<"pklinea">:"*"}
+        if trim(@@(params,"$pkmarca"))==""{params<"pkmarca">:"*"}
 
 
         sql_compras_netos_totales = "
-        SELECT p.Codigo, p.Descripcion,
-        p.Unidad, sum(case when ( c.documento = 3  or c.documento = 4) then dc.cantidad ELSE 0 end
-        ) - sum( case when c.documento = 5 then dc.cantidad ELSE 0 end
-        ) as Compras, (sum(case when (c.documento = 3 or c.documento = 4) then dc.cantidad * dc.costototal else 0
-        end) - SUM( case when c.documento = 5 then dc.cantidad * dc.costototal else 0 end)) as Subtotal, (sum(case when (c.documento = 3
-        or c.documento = 4) then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4 )ELSE 0 end) - sum(case
-        when c.documento = 5 then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4 ) ELSE 0 end)) as Impuestos,((sum( case when (c.documento = 3 or c.documento = 4) then dc.cantidad * dc.costototal ELSE 0 end) - SUM( case
-        when c.documento = 5 then dc.cantidad * dc.costototal ELSE 0 end))) +((SUM( case when (c.documento = 3
-        or c.documento = 4) then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4) ELSE 0 end) - sum(
-        case when c.documento = 5 then (dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4) ELSE 0 END ) )) as Total
-        FROM   dcompra dc
-        inner join compra c on dc.Fk_Compra_Detalle = c.sys_pk
-        inner join producto p on dc.iproducto = p.sys_pk
-        where c.statusadministrativo <> 99
-        and c.aplicadoa  
-        and (c.fecha >= @finicial and c.fecha <= @ffinal) AND (
-        if(IFNULL(@pkalmacen, '*') = '*',TRUE,   c.ialmacen = @pkalmacen)
-        AND if(IFNULL(@pklinea, '*') = '*',TRUE, p.ilinea = @pklinea)
-        AND if(IFNULL(@pkmarca, '*') = '*',TRUE, p.imarca = @pkmarca))
-        GROUP BY p.DESCRIPCION HAVING (sum(case when ( c.documento = 3 or c.documento = 4)
-        then dc.cantidad ELSE 0 END ) - SUM(case when c.documento = 5 then dc.cantidad ELSE 0 END )) > 0;"
+                            SELECT
+                            p.Codigo,
+                            p.Descripcion,
+                            p.Unidad,
+                            sum(
+                                    case
+                                            when (
+                                                    c.documento = 3
+                                                    or c.documento = 4
+                                            ) then dc.cantidad
+                                            ELSE 0
+                                    end
+                            ) - sum(
+                                    case
+                                            when c.documento = 5 then dc.cantidad
+                                            ELSE 0
+                                    end
+                            ) as Compras,
+                            (
+                                    sum(
+                                            case
+                                                    when (
+                                                            c.documento = 3
+                                                            or c.documento = 4
+                                                    ) then dc.cantidad * dc.costototal
+                                                    else 0
+                                            end
+                                    ) - SUM(
+                                            case
+                                                    when c.documento = 5 then dc.cantidad * dc.costototal
+                                                    else 0
+                                            end
+                                    )
+                            ) as Subtotal,
+                            (
+                                    sum(
+                                            case
+                                                    when (
+                                                            c.documento = 3
+                                                            or c.documento = 4
+                                                    ) then (
+                                                            dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4
+                                                    )
+                                                    ELSE 0
+                                            end
+                                    ) - sum(
+                                            case
+                                                    when c.documento = 5 then (
+                                                            dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4
+                                                    )
+                                                    ELSE 0
+                                            end
+                                    )
+                            ) as Impuestos,
+                    (
+                                    (
+                                            sum(
+                                                    case
+                                                            when (
+                                                                    c.documento = 3
+                                                                    or c.documento = 4
+                                                            ) then dc.cantidad * dc.costototal
+                                                            ELSE 0
+                                                    end
+                                            ) - SUM(
+                                                    case
+                                                            when c.documento = 5 then dc.cantidad * dc.costototal
+                                                            ELSE 0
+                                                    end
+                                            )
+                                    )
+                            ) +(
+                                    (
+                                            SUM(
+                                                    case
+                                                            when (
+                                                                    c.documento = 3
+                                                                    or c.documento = 4
+                                                            ) then (
+                                                                    dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4
+                                                            )
+                                                            ELSE 0
+                                                    end
+                                            ) - sum(
+                                                    case
+                                                            when c.documento = 5 then (
+                                                                    dc.impuesto1 + dc.impuesto2 + dc.impuesto3 + dc.impuesto4
+                                                            )
+                                                            ELSE 0
+                                                    END
+                                            )
+                                    )
+                            ) as Total
+                    FROM
+                            dcompra dc
+                            inner join compra c on dc.Fk_Compra_Detalle = c.sys_pk
+                            inner join producto p on dc.iproducto = p.sys_pk
+                    where
+                            c.statusadministrativo <> 99
+                            and (
+                                    c.fecha >= @finicial
+                                    and c.fecha <= @ffinal
+                            )
+                            AND (
+                                    if(
+                                            IFNULL(@pkalmacen, '*') = '*',
+                                            TRUE,
+                                            c.ialmacen = @pkalmacen
+                                    )
+                                    AND if(
+                                            IFNULL(@pklinea, '*') = '*',
+                                            TRUE,
+                                            p.ilinea = @pklinea
+                                    )
+                                    AND if(
+                                            IFNULL(@pkmarca, '*') = '*',
+                                            TRUE,
+                                            p.imarca = @pkmarca
+                                    )
+                            )
+                    GROUP BY
+                            p.DESCRIPCION
+                    HAVING
+                            (
+                                    sum(
+                                            case
+                                                    when (
+                                                            c.documento = 3
+                                                            or c.documento = 4
+                                                    ) then dc.cantidad
+                                                    ELSE 0
+                                            END
+                                    ) - SUM(
+                                            case
+                                                    when c.documento = 5 then dc.cantidad
+                                                    ELSE 0
+                                            END
+                                    )
+                            ) > 0;"
 
 
         //codigo para para haer consultas de toda la lista ialmacen<>0
@@ -105,52 +228,49 @@ module "Reportes de compras:Report"
 
     ComprasPorFacturar::&db,&params
     {
+            
+        do dbr.apps.action.grant("GA22") // permisos para acceder
 
-         // do rise_error(99,to.json(params))
-    do dbr.apps.action.grant("GA22") // permisos para acceder
+        if trim(@@(params,"$finicial"))==""{params<"finicial">:date_str(now(),"yyyy-MM-dd")}
+        if trim(@@(params,"$ffinal"))==""{params<"ffinal">:date_str(now(),"yyyy-MM-dd")}
+        if trim(@@(params,"$pkalmacen"))==""{params<"pkalmacen">:"*"}
 
-    sql_compras_por_facturar = "SELECT
-    Compra.Fecha,
-    Compra.Referencia,
-    Proveedor.Nombre as Proveedor,
-    (
-        Compra.Subtotal - Compra.Descuento1 - Compra.Descuento2
-    ) AS SubTotal,
-    (
-        Compra.Impuesto1 + Compra.Impuesto2 + Compra.Impuesto3 + Compra.Impuesto4
-    ) AS Impuestos,
-    (
-        Compra.Subtotal - Compra.Descuento1 - Compra.Descuento2
-    ) +(
-        Compra.Impuesto1 + Compra.Impuesto2 + Compra.Impuesto3 + Compra.Impuesto4
-    ) as Total,
-    cFormasPago.Const AS FormaPago,
-    cStatusAdministrativos.Const AS Status
-FROM
-    cStatusAdministrativos
-    INNER JOIN (
-        Proveedor
-        INNER JOIN (
-            cFormasPago
-            INNER JOIN Compra ON cFormasPago.ID = Compra.FormaPago
-        ) ON Proveedor.Sys_PK = Compra.IProveedor
-    ) ON cStatusAdministrativos.ID = Compra.StatusAdministrativo
-WHERE
-    (Compra.Documento = 3)
-    AND (Compra.StatusAdministrativo <> 99)
-    AND (Compra.StatusFacturacion <> 3)
-    AND compra.fecha >= @finicial
-    and compra.fecha <= @ffinal
-    And
-    if(IFNULL(@pkalmacen,'*') = '*',TRUE, compra.ialmacen = @pkalmacen);"
+        sql_compras_por_facturar = "SELECT
+            Compra.Fecha,
+            Compra.Referencia,
+            Proveedor.Nombre as Proveedor,
+            (
+                Compra.Subtotal - Compra.Descuento1 - Compra.Descuento2
+            ) AS SubTotal,
+            (
+                Compra.Impuesto1 + Compra.Impuesto2 + Compra.Impuesto3 + Compra.Impuesto4
+            ) AS Impuestos,
+            (
+                Compra.Subtotal - Compra.Descuento1 - Compra.Descuento2
+            ) +(
+                Compra.Impuesto1 + Compra.Impuesto2 + Compra.Impuesto3 + Compra.Impuesto4
+            ) as Total,
+            cFormasPago.Const AS FormaPago,
+            cStatusAdministrativos.Const AS Status
+        FROM
+            cStatusAdministrativos
+            INNER JOIN (
+                Proveedor
+                INNER JOIN (
+                    cFormasPago
+                    INNER JOIN Compra ON cFormasPago.ID = Compra.FormaPago
+                ) ON Proveedor.Sys_PK = Compra.IProveedor
+            ) ON cStatusAdministrativos.ID = Compra.StatusAdministrativo
+        WHERE
+            (Compra.Documento = 3)
+            AND (Compra.StatusAdministrativo <> 99)
+            AND (Compra.StatusFacturacion <> 3)
+            AND compra.fecha >= @finicial
+            and compra.fecha <= @ffinal
+            And
+            if(IFNULL(@pkalmacen,'*') = '*',TRUE, compra.ialmacen = @pkalmacen);"
 
-
-    //codigo para para haer consultas de toda la lista ialmacen<>0
-    //c.ialmacen=@pkalmacen
-
-    //consultas oara el select
-    //pk consulta de almacen
-    sql_pkalmacen = "SELECT * from almacen;"
+        sql_pkalmacen = "SELECT * from almacen;"
 
 
         conditions = ""
@@ -160,12 +280,8 @@ WHERE
         //este data sirve para usar consultas db
         new data
         {
-            // para acceder y * para regresar los valores
             @"almacen*": dbr.list(db,sql_pkalmacen,params)//resive dos parametros
-          
-         //   @"todo*": dr.list(db,sql_totales,params)
-            @"lista*": dbr.list(db,ftext(sql_compras_por_facturar),params)
-          
+            @"lista*": dbr.list(db,ftext(sql_compras_por_facturar),params) 
         }
         
         do prepareView(db,params,data)
@@ -177,79 +293,82 @@ WHERE
     ComprasPorLinea::&db,&params
     {
 
-    // do rise_error(99,to.json(params))
-    do dbr.apps.action.grant("GA23")
+        do dbr.apps.action.grant("GA23")
 
-    sql_compras_por_linea = "SELECT
-    l.Codigo AS Codigo,
-    l.Descripcion,
-    (
-        sum(
-            case
-                when (
-                    c.documento = 3
-                    or c.documento = 4
-                ) then dc.cantidad * dc.costototal
-                else 0
-            end
-        ) - sum(
-            case
-                when c.documento = 5 then dc.cantidad * dc.costototal
-                else 0
-            end
-        )
-    ) as Importe
-FROM
-    dcompra dc
-    inner join compra c on c.sys_pk = dc.fk_compra_detalle
-    inner join producto p on p.sys_pk = dc.iproducto
-    inner join linea l on l.sys_pk = p.ilinea
-where
-    c.statusadministrativo <> 99
-    and c.aplicadoa is null
-    and (
-        c.fecha >= @finicial
-        and c.fecha <= @ffinal
-    )
+        if trim(@@(params,"$finicial"))==""{params<"finicial">:date_str(now(),"yyyy-MM-dd")}
+        if trim(@@(params,"$ffinal"))==""{params<"ffinal">:date_str(now(),"yyyy-MM-dd")}
+        if trim(@@(params,"$pkalmacen"))==""{params<"pkalmacen">:"*"} 
 
-    AND 
-      if(IFNULL(@pkalmacen,'*') = '*',TRUE, c.ialmacen = @pkalmacen)
+        sql_compras_por_linea = "SELECT
+                l.Codigo AS Codigo,
+                l.Descripcion,
+                (
+                    sum(
+                        case
+                            when (
+                                c.documento = 3
+                                or c.documento = 4
+                            ) then dc.cantidad * dc.costototal
+                            else 0
+                        end
+                    ) - sum(
+                        case
+                            when c.documento = 5 then dc.cantidad * dc.costototal
+                            else 0
+                        end
+                    )
+                ) as Importe
+            FROM
+                dcompra dc
+                inner join compra c on c.sys_pk = dc.fk_compra_detalle
+                inner join producto p on p.sys_pk = dc.iproducto
+                inner join linea l on l.sys_pk = p.ilinea
+            where
+                c.statusadministrativo <> 99
+                and c.aplicadoa is null
+                and (
+                    c.fecha >= @finicial
+                    and c.fecha <= @ffinal
+                )
+
+                AND 
+                if(IFNULL(@pkalmacen,'*') = '*',TRUE, c.ialmacen = @pkalmacen)
+            group by
+                l.sys_pk
+            having
+                (
+                    sum(
+                        case
+                            when (
+                                c.documento = 3
+                                or c.documento = 4
+                            ) then dc.cantidad
+                            else 0
+                        end
+                    ) - sum(
+                        case
+                            when c.documento = 5 then dc.cantidad
+                            else 0
+                        end
+                    )
+                ) > 0
+            ORDER BY
+                l.Descripcion;
+            "
 
 
-having
-    (
-        sum(
-            case
-                when (
-                    c.documento = 3
-                    or c.documento = 4
-                ) then dc.cantidad
-                else 0
-            end
-        ) - sum(
-            case
-                when c.documento = 5 then dc.cantidad
-                else 0
-            end
-        )
-    ) > 0
-ORDER BY
-    l.Descripcion;;
-"
+        //codigo para para haer consultas de toda la lista ialmacen<>0
+        //c.ialmacen=@pkalmacen
 
+        //consultas oara el select
+        //pk consulta de almacen
+        sql_pkalmacen = "SELECT * from almacen;"
 
-    //codigo para para haer consultas de toda la lista ialmacen<>0
-    //c.ialmacen=@pkalmacen
+        // pk consulta de linea
+    // sql_pklinea = "SELECT * from linea;"
 
-    //consultas oara el select
-    //pk consulta de almacen
-    sql_pkalmacen = "SELECT * from almacen;"
-
-    // pk consulta de linea
-   // sql_pklinea = "SELECT * from linea;"
-
-    //pk consulta marca
-   // sql_pkmarca = "SELECT * from marca;"
+        //pk consulta marca
+    // sql_pkmarca = "SELECT * from marca;"
 
 
 
@@ -277,76 +396,81 @@ ORDER BY
 
     ComprasPorProveedor::&db,&params
     {
+        do dbr.apps.action.grant("GA24")
 
-    // do rise_error(99,to.json(params))
-    do dbr.apps.action.grant("GA24")
+        if trim(@@(params,"$finicial"))==""{params<"finicial">:date_str(now(),"yyyy-MM-dd")}
+        if trim(@@(params,"$ffinal"))==""{params<"ffinal">:date_str(now(),"yyyy-MM-dd")}
+        if trim(@@(params,"$pkalmacen"))==""{params<"pkalmacen">:"*"}         
+        if trim(@@(params,"$pklinea"))==""{params<"pklinea">:"*"} 
+        if trim(@@(params,"$pkmarca"))==""{params<"pkmarca">:"*"} 
 
-    sql_compras_por_proveedor = "SELECT
-    pv.sys_pk,
-    c.Fecha,
-    c.Referencia,
-    p.Codigo,
-    p.Descripcion,
-    p.Unidad,
-    (dc.Cantidad) AS Compras,
-    (
-        (dc.Cantidad * dc.Precio) - dc.Descuento1 - dc.Descuento2
-    ) AS Subtotal,
-    (
-        dc.Impuesto1 + dc.Impuesto2 + dc.Impuesto3 + dc.Impuesto4
-    ) AS Impuestos,
-    (
-        (
-            (dc.Cantidad * dc.Precio) - dc.Descuento1 - dc.Descuento2
-        ) +(
-            dc.Impuesto1 + dc.Impuesto2 + dc.Impuesto3 + dc.Impuesto4
-        )
-    ) AS Total,
-    pv.Nombre AS Proveedor
-FROM
-    (
-        (
+
+        sql_compras_por_proveedor = "SELECT
+            pv.sys_pk,
+            c.Fecha,
+            c.Referencia,
+            p.Codigo,
+            p.Descripcion,
+            p.Unidad,
+            (dc.Cantidad) AS Compras,
             (
-                dcompra AS dc
-                INNER JOIN Producto p ON dc.iproducto = p.Sys_PK
+                (dc.Cantidad * dc.Precio) - dc.Descuento1 - dc.Descuento2
+            ) AS Subtotal,
+            (
+                dc.Impuesto1 + dc.Impuesto2 + dc.Impuesto3 + dc.Impuesto4
+            ) AS Impuestos,
+            (
+                (
+                    (dc.Cantidad * dc.Precio) - dc.Descuento1 - dc.Descuento2
+                ) +(
+                    dc.Impuesto1 + dc.Impuesto2 + dc.Impuesto3 + dc.Impuesto4
+                )
+            ) AS Total,
+            pv.Nombre AS Proveedor
+        FROM
+            (
+                (
+                    (
+                        dcompra AS dc
+                        INNER JOIN Producto p ON dc.iproducto = p.Sys_PK
+                    )
+                    INNER JOIN Compra c ON dc.fk_compra_detalle = c.Sys_PK
+                )
+                INNER JOIN Proveedor pv ON c.IProveedor = pv.Sys_PK
             )
-            INNER JOIN Compra c ON dc.fk_compra_detalle = c.Sys_PK
-        )
-        INNER JOIN Proveedor pv ON c.IProveedor = pv.Sys_PK
-    )
-WHERE
-    (
-        c.documento = 3
-        or c.documento = 4
-    )
-    and c.aplicadoa is null
-    and c.statusadministrativo <> 99
-    and (
-        c.Fecha >= @finicial
-        AND c.Fecha <= @ffinal
-    )
-    AND (
+        WHERE
+            (
+                c.documento = 3
+                or c.documento = 4
+            )
+            and c.aplicadoa is null
+            and c.statusadministrativo <> 99
+            and (
+                c.Fecha >= @finicial
+                AND c.Fecha <= @ffinal
+            )
+            AND (
 
-        if(IFNULL(@pkalmacen,'*') =  '*',TRUE,c.ialmacen = @pkalmacen)
-        and if(IFNULL(@pklinea, '*') = '*',TRUE, p.ilinea =@pklinea)
-        and if(IFNULL(@pkmarca, '*') = '*',TRUE, p.imarca = @pkmarca)
-    )
-ORDER BY
-    pv.Nombre;"
+                if(IFNULL(@pkalmacen,'*') =  '*',TRUE,c.ialmacen = @pkalmacen)
+                and if(IFNULL(@pklinea, '*') = '*',TRUE, p.ilinea =@pklinea)
+                and if(IFNULL(@pkmarca, '*') = '*',TRUE, p.imarca = @pkmarca)
+            )
+        ORDER BY
+            pv.Nombre;"
 
 
-    //codigo para para haer consultas de toda la lista ialmacen<>0
-    //c.ialmacen=@pkalmacen
+        //codigo para para haer consultas de toda la lista ialmacen<>0
+        //c.ialmacen=@pkalmacen
 
-    //consultas oara el select
-    //pk consulta de almacen
-    sql_pkalmacen = "SELECT * from almacen;"
+        //consultas oara el select
+        //pk consulta de almacen
+        sql_pkalmacen = "SELECT * from almacen;"
 
-    // pk consulta de linea
-    sql_pklinea = "SELECT * from linea;"
+        // pk consulta de linea
+        sql_pklinea = "SELECT * from linea;"
 
-    //pk consulta marca
-    sql_pkmarca = "SELECT * from marca;"
+        //pk consulta marca
+        sql_pkmarca = "SELECT * from marca;"
 
 
 
@@ -374,78 +498,82 @@ ORDER BY
     }
     DevolucionesPorProveedor::&db,&params
     {
+        do dbr.apps.action.grant("GA25")
 
-    // do rise_error(99,to.json(params))
-   do dbr.apps.action.grant("GA25")
+        if trim(@@(params,"$finicial"))==""{params<"finicial">:date_str(now(),"yyyy-MM-dd")}
+        if trim(@@(params,"$ffinal"))==""{params<"ffinal">:date_str(now(),"yyyy-MM-dd")}
+        if trim(@@(params,"$pkalmacen"))==""{params<"pkalmacen">:"*"}        
+        if trim(@@(params,"$pklinea"))==""{params<"pklinea">:"*"} 
+        if trim(@@(params,"$pkmarca"))==""{params<"pkmarca">:"*"} 
 
-    sql_devoluciones_por_proveedor = "SELECT
-    c.Fecha,
-    c.Referencia,
-    p.Codigo,
-    p.Descripcion,
-    p.Unidad,
-    (dc.Cantidad) AS Compras,
-    (
-        (dc.Cantidad * dc.Precio) - dc.Descuento1 - dc.Descuento2
-    ) AS Subtotal,
-    (
-        dc.Impuesto1 + dc.Impuesto2 + dc.Impuesto3 + dc.Impuesto4
-    ) AS Impuestos,
-    (
-        (
-            (dc.Cantidad * dc.Precio) - dc.Descuento1 - dc.Descuento2
-        ) +(
-            dc.Impuesto1 + dc.Impuesto2 + dc.Impuesto3 + dc.Impuesto4
-        )
-    ) AS Total,
-    pv.Nombre AS Proveedor
-FROM
-    (
-        (
+        sql_devoluciones_por_proveedor = "SELECT
+            pv.sys_pk,
+            c.Fecha,
+            c.Referencia,
+            p.Codigo,
+            p.Descripcion,
+            p.Unidad,
+            (dc.Cantidad) AS Compras,
             (
-                dcompra AS dc
-                INNER JOIN Producto p ON dc.iproducto = p.Sys_PK
+                (dc.Cantidad * dc.Precio) - dc.Descuento1 - dc.Descuento2
+            ) AS Subtotal,
+            (
+                dc.Impuesto1 + dc.Impuesto2 + dc.Impuesto3 + dc.Impuesto4
+            ) AS Impuestos,
+            (
+                (
+                    (dc.Cantidad * dc.Precio) - dc.Descuento1 - dc.Descuento2
+                ) +(
+                    dc.Impuesto1 + dc.Impuesto2 + dc.Impuesto3 + dc.Impuesto4
+                )
+            ) AS Total,
+            pv.Nombre AS Proveedor
+        FROM
+            (
+                (
+                    (
+                        dcompra AS dc
+                        INNER JOIN Producto p ON dc.iproducto = p.Sys_PK
+                    )
+                    INNER JOIN Compra c ON dc.fk_compra_detalle = c.Sys_PK
+                )
+                INNER JOIN Proveedor pv ON c.IProveedor = pv.Sys_PK
             )
-            INNER JOIN Compra c ON dc.fk_compra_detalle = c.Sys_PK
-        )
-        INNER JOIN Proveedor pv ON c.IProveedor = pv.Sys_PK
-    )
-WHERE
-    (
-        c.documento = 3
-        or c.documento = 4
-    )
-    and c.aplicadoa is null
-    and c.statusadministrativo <> 99
-    and (
-        c.Fecha >= @finicial
-        AND c.Fecha <= @ffinal
-    )
-    AND (
+        WHERE
+            (
+                c.documento = 3
+                or c.documento = 4
+            )
+            and c.aplicadoa is null
+            and c.statusadministrativo <> 99
+            and (
+                c.Fecha >= @finicial
+                AND c.Fecha <= @ffinal
+            )
+            AND (
 
-        if(IFNULL(@pkalmacen,'*')= '*',TRUE, c.ialmacen = @pkalmacen)
-        AND if(IFNULL(@pklinea, '*')= '*',TRUE,  p.ilinea = @pklinea)
-        AND if(IFNULL(@pkmarca, '*')= '*',TRUE, p.imarca = @pkmarca)
+                if(IFNULL(@pkalmacen,'*')= '*',TRUE, c.ialmacen = @pkalmacen)
+                AND if(IFNULL(@pklinea, '*')= '*',TRUE,  p.ilinea = @pklinea)
+                AND if(IFNULL(@pkmarca, '*')= '*',TRUE, p.imarca = @pkmarca)
 
-    )
-ORDER BY
-    pv.Nombre,
-    c.fecha,
-    c.sys_DTCReated;"
+            )
+        ORDER BY
+            pv.Nombre,
+            c.fecha,
+            c.sys_DTCReated;"
 
+            //codigo para para haer consultas de toda la lista ialmacen<>0
+            //c.ialmacen=@pkalmacen
 
-    //codigo para para haer consultas de toda la lista ialmacen<>0
-    //c.ialmacen=@pkalmacen
+            //consultas oara el select
+            //pk consulta de almacen
+            sql_pkalmacen = "SELECT * from almacen;"
 
-    //consultas oara el select
-    //pk consulta de almacen
-    sql_pkalmacen = "SELECT * from almacen;"
+            // pk consulta de linea
+            sql_pklinea = "SELECT * from linea;"
 
-    // pk consulta de linea
-    sql_pklinea = "SELECT * from linea;"
-
-    //pk consulta marca
-    sql_pkmarca = "SELECT * from marca;"
+            //pk consulta marca
+            sql_pkmarca = "SELECT * from marca;"
 
 
 
