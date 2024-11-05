@@ -5,6 +5,7 @@ program "instalador"
     #include "functions.dkh"
     #include "serialize.dkh"
     #include "dbr.dkh"
+    #include "webshell.dkh"
 
     // Archivos de datos iniciales (Orden de importación)
     // deben estar en la carpeta _install/initial_data
@@ -58,4 +59,20 @@ program "instalador"
     
     /*************************************************************************************/
     #include "v12.install.lib.dk"
+
+    if not(dbr.is_open(database)){ref database=dbr.open(qname)}
+    do reconnect(database,qname)
+
+    do print("\nRegistrando DETs bitacoras")
+    ref @DB=database
+    ref ldetlog=from.json('[
+    {
+        "det":"DET01B",
+        "rpriv":"GA30",
+        "wpriv":"GA31",
+        "var_files":""
+    }
+    ]')
+
+    do webshell.detlog.register(ldetlog)
 }

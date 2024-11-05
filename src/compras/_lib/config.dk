@@ -33,6 +33,8 @@ module "config.dk"
 	// Captura de documento de compra, no capturar lotes o series
 	@compras_lotes_inhab = @false
 	@compras_series_inhab = @false
+	
+	@URL_BITACORA="/!/webshell/log/DET01B/@guid/"
 
 	// Estados administrativos para documentos
 	new @EDO_ADMIN

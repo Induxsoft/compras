@@ -46,7 +46,7 @@ module "doc.pedido.dk"
         }
     }
 
-    // do rise_error(0,to.json(@("&.")))
+    
     if list.count(dcompra) <= 0 { ref dcompra = from.json(empty_rows) }
 
     new sel_documento
@@ -130,7 +130,7 @@ module "doc.pedido.dk"
         @"print_mode": 1 // 0-window.print() 1-v12PrintHTML()
         member @"hidden" { @"print": if(enable_editing, @true, @false) }
     }
-
+// do rise_error(0,to.json(@("&.")))
     #$ div(class="container-lg" id="view")
     {
         link(href="#<@CSS_MAIN>" rel="stylesheet")
@@ -456,7 +456,7 @@ module "doc.pedido.dk"
                 "box-title-text"="Seleccione un producto"
                 "control-styles"="#container{display:none !important;}"
             ){$""}
-
+            script(src="#<@JS_COMPRAS>"){""}
             script(type="text/javascript")
             {$'
                 const DOC_COMPRAS = "#<@DOC_COMPRAS>";
@@ -481,10 +481,15 @@ module "doc.pedido.dk"
 
                 const EDO_ENTREGA = #<form("statusentrega","nm",compra)>;
                 const EDO_FACTURACION = #<form("statusfacturacion","nm",compra)>;
+
+                _bitacora._url="#<@URL_BITACORA>";
+                document.addEventListener("DOMContentLoaded",(e)=>{_bitacora.EnableLog("#<@("$./sys_guid")>")});
+
             '}
-            script(src="#<@JS_COMPRAS>"){""}
+            
         }
     }
+   
     #!
     exception{ do clear_exceptions() }
 }

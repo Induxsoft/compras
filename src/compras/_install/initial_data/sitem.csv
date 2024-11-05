@@ -14,3 +14,5 @@ GA22,Compras por facturar,compras.reports
 GA23,Compras por línea,compras.reports
 GA24,Compras por proveedor,compras.reports
 GA25,Devoluciones por proveedor,compras.reports
+GA30,Ver mensajes de compras,compras.compras
+GA31,Publicar mensajes,compras.compras
