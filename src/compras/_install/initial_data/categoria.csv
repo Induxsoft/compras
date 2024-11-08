@@ -1,6 +1,6 @@
 "sys_guid","sys_dtcreated","sys_timestamp","sys_info","sys_user","sys_lastuser","sys_exported","sys_dtexported","sys_recver","sys_deleted","sys_lock","codigo","descripcion","codcuenta","pmensual","tipo","padre","uf_inhabilitado","uf_fechainhabilitacion"
 
-d6b007db1bf148f5b3d3fd10e833a0f6,"2024-08-17 14:00:00","2024-08-17 14:00:00",\0,\0,\0,\0,\0,0,0,\0,GAC01,Pago de compras al contado,\0,0.00,2,\0,\0,\0
-070cdca51e234476a66d76adb560ae97,"2024-08-17 14:00:00","2024-08-17 14:00:00",\0,\0,\0,\0,\0,0,0,\0,GAC02,Entradas por compras,\0,0.00,3,\0,\0,\0
-d7e66ee6794a461f81f9c9139b945f48,"2024-08-17 14:00:00","2024-08-17 14:00:00",\0,\0,\0,\0,\0,0,0,\0,GAC03,Salida por devolución de compras,\0,0.00,3,\0,\0,\0
-7261d1c436e443f1b1f75cfeb85afb47,"2024-08-17 14:00:00","2024-08-17 14:00:00",\0,\0,\0,\0,\0,0,0,\0,GAC04,Ingreso de efectivo por devolución de compras,\0,0.00,1,\0,\0,\0
+d6b007db1bf148f5b3d3fd10e833a0f6,"2024-08-17 14:00:00","2024-08-17 14:00:00",\0,\0,\0,\0,\0,0,\0,\0,GAC01,Pago de compras al contado,\0,0.00,2,\0,\0,\0
+070cdca51e234476a66d76adb560ae97,"2024-08-17 14:00:00","2024-08-17 14:00:00",\0,\0,\0,\0,\0,0,\0,\0,GAC02,Entradas por compras,\0,0.00,3,\0,\0,\0
+d7e66ee6794a461f81f9c9139b945f48,"2024-08-17 14:00:00","2024-08-17 14:00:00",\0,\0,\0,\0,\0,0,\0,\0,GAC03,Salida por devolución de compras,\0,0.00,3,\0,\0,\0
+7261d1c436e443f1b1f75cfeb85afb47,"2024-08-17 14:00:00","2024-08-17 14:00:00",\0,\0,\0,\0,\0,0,\0,\0,GAC04,Ingreso de efectivo por devolución de compras,\0,0.00,1,\0,\0,\0
