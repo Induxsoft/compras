@@ -79,7 +79,6 @@ module "list.dk"
     {
         @"datatable*": docs
         @"tableheight": "96%"
-        @"leyend": "Mostrando las primeras # compras ordenadas por fecha"
         member @"columns"
         {
             member @"documento" { @"caption":"Documento" }
@@ -102,7 +101,7 @@ module "list.dk"
             }
             member @"tipocambio"
             {
-                @"caption":"Tipo de cambio"
+                @"caption":"T. Cambio"
                 @"align": "end"
                 @"format": @true
                 @"thousandssep": @true
@@ -116,14 +115,14 @@ module "list.dk"
                 @"thousandssep": @true
                 @"decs": @DECIMAL_PRECISION
             }
-            member @"edo_financiero"
-            {
-                @"caption":"Estado financiero"
-                @"align": "center"
-            }
             member @"forma_pago"
             {
                 @"caption":"Forma de pago"
+                @"align": "center"
+            }
+            member @"edo_financiero"
+            {
+                @"caption":"Estado financiero"
                 @"align": "center"
             }
             member @"edo_facturacion"
@@ -137,6 +136,21 @@ module "list.dk"
                 @"align": "center"
             }
         }
+        @"leyend": "Mostrando las primeras # compras ordenadas por fecha"
+        @"control_styles": '
+            @media print {
+                table {
+                    table-layout:auto;
+                    width:100%;
+                }
+                th {
+                    font-size:.9rem;
+                }
+                td {
+                    font-size:.8rem;
+                }
+            }
+        '
     }
 
     new nav_config
@@ -152,6 +166,15 @@ module "list.dk"
 
     #$ div(class="v12-list-view" id="view")
     {
+        /* style
+        {$'
+            @media print {
+                @page {
+                    size: A4 landscape;
+                }
+            }
+        '} */
+
         section(class="container-fluid bg-white" id="top_area")
         {
             #!
