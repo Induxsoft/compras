@@ -10,3 +10,5 @@
 "GA23","Compras por línea","C.P.L","","/!/compras/reports/compras-por-linea/","0","compras.compras","DET01B","0","report"
 "GA24","Compras por proveedor","P.P.P","","/!/compras/reports/compras-por-proveedor/","0","compras.compras","DET01B","0","report"
 "GA25","Devoluciones por proveedor","D.P.P","","/!/compras/reports/devoluciones-por-proveedor/","0","compras.compras","DET01B","0","report"
+"GA30","Bitácora de documento de compra","Mensajes","","","0","compras.compras","DET01B","1","action"
+"GA31","Publicar mensajes en la bitácora","Publicar mensajes","","","0","compras.compras","DET01B","1","action"
