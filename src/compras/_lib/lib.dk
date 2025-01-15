@@ -99,7 +99,21 @@ module "lib.dk"
             default { return "" }
         }
     }
+    function list_years(yearsBack,yearsForward)
+    {
+        ndt = ndatetime.now()
+        yearFrom = ndatetime.add(ndt, ((yearsBack + 1) * -1), "y")
+        
+        ref list = list.create()
+        date = yearFrom
 
+        for i = 1; i < yearsBack + (yearsForward + 2)
+        {
+            date = ndatetime.add(date,1,'y')
+            do list.ins(list,0, ndatetime.year(date))
+        }
+        return list
+    }
     function AppExist(&db,packId)
     {
         new p { @"id": packId }
