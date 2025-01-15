@@ -252,7 +252,7 @@ module "doc.procesar.dk"
                 } 
             }
         }
-        #! else if @@(amounts,"#total") > 0
+        #! else if @@(amounts,"#total") > 0 || @@(compra,"#saldo") > 0
         {
             #$
             div(class="row mb-4")

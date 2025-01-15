@@ -551,7 +551,7 @@ module "model"
             AND IF(IFNULL(@cdoc,'-1')='-1', true, doc.id = @cdoc)
             AND IF(IFNULL(@stat_finac,'-1')='-1', true, sf.id = @stat_finac)
             AND IF(IFNULL(@stat_admin,'-1')='-1', true, IF(@stat_admin<>'-2', sa.id = @stat_admin, sa.id <> 99))
-        ORDER BY c.fecha, c.referencia
+        ORDER BY c.fecha DESC, c.referencia DESC
         LIMIT #<@default_max_rows>;"
 
         sql_cdocumentos = "SELECT d.id, d.const FROM cdocumentos d INNER JOIN cfg_doc_compras dc ON d.id=dc.documento ORDER BY d.id;"

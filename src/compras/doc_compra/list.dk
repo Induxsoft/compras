@@ -164,6 +164,7 @@ module "list.dk"
         @"reports*": dbr.apps.itemactions(@('&database'),"DET01B","report","",0)
         @"jscurrentcontext": "getCurrentContext"
     }
+    
     ref list_years = list_years(11,0)
     fdr_year_opt = ""
     for i = 0; i < list.count(list_years) { fdr_year_opt = fdr_year_opt + list.str(list_years,i) + "," }

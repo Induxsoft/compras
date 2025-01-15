@@ -47,6 +47,8 @@ module "model"
                 params<"documento"> : @@(compra,"#documento")
                 params<"iproveedor"> : @@(compra,"#iproveedor")
                 
+                compra<"saldo"> : dbr.num(db,@qry_saldo_compra,params)
+                
                 data<"compra*"> : compra
                 data<"amounts*"> : doc.getAmountsToProcess(db,params)
                 data<"dtprov*"> : doc.buscarProveedor(db,params)
@@ -333,12 +335,24 @@ module "model"
 
             if not(isnull(boni))
             {
-                ref bonificados = dbr.list(db,"SELECT sys_pk, importe, destino, fk_dcxp_aplicadoa, aplicadoa FROM aplcxp WHERE fk_dcxp_aplicadoa=@sys_pk",boni)
+                ref bonificados = dbr.list(db,"
+                    SELECT
+                        a.sys_pk,
+                        a.importe,
+                        a.destino,
+                        a.fk_dcxp_aplicadoa,
+                        a.aplicadoa,
+                        b.icompra
+                    FROM aplcxp a
+                        INNER JOIN dcxp b ON a.aplicadoa = b.sys_pk
+                    WHERE fk_dcxp_aplicadoa = @sys_pk
+                ",boni)
                 for i=0; i<list.count(bonificados)
                 {
                     ref apl = list.obj(bonificados,i)
 
                     do dbr.execute(db,"UPDATE dcxp SET bonificaciones = (IFNULL(bonificaciones,0)-@importe) WHERE sys_pk = @aplicadoa",apl)
+                    do erp.compras.procesos.setStatus(db,@@(apl,"#icompra"),@@(@FORMAS_PAGO,"#cCREDITO"))
                     do dbr.delete(db,"aplcxp","sys_pk=@sys_pk",apl)
                 }
 

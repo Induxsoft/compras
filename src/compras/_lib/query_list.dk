@@ -331,4 +331,15 @@ module "query_list.dk"
     
     @sql_cfg_doc_compra = "SELECT b.const, a.* FROM cfg_doc_compras a INNER JOIN cdocumentos b ON a.documento = b.id WHERE a.documento = @documento;"
     @sql_cfg_doc_consolida = "SELECT * FROM cfg_doc_compras_consolida WHERE documento = @documento;"
+
+    @qry_saldo_compra = "
+    SELECT IFNULL(SUM(IFNULL(c.haber,0) + IFNULL(c.intmoratorios,0) - IFNULL(c.pagos,0) - IFNULL(c.bonificaciones,0)),0) saldo
+    FROM dcompra d
+        INNER JOIN compra x ON d.documento = x.sys_pk
+        INNER JOIN dcxp c ON c.icompra = x.sys_pk
+    WHERE d.fk_compra_detalle = IFNULL(@_entity_id,@icompra)
+        AND (x.documento = 3 OR x.documento = 6)
+        AND (d.documento IS NULL OR (x.formapago = 2 OR x.formapago = 3))
+        AND (IFNULL(c.haber,0) + IFNULL(c.intmoratorios,0) - IFNULL(c.pagos,0) - IFNULL(c.bonificaciones,0)) > 0
+    "
 }

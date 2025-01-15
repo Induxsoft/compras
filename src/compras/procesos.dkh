@@ -761,6 +761,7 @@ module ":erp.compras.procesos"
                 }
                 do dbr.insert(db,"aplcxp",aplcxp)
                 do dbr.execute(db,"update dcxp set bonificaciones=ifnull(bonificaciones,0)+@facturado where sys_pk = @pk_cxp",rem)
+                do dbr.execute(db,"update compra set statusfinanciero = "+str(@@(@EDO_FINANCIERO,"#cSALDADO"))+" where sys_pk = @pk_rem",rem)
             }
         }
 
