@@ -165,7 +165,7 @@ module "model"
         if vencimiento == "" { data<"vencimiento*"> : @null }
         if fentrega == "" { data<"fentrega*"> : @null }
         if fembarque == "" { data<"fembarque*"> : @null }
-
+        
         if emision != "" && vencimiento != ""
         {
             ndt_emision = ndatetime.fromstr(emision,"yyyy-MM-dd")
@@ -195,6 +195,7 @@ module "model"
         if field.typeof(compra,"_detalle") == 1 {
             compra<"_detalle*"> : from.json(@@(compra,"_detalle"))
         }
+        
         do doc.evaluarCampos(db,params,compra)
 
         using compra
@@ -216,6 +217,7 @@ module "model"
             @"statusfinanciero": 0
             @"subtotal": 0.0
         }
+        
         do doc.setFieldsDetalle(@@(compra,"&_detalle"))
         using @childs
         {
@@ -241,9 +243,10 @@ module "model"
         }
 
         do dbr.apps.action.pre("GA11")
-        do dbr.begin(db)
+        if not(dbr.in_transaction(db)){do dbr.begin(db)}
 
         do doc.addSerieLote(db,compra)
+        
         ref entity = entity.create(db,params,compra)
         do doc.setAplicadoAFromDetalle(db,@@(compra,"&_detalle"),entity)
         // Actualizar totales
@@ -281,7 +284,7 @@ module "model"
         }
 
         do dbr.apps.action.pos(entity)
-        do dbr.commit(db)
+        if not(dbr.in_transaction(db)){do dbr.commit(db)}
         do dbr.apps.action.ext(entity)
 
         return entity
@@ -289,6 +292,7 @@ module "model"
         exception
         {
             params<"_entity_id"> : "_new"
+            
             do catch(db,params,data)
         }
     }
@@ -831,7 +835,7 @@ module "model"
 
     catch::&db,&params,&data
     {
-        do errordet(@false)
+        // do errordet(@false)
         if isnull(data) { ref data:record.create() }
         if dbr.in_transaction(db) { do dbr.rollback(db) }
 
