@@ -122,11 +122,13 @@ module "doc.pedido.dk"
         #!
     }
     point nav_buttons to print_buttons
+
+    url_exit=ifstr(@("$parameters/_from_url_e")!="",url_dcode(@("$parameters/_from_url_e")),@DOC_COMPRAS)
     new nav_config
     {
         @"title": ifstr(is_new, "Nuevo documento", @@(compra,"$referencia"))
         @"buttons*": nav_buttons
-        @"urlexit": @DOC_COMPRAS
+        @"urlexit": url_exit
         @"print_mode": 1 // 0-window.print() 1-v12PrintHTML()
         member @"hidden" { @"print": if(enable_editing, @true, @false) }
     }
