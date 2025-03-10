@@ -243,7 +243,13 @@ module "model"
         }
 
         do dbr.apps.action.pre("GA11")
-        if not(dbr.in_transaction(db)){do dbr.begin(db)}
+
+        start_transaction=@false
+        if not(dbr.in_transaction(db))
+        {
+            do dbr.begin(db)
+            start_transaction=@true
+        }
 
         do doc.addSerieLote(db,compra)
         
@@ -284,7 +290,7 @@ module "model"
         }
 
         do dbr.apps.action.pos(entity)
-        if not(dbr.in_transaction(db)){do dbr.commit(db)}
+        if start_transaction{do dbr.commit(db)}
         do dbr.apps.action.ext(entity)
 
         return entity
