@@ -131,7 +131,13 @@ module ":erp.compras.procesos"
 
     actualizarCostoUltimoProducto::&db,&item,&compra
     {
-        new prm { @"costoultimo": erp.compras.procesos.convertir(@@(item,"#precio"),@@(item,"#tcambio"),@@(compra,"#tipocambio"),@convertir_a_divisa_producto) }
+        precio=erp.compras.procesos.convertir(@@(item,"#precio"),@@(item,"#tcambio"),@@(compra,"#tipocambio"),@convertir_a_divisa_producto)
+
+        if @@(item,"#descuentos") > 0
+        {
+            precio=precio - (@@(item,"#descuentos") / @@(item,"#cantidad"))
+        }
+        new prm { @"costoultimo": precio }
         do dbr.update(db,"producto",prm,"sys_pk=@iproducto",item)
     }
 
@@ -170,7 +176,8 @@ module ":erp.compras.procesos"
             IFNULL(d.doc_partida,-99) doc_partida,
             p.descripcion `producto`,
             d.fk_compra_detalle AS doccompra,
-            IF(dca.rcompra IS NULL AND dca2.rcompra IS NULL, 0, 1) mov_aplicado
+            IF(dca.rcompra IS NULL AND dca2.rcompra IS NULL, 0, 1) mov_aplicado,
+            IFNULL(d.descuento1,0) + IFNULL(d.descuento2,0) descuentos
         FROM dcompra d 
             INNER JOIN producto p ON d.iproducto = p.sys_pk
             INNER JOIN divisa dvs ON p.idivisa = dvs.sys_pk
