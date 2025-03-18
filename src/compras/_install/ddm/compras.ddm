@@ -36,8 +36,8 @@ model "erp.compras"
         @"notas" string(150)
         @"telefonos" string(150)
         @"iciudad" int ref:"ciudad" ["sys_pk"]
-        @"numint" string(1024)
-        @"numext" string(1024)
+        @"numint" string(150)
+        @"numext" string(150)
     }
     //#endregion
 
@@ -94,7 +94,7 @@ model "erp.compras"
         @"codcuenta" string(50) unique
         @"codigo" string(5) unique required
         @"descripcion" string(50) unique
-        @"notas" string(2048)
+        @"notas" memo
         @"centroconsumo" int ref:"cconsumo" ["sys_pk"] required
         @"uf_limefectivo" decimal(18,8)
         @"uf_lime_vntadic" int
@@ -118,7 +118,7 @@ model "erp.compras"
         @"contrasena" string(32) required
         @"email" string(50)
         @"nombre" string(50) unique required
-        @"notas" string(2048)
+        @"notas" memo
         @"telefono" string(25)
         @"domicilio1" int ref:"domicilio" ["sys_pk"]
         @"uf_sys_baja" bool
@@ -140,7 +140,7 @@ model "erp.compras"
     {
         @"codigo" string(5) unique required
         @"descripcion" string(50) unique required
-        @"notas" string(2048)
+        @"notas" memo
         @"precio" int
         @"ialmacen" int ref:"almacen" ["sys_pk"]
         @"porcentaje_esperado" decimal(19,8)
@@ -153,14 +153,14 @@ model "erp.compras"
     // Configuracion de impuesto por zona
     entity "cfgimpuesto" : "TableModel"
     {
-        @"i1compra" string(4096)
-        @"i1venta" string(4096)
-        @"i2compra" string(4096)
-        @"i2venta" string(4096)
-        @"i3compra" string(4096)
-        @"i3venta" string(4096)
-        @"i4compra" string(4096)
-        @"i4venta" string(4096)
+        @"i1compra" string(128)
+        @"i1venta" string(128)
+        @"i2compra" string(128)
+        @"i2venta" string(128)
+        @"i3compra" string(128)
+        @"i3venta" string(128)
+        @"i4compra" string(128)
+        @"i4venta" string(128)
         @"nombre" string(25) unique required
         @"uf_tipoi1" string(25)
         @"uf_tipoi2" string(25)
@@ -175,7 +175,7 @@ model "erp.compras"
         @"clabe" string(18) unique
         @"codcuenta" string(50) unique
         @"nombre" string(25) unique required
-        @"notas" string(4096)
+        @"notas" memo
         @"numcuenta" string(25) unique
         // @"ibanco" int ref:"banco" ["sys_pk"]
         @"idivisa" int ref:"divisa" ["sys_pk"] required
@@ -274,7 +274,7 @@ model "erp.compras"
         @"haber" decimal(18,8)          // Importe del haber (importe del documento por pagar o cargo)
         @"intfinancieros" decimal(18,8) // Importe de los intereses financieros acumulados
         @"intmoratorios" decimal(18,8)  // Importe de los intereses moratorios acumulados
-        @"notas" string(3200)           // Notas generales
+        @"notas" memo          // Notas generales
         @"pagos" decimal(18,8)          // Importe de los pagos realizados al documento
         @"partida" string(32)           // Relación a una partida presupuestal
         @"poliza" string(32)            // Relación a una póliza contable       
@@ -325,7 +325,7 @@ model "erp.compras"
         @"comision4" decimal(18,8)
         @"comision5" decimal(18,8)
         @"descripcion" string(50) unique required
-        @"notas" string(4096)
+        @"notas" memo
         @"visible" bool
         @"uf_indicaciones" string(4096)
     }
@@ -538,7 +538,7 @@ model "erp.compras"
     {
         @"codigo" string(15) unique required
         @"descripcion" string(50) unique required
-        @"notas" string(4096) 
+        @"notas" memo 
     }
     // Datos del proveedor
     entity "proveedor" : "TableModel"
@@ -552,7 +552,7 @@ model "erp.compras"
         @"fax" string(50) 
         @"limitecredito" decimal(18,8) 
         @"nombre" string(150) unique required
-        @"notas" string(32000) 
+        @"notas" memo
         @"rfc" string(15) 
         @"saldo" decimal(18,8) 
         @"status" int ref:"cstatusorg" ["id"] 
@@ -604,7 +604,7 @@ model "erp.compras"
     {
         @"fentrada" date 
         @"fventa" date 
-        @"notas" string(4096) 
+        @"notas" memo 
         @"numero" string(50) unique required
         @"status" ref:"cstatusseries" required
         @"doccompra" ref:"compra"
