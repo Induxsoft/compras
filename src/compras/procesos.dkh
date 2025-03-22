@@ -466,7 +466,7 @@ module ":erp.compras.procesos"
             INNER JOIN dcompra dr ON df.doc_partida = dr.sys_pk
             INNER JOIN compra r ON dr.fk_compra_detalle = r.sys_pk
         WHERE df.fk_compra_detalle = @icompra
-        GROUP BY dr.fk_compra_detalle;
+        GROUP BY dr.fk_compra_detalle,dr.cantidad,dr.xfacturar;
         "
 
         switch @@(compra,"#documento")
@@ -648,7 +648,7 @@ module ":erp.compras.procesos"
         WHERE d.fk_compra_detalle = @ifactura
             AND fc.documento = @factura
             AND rm.documento = @remision
-        GROUP BY rm.sys_pk;
+        GROUP BY rm.sys_pk,xp.sys_pk;
         "
 
         ref factura = dbr.rec(db,sql_factura,params)
