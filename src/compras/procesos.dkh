@@ -131,12 +131,14 @@ module ":erp.compras.procesos"
 
     actualizarCostoUltimoProducto::&db,&item,&compra
     {
-        precio=erp.compras.procesos.convertir(@@(item,"#precio"),@@(item,"#tcambio"),@@(compra,"#tipocambio"),@convertir_a_divisa_producto)
+        precio = erp.compras.procesos.convertir(@@(item,"#precio"),@@(item,"#tcambio"),@@(compra,"#tipocambio"),@convertir_a_divisa_producto)
+        precio = (precio / @@(item,"#factor"))
 
         if @@(item,"#descuentos") > 0
         {
-            precio=precio - (@@(item,"#descuentos") / @@(item,"#cantidad"))
+            precio = precio - (@@(item,"#descuentos") / @@(item,"#cantidad"))
         }
+
         new prm { @"costoultimo": precio }
         do dbr.update(db,"producto",prm,"sys_pk=@iproducto",item)
     }
@@ -174,6 +176,13 @@ module ":erp.compras.procesos"
                 WHEN p.unidade THEN (d.cantidad * p.factore)
                 ELSE d.cantidad
             END) AS cantidad,
+            (CASE d.unidad
+                WHEN p.unidadb THEN p.factorb
+                WHEN p.unidadc THEN p.factorc
+                WHEN p.unidadd THEN p.factord
+                WHEN p.unidade THEN p.factore
+                ELSE 1
+            END) AS factor,
             d.precio,
             d.iproducto,
             dvs.tcambio,
@@ -211,6 +220,7 @@ module ":erp.compras.procesos"
             @"sys_recver": 0
             @"fecha*": now()
             @"referencia": @@(compra,"$referencia")
+            @"descripcion": "Aplicado por compra con referencia: " + @@(compra,"$referencia")
             @"doccompra": @@(compra,"#sys_pk")
             @"icategoria": icategoria
         }
