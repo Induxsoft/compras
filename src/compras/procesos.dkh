@@ -167,7 +167,13 @@ module ":erp.compras.procesos"
         SELECT 
             d.sys_pk,
             IFNULL(d.sys_info,'') sys_info,
-            d.cantidad,
+            (CASE d.unidad
+                WHEN p.unidadb THEN (d.cantidad * p.factorb)
+                WHEN p.unidadc THEN (d.cantidad * p.factorc)
+                WHEN p.unidadd THEN (d.cantidad * p.factord)
+                WHEN p.unidade THEN (d.cantidad * p.factore)
+                ELSE d.cantidad
+            END) AS cantidad,
             d.precio,
             d.iproducto,
             dvs.tcambio,

@@ -308,7 +308,7 @@ document.addEventListener("DOMContentLoaded", () =>
             // campos visibles en el editable.
             codigo: data.codigo,
             descripcion: data.descripcion,
-            unidad: data.unidada,
+            unidad: data.unidadb,
             precio: i.costo,
             cantidad: i.cantidad,
             origen: (data.origen??''),
