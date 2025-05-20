@@ -7,6 +7,8 @@ GA12,Editar documento de compra,compras.compras
 GA13,Procesar documento de compra,compras.compras
 GA14,Cancelar documento de compra,compras.compras
 GA15,Re-abrir documento de compra,compras.compras
+GAF0,Podar compras,compras.compras
+GAF1,Limpiar compras,compras.compras
 compras.reports,Informes de compras,compras
 GA20,Informes de compras,compras.reports
 GA21,Compras Netas Totales,compras.reports

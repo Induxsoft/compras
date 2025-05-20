@@ -1,0 +1,10 @@
+{
+    "ff": {
+        "control":"date",
+        "required":"true",
+        "caption":"Fecha de corte",
+        "wrp_attr": {
+            "class":"col-auto"
+        }
+    }
+}

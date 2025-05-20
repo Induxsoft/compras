@@ -1,0 +1,70 @@
+#include "dkli.dkh"
+#!
+program "Limpiar compras"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "dbr.apps.dkl"
+    #include "dbr.security.dkl"
+    #include "batch.v12.dkl"
+
+    do @context.begin(@batch_context)
+
+    //#region >CONTANTES
+    do errordet(@false)
+
+    @qname = @("$qname")
+    @token = @("$job/token")
+    //#endregion
+
+    //#region >FUNCIONES
+    function UpdatePercent(value)
+    {
+        new params
+        {
+            @"token":@("$job/token")
+        }
+        new data
+        {
+            @"percentage":value
+            @"progress_type":2
+        }
+        do dbr.update(batch.openDB(),"job",data,"sys_guid=@token",params)
+    }
+    //#endregion
+
+    //#region >EJECUCIÓN
+    do batch.v12.grant("GAF1") //GAF1 - Limpiar compras
+    
+    ref db = @("&database")
+    do dbr.begin(db)
+    do batch.saveLog(@token,"> Limpiando compras")
+    
+    do dbr.execute(db,"UPDATE dcompra SET doc_partida = NULL",@null)
+    affected_rows = dbr.execute(db,"DELETE FROM dcompra",@null)
+
+    do dbr.execute(db,"UPDATE compra SET aplicadoa = NULL",@null)
+    affected_rows = dbr.execute(db,"DELETE FROM compra",@null)
+
+    do dbr.commit(db)
+    do UpdatePercent(100)
+    do batch.saveLog(@token,"** Registros eliminados: "+str(affected_rows))
+
+    exception
+    {
+        code = last_error_code()
+        error = last_error()
+
+        if isset("db") {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+        }
+        if contains(error,"Cannot delete or update a parent row: a foreign key constraint fails") {
+            error = "No es posible limpiar, otros registros dependen de los gastos."
+        }
+        do rise_error(code,error)
+    }
+    //#endregion
+
+    do @context.end()
+}

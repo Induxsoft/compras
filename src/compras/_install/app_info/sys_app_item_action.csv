@@ -12,3 +12,6 @@
 "GA25","Devoluciones por proveedor","D.P.P","","/!/compras/reports/devoluciones-por-proveedor/","0","compras.compras","DET01B","0","report"
 "GA30","Bitácora de documento de compra","Mensajes","","","0","compras.compras","DET01B","1","action"
 "GA31","Publicar mensajes en la bitácora","Publicar mensajes","","","0","compras.compras","DET01B","1","action"
+
+GAF0,Podar compras,Podar compras,,/!/batch/taskman/GA/podar.compras/?exit_url_encode=LyEvY29tcHJhcy9jb21wcmFzLw||,0,compras.compras,DET01B,0,action
+GAF1,Limpiar compras,Limpiar ventas,,/!/batch/taskman/GA/limpiar.compras/?exit_url_encode=LyEvY29tcHJhcy9jb21wcmFzLw||,0,compras.compras,DET01B,0,action

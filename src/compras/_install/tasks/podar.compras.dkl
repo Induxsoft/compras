@@ -1,0 +1,161 @@
+#include "dkli.dkh"
+#!
+program "Podar compras"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "dbr.apps.dkl"
+    #include "dbr.security.dkl"
+    #include "batch.v12.dkl"
+
+    do @context.begin(@batch_context)
+
+    //#region >CONTANTES
+    do errordet(@false)
+
+    @qname = @("$qname")
+    @token = @("$job/token")
+    //#endregion
+
+    //#region >FUNCIONES
+    function contains_all_words(sentence,keywords)
+    {
+        ref list = split(trim(keywords),",")
+        success = @false
+        for i = 0; i < list.count(list)
+        {
+            word = trim(list.str(list,i))
+            if word != "" {
+                if not(contains(sentence,word)) { return @false }
+                success = @true
+            }
+        }
+        return success
+    }
+
+    function UpdatePercent(value)
+    {
+        new params
+        {
+            @"token":@("$job/token")
+        }
+        new data
+        {
+            @"percentage":value
+            @"progress_type":2
+        }
+        do dbr.update(batch.openDB(),"job",data,"sys_guid=@token",params)
+    }
+
+    function ValidarCompraPadre(&db,pk_padre,rango)
+    {
+        if pk_padre < 1 { return }
+        pk_padre, rango >> params
+        
+        ref padre = dbr.rec(db,"SELECT sys_pk, fecha, referencia, aplicadoa, (fecha > @rango) out_of_range FROM compra WHERE sys_pk = @pk_padre",params)
+
+        if @@(padre,"#out_of_range") { do rise_error(511,"El documento se incluye directa o indirectamente en '"+@@(padre,"$referencia")+"', que se escuentra fuera de rango.") }
+        do ValidarCompraPadre(db,@@(padre,"#aplicadoa"),rango)
+    }
+
+    function Podar(&db,&params)
+    {
+        ref compras = dbr.list(db,"
+            SELECT
+                sys_pk,
+                fecha,
+                referencia,
+                aplicadoa
+            FROM compra
+            WHERE
+                fecha <= @ff
+                AND (statusadministrativo = 3 OR statusadministrativo = 99 OR (statusadministrativo = 2 AND documento = 1))
+                AND (statusfacturacion = 3 OR statusfacturacion = 0)
+                AND (statusfinanciero = 2 OR statusfinanciero = 0)
+        ",params)
+
+        length = list.count(compras)
+        if length < 1 {
+            do batch.saveLog(@token,"Nada para hacer.")
+            do UpdatePercent(100)
+            return
+        }
+
+        do batch.saveLog(@token,"> Limpiando compras...")
+        progress = (100 / length)
+        affected_rows = 0
+        percent = 0
+
+        for i = 0; i < length
+        {
+            ref compra = list.obj(compras,i)
+            referencia = @@(compra,"$referencia")
+
+            do ValidarCompraPadre(db,@@(compra,"#aplicadoa"),@@(params,"$ff"))
+            do dbr.begin(db)
+
+            // Quitar relación de las partidas incluidas y eliminar detalles de la compra.
+            do dbr.execute(db,"
+                UPDATE dcompra a
+                    INNER JOIN dcompra b ON a.sys_pk = b.doc_partida
+                SET b.documento = NULL, b.doc_partida = NULL
+                WHERE a.fk_compra_detalle = @sys_pk
+            ",compra)
+            do dbr.delete(db,"dcompra","fk_compra_detalle = @sys_pk",compra)
+
+            // Quitar relación de los documentos incluidos y eliminar compra.
+            do dbr.execute(db,"UPDATE compra SET aplicadoa = NULL WHERE aplicadoa = @sys_pk",compra)
+            do dbr.delete(db,"compra","sys_pk = @sys_pk",compra)
+
+            do dbr.commit(db)
+            affected_rows = affected_rows + 1
+
+            exception
+            {
+                code = last_error_code()
+                error = last_error()
+
+                if contains_all_words(error,"DELETE Error,CONSTRAINT,FOREIGN KEY,REFERENCES") {
+                    error = "No es posible eliminar, otros registros dependen de '"+referencia+"'"
+                }
+                else {
+                    error = "No fue posible eliminar '"+referencia+"': "+ error
+                }
+                
+                if dbr.in_transaction(db) { do dbr.rollback(db) }
+                do batch.saveLog(@token,error)
+                do pop_exception()
+            }
+
+            percent = percent + progress
+            do UpdatePercent(percent)
+            // do batch.saveLog(@token,"En proceso "+str(percent)+"%")
+        }
+
+        do batch.saveLog(@token,"** Compras eliminadas ("+str(affected_rows)+"/"+str(length)+")")
+    }
+    //#endregion
+
+    //#region >EJECUCIÓN
+    do batch.v12.grant("GAF0") //GAF0 - Podar compras
+    
+    ref params = @("&params")
+    ref db = @("&database")
+
+    do Podar(db,params)
+
+    exception
+    {
+        code = last_error_code()
+        error = last_error()
+
+        if isset("db") {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+        }
+        do rise_error(code,error)
+    }
+    //#endregion
+
+    do @context.end()
+}
