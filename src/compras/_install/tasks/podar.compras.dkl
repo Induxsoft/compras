@@ -143,6 +143,8 @@ program "Podar compras"
     ref params = @("&params")
     ref db = @("&database")
 
+    if not(parse.bool(@@(params,"$confirm_GAF0"))) { do rise_error(511,"No se confirmo la acción.") }
+
     do Podar(db,params)
 
     exception

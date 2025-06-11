@@ -37,7 +37,11 @@ program "Limpiar compras"
     //#region >EJECUCIÓN
     do batch.v12.grant("GAF1") //GAF1 - Limpiar compras
     
+    ref params = @("&params")
     ref db = @("&database")
+
+    if not(parse.bool(@@(params,"$confirm_GAF1"))) { do rise_error(511,"No se confirmo la acción.") }
+
     do dbr.begin(db)
     do batch.saveLog(@token,"> Limpiando compras")
     

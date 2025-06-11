@@ -1,0 +1,11 @@
+{
+    "confirm": {
+        "control":"bool",
+        "name":"confirm_GAF1",
+        "required":"true",
+        "caption":"Confirmo y entiendo que al ejecutar esta tarea los datos no se podrán recuperar.",
+        "wrp_attr": {
+            "class":"form-check align-self-end"
+        }
+    }
+}
