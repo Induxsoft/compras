@@ -10,21 +10,12 @@ module "Compras netas totales"
 
     do @context.begin(@crud_context)
     
-
-    //llamar la consultas de almacen, linea, marca y el filtro
-    //do rise_error(23,to.json(almacenes))//coidgo para generar error 
     ref almacenes= @("&./almacen")
     ref linea= @("&./linea")
     ref marca= @("&./marca")
-
-  //  ref todo =@("&./todo") // codigo para listar tados de todos
-    ref data = @("&./lista")// codigo para listar todos los datos de la 
-
-
-
+    ref data = @("&./lista")
     ref titles = ifnull(@("&./titles"),record.create())
 
-    // aqui se cortan los decimales
     @DECIMAL_PRECISION = @("#parameters/decimals")
 
     new nav_config
@@ -32,14 +23,14 @@ module "Compras netas totales"
         @"title": "Devoluciones por Proveedor"
         @"urlexit":@DOC_COMPRAS
     }
-    #!
-        fechai = @('$parameters/finicial')
-        fechaf = @('$parameters/ffinal')
-        if fechai == "" || fechaf == ""
-        {
-            fechai = date_str(now(), "yyyy-MM-dd")
-            fechaf = date_str(now(), "yyyy-MM-dd")
-        }
+    
+    fechai = @('$parameters/finicial')
+    fechaf = @('$parameters/ffinal')
+    if fechai == "" || fechaf == ""
+    {
+        fechai = date_str(now(), "yyyy-MM-dd")
+        fechaf = date_str(now(), "yyyy-MM-dd")
+    }
     #$
     div(class="container v12-list-view" id="view")
     {
@@ -54,12 +45,13 @@ module "Compras netas totales"
                 tr td { font-size:.8rem; }
             '}
 
-        #!
-        if @("error/message") != ""{
+            #!
+            if @("error/message") != ""{
+                #$
+                p{"#<@('error/message')>"}
+            }
+            
             #$
-            p{"#<@('error/message')>"}
-        }
-        #$
             form(class="" action="./" method="GET" id="form-filter")
             {
                 div(class="align-items-center gap-1 mb-1")
@@ -70,31 +62,27 @@ module "Compras netas totales"
                         {
                             div(class="col-md-2")
                             {
-                              span(class="text-dark"){"Fecha Inicial"}                            
-                               input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<fechai>" title="Fecha inicial")
+                                span(class="text-dark"){"Fecha Inicial"}
+                                input(class="form-control form-control-sm rounded-0" type="date" name="finicial" value="#<fechai>" title="Fecha inicial")
                             }
                             div(class="col-md-2")
                             {
                                 span(class="text-dark"){"Fecha Final"}  
                                 input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<fechaf>" title="Fecha final")
                             }
-                            //aqui hacemos el llenado del select mediante la consulta a la base de datos
                             div(class="col-md-2")
                             {
-                            span(class="text-dark"){"Línea"}                      
+                                span(class="text-dark"){"Línea"}                      
                                 select(class="form-select form-select-sm rounded-0" name="pklinea" value="#<@('$parameters/pklinea')>" title="Linea")
                                 {
                                     option(value="*"){"Todos"}
                                     #!
                                     for i = 0; i < list.count(linea); i+1
-                                        {
-                                            ref obj = list.obj(linea,i)
-                                                #$
-                                                option( "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pklinea'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
-                                                {
-                                                "#<@@(obj,'descripcion')>"
-                                                }
-                                    #!     
+                                    {
+                                        ref obj = list.obj(linea,i)
+                                        #$
+                                        option( "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pklinea'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
+                                        {"#<@@(obj,'descripcion')>"}
                                     }
                                     #$
                                 }
@@ -102,51 +90,45 @@ module "Compras netas totales"
                             
                             div(class="col-md-2")
                             {
-                            span(class="text-dark"){"Marca"}  
+                                span(class="text-dark"){"Marca"}
                                 select(class="form-select form-select-sm rounded-0" name="pkmarca" value="#<@('$parameters/pkmarca')>" title="Marca")
                                 {
                                     option(value="*"){"Todos"}
                                     #!
                                     for i = 0; i < list.count(marca); i+1
-                                        {
-                                            ref obj = list.obj(marca,i)
-                                                #$
-                                                option( "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkmarca'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
-                                                {
-                                                "#<@@(obj,'descripcion')>"
-                                                }
-                                        #!     
-                                       }
+                                    {
+                                        ref obj = list.obj(marca,i)
+                                        #$
+                                        option( "#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkmarca'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
+                                        {"#<@@(obj,'descripcion')>"}
+                                    }
                                     #$
                                 }
                             }
                             div(class="col-md-2")
                             {
-                            span(class="text-dark"){"Almacén"}  
+                                span(class="text-dark"){"Almacén"}  
                                 select(class="form-select form-select-sm rounded-0" name="pkalmacen" value="#<@('$parameters/pkalmacen')>" title="Almacén")
                                 {
                                     option(value="*"){"Todos"}
-                                #!
-                                    for i = 0; i < list.count(almacenes); i+1 //listamos todo los datos de los almacenes 
-                                        {
-                                            ref obj = list.obj(almacenes,i)
-                                                #$
-                                                option("#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>") //llamamos la sys_pk que es la primary key
-                                                {
-                                                "#<@@(obj,'descripcion')>"  //agregamos los datos de la descripcion al select
-                                                }
-                    
-                                            #!     
+                                    #!
+                                    for i = 0; i < list.count(almacenes); i+1
+                                    {
+                                        ref obj = list.obj(almacenes,i)
+                                        #$
+                                        option("#<ifstr(@@(obj,'#sys_pk')==@('#parameters/pkalmacen'),'selected','')>"="true" value="#<@@(obj,'sys_pk')>")
+                                        {"#<@@(obj,'descripcion')>"}
                                     }
                                     #$
-                                    //para visualizar todo los datos
                                 }
                             }
                             div(class="col-md-2 mt-4")
                             {
-                                 div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
+                                div(class="d-flex flex-grow-1 justify-content-end"){ button(class="btn btn-sm btn-primary rounded-0" type="submit" id="btn_filter"){$"Aplicar"} }
                             }
-               }
+                        }
+                    }
+                }
             }
         }
 
@@ -163,8 +145,7 @@ module "Compras netas totales"
                 {
                     div(class="col-3")
                     {
-                        //se comento porque no queremos que aparezca el usuario
-                       //small(class="d-block"){ $ "#<cut(@('$http/session/user/name'),25)>" }
+                        // small(class="d-block"){ $ "#<cut(@('$http/session/user/name'),25)>" }
                         small(class="d-block"){ b{$"Impresión: "} $"#<date_str(now(),'dd/MMM/yyyy')>" }
                     }
                     div(class="col-6")//subtitulo
@@ -176,33 +157,23 @@ module "Compras netas totales"
                         $""
                     }
                 }
-                
-
 
                 table(class="table table-sm table-bordered my-2")
                 {
-                    thead{
-                                th(scope="col")
-                                    {"Fecha"}
-                                th(scope="col")
-                                    {"Referencia"}
-                                th(scope="col")
-                                    {"Código "}
-                                th(scope="col")
-                                    {"Descripción "}
-                                th(scope="col")
-                                  {"Unidad"}
-                                 th(scope="col")
-                                  {"Compras"}
-                                th(scope="col")
-                                  {"Subtotal"}
-                                th(scope="col")
-                                  {"Impuestos"}
-                                th(scope="col")
-                                  {"Total"}
-                     }
+                    thead
+                    {
+                        th(scope="col"){"Fecha"}
+                        th(scope="col"){"Referencia"}
+                        th(scope="col"){"Código"}
+                        th(scope="col"){"Descripción"}
+                        th(scope="col"){"Unidad"}
+                        th(scope="col"){"Compras"}
+                        th(scope="col"){"Subtotal"}
+                        th(scope="col"){"Impuestos"}
+                        th(scope="col"){"Total"}
+                    }
 
-                 tbody
+                    tbody
                     {
                         $""
                         #!
@@ -235,12 +206,11 @@ module "Compras netas totales"
                                     #$
                                     tr
                                     {
-                                        td(colspan="4"){""}
-                                        td(class="text-end fw-bold"){"Totales"}
-                                        td(class="text-end fw-bold"){$"$ #<number_format(pv_compras)>"}
-                                        td(class="text-end fw-bold"){$"$ #<number_format(pv_subtotal)>"}
-                                        td(class="text-end fw-bold"){$"$ #<number_format(pv_impuestos)>"}
-                                        td(class="text-end fw-bold"){$"$ #<number_format(pv_total)>"}
+                                        td(class="text-end fw-bold" colspan="5"){"Total de proveedor"}
+                                        td(class="text-end fw-bold"){"#<number_format(pv_compras)>"}
+                                        td(class="text-end fw-bold"){"$ #<number_format(pv_subtotal)>"}
+                                        td(class="text-end fw-bold"){"$ #<number_format(pv_impuestos)>"}
+                                        td(class="text-end fw-bold"){"$ #<number_format(pv_total)>"}
                                     }
                                     #!
                                     pv_compras= 0
@@ -264,22 +234,21 @@ module "Compras netas totales"
                             #$
                             tr(class="")
                             {
-                                td(class="" ){$"#<@@(obj,'$Fecha')>"}
-                                td(class="" ){$"#<@@(obj,'$Referencia')>"}
-                                td(class="" ){$"#<@@(obj,'$Codigo')>"}
-                                td(class="" ){$"#<@@(obj,'$Descripcion')>"}
-                                td(class=""){$"#<@@(obj,'$Unidad')>"}
-                                td(class="text-end" ){$"#<number_format(@@(obj,'$Compras'))>"}
-                                td(class="text-end"){$"$ #<number_format(@@(obj,'#Subtotal'))>"}
-                                td(class="text-end" ){$"#<number_format(@@(obj,'$Impuestos'))>"}
-                                td(class="text-end"){$"#<number_format(@@(obj,'$Total'))>"}
+                                td(class=""){"#<@@(obj,'$Fecha')>"}
+                                td(class=""){"#<@@(obj,'$Referencia')>"}
+                                td(class=""){"#<@@(obj,'$Codigo')>"}
+                                td(class=""){"#<@@(obj,'$Descripcion')>"}
+                                td(class=""){"#<@@(obj,'$Unidad')>"}
+                                td(class="text-end" ){"#<number_format(@@(obj,'$Compras'))>"}
+                                td(class="text-end"){"$ #<number_format(@@(obj,'#Subtotal'))>"}
+                                td(class="text-end"){"$ #<number_format(@@(obj,'$Impuestos'))>"}
+                                td(class="text-end"){"$ #<number_format(@@(obj,'$Total'))>"}
                             }
                             #$
                         }
                         #!
                         if list.count(data) > 0 
                         {
-                        
                             pv_compras=pv_compras + compras
                             pv_subtotal= pv_subtotal + subtotal
                             pv_impuestos= pv_impuestos + impuestos
@@ -288,12 +257,11 @@ module "Compras netas totales"
                             #$
                             tr
                             {
-                                td(colspan="5"){""}
-                                td(class="text-end fw-bold"){"Total"}
-                                td(class="text-end fw-bold"){$"$ #<number_format(pv_compras)>"}
-                                td(class="text-end fw-bold"){$"$ #<number_format(pv_subtotal)>"}
-                                td(class="text-end fw-bold"){$"$ #<number_format(pv_impuestos)>"}
-                                td(class="text-end fw-bold"){$"$ #<number_format(pv_total)>"}
+                                td(class="text-end fw-bold" colspan="5"){"Total de proveedor"}
+                                td(class="text-end fw-bold"){"#<number_format(pv_compras)>"}
+                                td(class="text-end fw-bold"){"$ #<number_format(pv_subtotal)>"}
+                                td(class="text-end fw-bold"){"$ #<number_format(pv_impuestos)>"}
+                                td(class="text-end fw-bold"){"$ #<number_format(pv_total)>"}
                             }
                             #!
                             pv_compras= 0
@@ -304,8 +272,7 @@ module "Compras netas totales"
                         #$
                         tr(class="group-summary")
                         {
-                            $""
-                            td(colspan="6"){""}
+                            td(class="text-end fw-bold" colspan="6"){"Total"}
                             // td(class="text-end fw-bold"){$"#<number_format(compras)>"}
                             td(class="text-end fw-bold"){$"$ #<number_format(subtotal)>"}
                             td(class="text-end fw-bold"){$"$ #<number_format(impuestos)>"}
@@ -317,11 +284,7 @@ module "Compras netas totales"
                 p(class="text-center mb-0"){$"#<@@(titles,'$footer')>"}
             }
         }}
-
-        // script(type="text/javascript"){$''}
     }
     #!
     do @context.end()
-   }
- }
 }
