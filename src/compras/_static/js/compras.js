@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () =>
     let btnCerrarDoc = document.getElementById("btn-cerrar");
     let btnProcesarDoc = document.getElementById("btn-procesar");
     let btnCancelarDoc = document.getElementById("btn-cancelar");
+    let btn_delete=document.getElementById("btn-delete");
     let btnReAbrirDoc = document.getElementById("btn-reabrir");
     let btnAddDoc = document.getElementById('btn-add-doc');
     let btnFacturar = document.getElementById('btn-facturar');
@@ -123,6 +124,7 @@ document.addEventListener("DOMContentLoaded", () =>
         if (btnCancelarDoc) btnCancelarDoc.disabled = v;
         if (btnReAbrirDoc) btnReAbrirDoc.disabled = v;
         if (btnFacturar) btnFacturar.disabled = v;
+        if(btn_delete)btn_delete.disabled=v;
     }
 
     function number_format(value, {moneda = "", decimal = 2}) {
@@ -406,6 +408,7 @@ document.addEventListener("DOMContentLoaded", () =>
         {
             btnProcesarDoc.classList.add("d-none");
             btnCancelarDoc.classList.add("d-none");
+            btn_delete.classList.add("d-none");
             btnFacturar.classList.add('d-none');
         }
     }
@@ -670,6 +673,7 @@ document.addEventListener("DOMContentLoaded", () =>
         btnReAbrirDoc.classList.toggle("d-none",!show_btn_reabrir);
         btnProcesarDoc.classList.toggle("d-none",!show_btn_procesar);
         btnCancelarDoc.classList.toggle("d-none",!show_btn_cancelar);
+        btn_delete.classList.toggle("d-none",!show_btn_cancelar);
         btnAddDoc.classList.toggle('d-none',!show_btn_insert_doc);
         btnFacturar.classList.toggle('d-none',!show_btn_facturar);
         btnProcesarText.textContent = btnProcText;
@@ -809,6 +813,23 @@ document.addEventListener("DOMContentLoaded", () =>
 
         desactivar_botones(true);
         formPedido.submit();
+    });
+    
+    btn_delete.addEventListener("click",()=>
+    {
+        if (!confirm("¿Desea eliminar el registro seleccionado?")) return;
+        
+        let endpoint=".";
+        InduxsoftCrudlModel.InvokeService(endpoint, null,
+			function (data) 
+            {
+				window.location.href="..";
+			},
+			function (error) {
+				if (error.message) alert(error.message);
+				else console.error(error);
+			}, "DELETE", false, false
+		);
     });
 
     btnAddDoc.addEventListener("click", function() {

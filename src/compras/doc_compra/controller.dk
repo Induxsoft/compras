@@ -2,6 +2,8 @@
 #!
 module "controller"
 {
+    point @delete to doc.delete
+    
     switch @@(@http_context,"$request/get/_view")
     {
         case ""
@@ -33,5 +35,6 @@ module "controller"
             point @list to doc.detalleDocumentoInsert
             break
         }
+        
     }
 }

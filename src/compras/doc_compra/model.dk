@@ -838,7 +838,35 @@ module "model"
             do dbr.update(db, "compra", status, "sys_pk=@compra", compra)
         }
     }
+    doc.delete::&db,&params
+    {
+        do errordet(@false)
 
+        ref documento=record.caseinsensitive(dbr.rec(db,"select * from compra where sys_pk=@_entity_id",params))
+        if isnull(documento){do rise_error(500,"No se encontró el documento de compra.")}
+
+        docs_aplicados=dbr.num(db,"select count(*) from compra where aplicadoa=@_entity_id",params)
+        @use_transaction = @false
+            do dbr.apps.action.pre("GAF2")
+        do dbr.begin(db)
+
+            if @@(documento,"#aplicadoa") > 0 || docs_aplicados > 0{do rise_error(500,"No se puede eliminar el documento, ya fue aplicado.")} 
+            if @@(documento,"#statusadministrativo") != 1{do rise_error(500,"No se puede eliminar el documento, el estado es diferente de abierto.")}
+        
+            do dbr.execute(db,"delete from dcompra where fk_compra_detalle=@_entity_id",params)
+            do dbr.execute(db,"delete from compra where sys_pk=@_entity_id",params)
+        
+            do dbr.apps.action.pos(params)
+        do dbr.commit(db)
+            do dbr.apps.action.ext(params)
+        
+        exception
+        {
+            if dbr.in_transaction(db){ do dbr.rollback(db) }
+            do dbr.apps.action.log()
+            do rise_error(last_error_code(),last_error())
+        }
+    }
     catch::&db,&params,&data
     {
         // do errordet(@false)

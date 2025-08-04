@@ -118,7 +118,8 @@ module "doc.pedido.dk"
         button(type="button" class="#<btn_cls>" id="btn-reabrir" title="Re-abrir"){$"#<@ICON_UNLOCK>"}
         button(type="button" class="#<btn_cls> d-flex gap-2 align-items-center" id="btn-procesar"){$"#<@ICON_PROCESS>" p(id="btn-procesar-text" class="p-0 m-0"){$"Procesar"}}
         button(type="button" class="#<btn_cls>" id="btn-facturar"){$"Facturar"}
-        button(type="button" class="#<btn_cls>" id="btn-cancelar"){$"#<@ICON_TRASH> Cancelar"}
+        button(type="button" class="#<btn_cls>" id="btn-cancelar"){$"#<@ICON_FILE_CANCEL> Cancelar"}
+        button(type="button" class="#<btn_cls>" id="btn-delete"){$"#<@ICON_TRASH> Eliminar"}
         #!
     }
     point nav_buttons to print_buttons
