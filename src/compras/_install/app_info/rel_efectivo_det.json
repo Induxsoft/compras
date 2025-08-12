@@ -1,0 +1,11 @@
+[
+    {
+        "det":"DET01B",
+        "query":"SELECT c.sys_pk id,trim(c.fecha)fecha,c.referencia,((c.subtotal + c.impuesto1 + c.impuesto2 + c.impuesto3 + c.impuesto4) - (c.descuento1 + c.descuento2))importe,dvs.codigo divisa, dvs.tcambio FROM compra c INNER JOIN divisa dvs ON c.idivisa=dvs.sys_pk WHERE c.imovchequera=@key;",
+        "c_divisa":"divisa",
+        "c_tcambio":"tcambio",
+        "c_fecha":"fecha",
+        "c_importe":"importe",
+        "c_det_key":"id"
+    }
+]
