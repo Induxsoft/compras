@@ -7,7 +7,17 @@ model "erp.compras"
     */
 
     #include "induxsoft.abstracts.ddm"
-
+    
+    entity "rel_efe_det"
+    {
+        @"det" string(150) unique required
+        @"query" memo // Una consulta SQL que retorna las filas correspondientes a los DET relacionados a un movimiento, asumiendo que se recibe un parámetro @key que es la clave primaria del mov de efectivo
+        @"c_divisa" string(45) //Nombre del campo que contiene la divisa en que está expresado el DET relacionado
+        @"c_tcambio" string(45) //Nombre del campo que contiene el factor de conversión en relación a la divisa predeterminada
+        @"c_fecha" string(45) // Nombre del campo que contiene la fecha de la operación que representa el DET
+        @"c_importe" string(45) //Nombre del campo que contiene el importe del DET (en la divisa c_divisa) 
+        @"c_det_key" string(45) //Nombre del campo que contiene la clave primaria del det
+    }
     //#region Domicilio
     entity "pais" : "TableModel"
     {
