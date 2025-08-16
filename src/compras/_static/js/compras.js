@@ -1,22 +1,23 @@
 document.addEventListener("DOMContentLoaded", () => 
 {
-    let error_span = document.getElementById("err-msg");
-    let btnGuardarDoc = document.getElementById("btn-guardar");
-    let btnCerrarDoc = document.getElementById("btn-cerrar");
-    let btnProcesarDoc = document.getElementById("btn-procesar");
-    let btnCancelarDoc = document.getElementById("btn-cancelar");
-    let btn_delete=document.getElementById("btn-delete");
-    let btnReAbrirDoc = document.getElementById("btn-reabrir");
-    let btnAddDoc = document.getElementById('btn-add-doc');
-    let btnFacturar = document.getElementById('btn-facturar');
+    const btnGuardarDoc = document.getElementById("btn-guardar");
+    const btnCerrarDoc = document.getElementById("btn-cerrar");
+    const btnProcesarDoc = document.getElementById("btn-procesar");
+    const btnCancelarDoc = document.getElementById("btn-cancelar");
+    const btn_delete = document.getElementById("btn-delete");
+    const btnReAbrirDoc = document.getElementById("btn-reabrir");
+    const btnAddDoc = document.getElementById('btn-add-doc');
+    const btnFacturar = document.getElementById('btn-facturar');
+    
     let btnProcesarText = document.getElementById('btn-procesar-text');
+    let error_span = document.getElementById("err-msg");
 
     const nav_general_tab = document.getElementById("nav-general-tab");
     const nav_productos_tab = document.getElementById("nav-productos-tab");
     const nav_productos = document.getElementById("nav-productos");
     
     const work_area = document.getElementById("work_area");
-    let formPedido = document.getElementById("form_pedido");
+    const formPedido = document.getElementById("form_pedido");
     let ikProveedor = document.getElementById("sel_proveedor");
     let ikProducto = document.getElementById("sel_producto");
     let ikDocInsert = document.getElementById("sel_doc_insert");
@@ -27,13 +28,25 @@ document.addEventListener("DOMContentLoaded", () =>
     let txt_detalle_compra = document.getElementById("txt_detalle_compra");
     
     const tbl_act_bar = document.getElementById("tbl_action_bar");
-    let btnAddRow = document.getElementById("btn-add-row");
-    let btnDelRow = document.getElementById("btn-del-row");
-    const div_tbl_prod = document.getElementById("div_tbl_productos")
+    const btnAddRow = document.getElementById("btn-add-row");
+    const btnDelRow = document.getElementById("btn-del-row");
+    const div_tbl_prod = document.getElementById("div_tbl_productos");
     let lblSubtotal = document.getElementById("lbl_subtotal");
     let lblDescuento = document.getElementById("lbl_descuento");
     let lblImpuesto = document.getElementById("lbl_impuesto");
     let lblImporte = document.getElementById("lbl_importe");
+
+    const modalImpuestos = document.getElementById("modal-impuestos");
+    const formImpuestos = document.getElementById("form-impuestos");
+    let spanPrecio = document.getElementById("span-precio");
+    let spanCantidad = document.getElementById("span-cantidad");
+    let spanDescuentos = document.getElementById("span-descuentos")
+    let spanSubtotal = document.getElementById("span-subtotal")
+    let spanTagI1 = document.getElementById("tag-i1");
+    let spanTagI2 = document.getElementById("tag-i2");
+    let spanTagI3 = document.getElementById("tag-i3");
+    let spanTagI4 = document.getElementById("tag-i4");
+    const btnImpuestosOk = document.getElementById("btn-impuestos-ok");
 
     var table = document.getElementById("tbl_productos");
     var tData = table.DataArray;
@@ -46,12 +59,47 @@ document.addEventListener("DOMContentLoaded", () =>
         divisa_producto:2
     }
 
-    btnAddRow.addEventListener("click", () => { table.AddRow(); });
-    btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); toggleColumns(); });
-    table.setInputKey("codigo",ikProducto);
-    table.setInputKey("descripcion", ikProducto);
+    function init() {
+        
+    }
+    
+    function _round(value) {
+        return Math.RoundTo(Number(value),DECIMAL_PRECISION);
+    }
 
-    table.onTdPaint = (td,idxRow,idxCol,field) => { colorearTabla(td,idxRow,idxCol,field) }
+    function _number_format(value) {
+        const langcode = (new Intl.NumberFormat()).resolvedOptions().locale;
+        const formatter = new Intl.NumberFormat(langcode,{
+            style: "decimal",
+            minimumFractionDigits: DECIMAL_PRECISION,
+            maximumFractionDigits: DECIMAL_PRECISION
+        });
+
+        return formatter.format(value);
+    }
+
+    function _money_format(value) {
+        const langcode = (new Intl.NumberFormat()).resolvedOptions().locale;
+        
+        let opDivisa = selDivisa.options[selDivisa.selectedIndex];
+        let currency = opDivisa.getAttribute("data-codigo").toUpperCase();
+        
+        const formatter = new Intl.NumberFormat(langcode,{
+            style: "currency",
+            currency: currency,
+            currencyDisplay: "symbol",
+            minimumFractionDigits: DECIMAL_PRECISION,
+            maximumFractionDigits: DECIMAL_PRECISION
+        });
+
+        return formatter.format(value);
+    }
+
+    function getTCambioDeDivisa() {
+        const opDivisa = selDivisa.options[selDivisa.selectedIndex];
+        let tcambio = opDivisa.dataset.tcambio;
+        return Math.RoundTo(tcambio,6);
+    }
     
     sumarImportes();
     toggleColumns();
@@ -124,7 +172,7 @@ document.addEventListener("DOMContentLoaded", () =>
         if (btnCancelarDoc) btnCancelarDoc.disabled = v;
         if (btnReAbrirDoc) btnReAbrirDoc.disabled = v;
         if (btnFacturar) btnFacturar.disabled = v;
-        if(btn_delete)btn_delete.disabled=v;
+        if (btn_delete) btn_delete.disabled = v;
     }
 
     function number_format(value, {moneda = "", decimal = 2}) {
@@ -301,7 +349,6 @@ document.addEventListener("DOMContentLoaded", () =>
     function agregarProducto(data,currentRow=true)
     {
         if (!data) return;
-
         let i = calcularImpuestos(data);
         let list_unidades = joinUnidades(data.unidada,data.unidadb,data.unidadc,data.unidadd,data.unidade);
         
@@ -342,6 +389,10 @@ document.addEventListener("DOMContentLoaded", () =>
 
             // campos extras para operaciones.
             _precio: data.precio,
+            i1_txt: data.i1_txt,
+            i2_txt: data.i2_txt,
+            i3_txt: data.i3_txt,
+            i4_txt: data.i4_txt,
             i1_tasa: data.i1_tasa,
             i2_tasa: data.i2_tasa,
             i3_tasa: data.i3_tasa,
@@ -408,7 +459,7 @@ document.addEventListener("DOMContentLoaded", () =>
         {
             btnProcesarDoc.classList.add("d-none");
             btnCancelarDoc.classList.add("d-none");
-            btn_delete.classList.add("d-none");
+            if (btn_delete) btn_delete.classList.add("d-none");
             btnFacturar.classList.add('d-none');
         }
     }
@@ -453,8 +504,110 @@ document.addEventListener("DOMContentLoaded", () =>
     }
     disableSelDivisa((filterData().length > 0));
 
-    //* ======================================== [ FORM EVENTS ] ========================================
+    function loadModalImpuestos(e) {
+        let index = table.CurrentRowIndex();
+        if (index < 0) return;
+        let dt = table.DataArray[index];
+        if (Object.keys(dt).length < 15) return;
+        let ff = formImpuestos.elements;
 
+        spanPrecio.textContent = _money_format(dt.precio);
+        spanCantidad.textContent = _number_format(dt.cantidad);
+        spanDescuentos.textContent = _money_format(dt.descuentos);
+        spanSubtotal.textContent = _money_format(dt.subtotal);
+
+        spanTagI1.textContent = " - "+dt.i1_txt;
+        spanTagI2.textContent = " - "+dt.i2_txt;
+        spanTagI3.textContent = " - "+dt.i3_txt;
+        spanTagI4.textContent = " - "+dt.i4_txt;
+        ff["_i1"].value = dt.impuesto1;
+        ff["_i2"].value = dt.impuesto2;
+        ff["_i3"].value = dt.impuesto3;
+        ff["_i4"].value = dt.impuesto4;
+        ff["Pi1"].value = dt.i1_tasa * 100;
+        ff["Pi2"].value = dt.i2_tasa * 100;
+        ff["Pi3"].value = dt.i3_tasa * 100;
+        ff["Pi4"].value = dt.i4_tasa * 100;
+
+        if ((e.target.getAttribute("change-events")??"false") == "false")
+        {
+            const _porcentaje = (value,impuesto) => {
+                let subdesc = Math.sub(dt.subtotal,dt.descuentos);
+                if (impuesto==3 || impuesto==4) {
+                    subdesc = Math.add(subdesc, Number(ff["_i1"].value));
+                    subdesc = Math.add(subdesc, Number(ff["_i2"].value));
+                }
+                let porc = Math.mul(Math.div(value,subdesc), 100);
+                return Math.RoundTo(porc, 6);
+            }
+
+            const _importe = (porc,impuesto) => {
+                let subdesc = Math.sub(dt.subtotal,dt.descuentos);
+                if (impuesto==3 || impuesto==4) {
+                    subdesc = Math.add(subdesc, Number(ff["_i1"].value));
+                    subdesc = Math.add(subdesc, Number(ff["_i2"].value));
+                }
+                let value = Math.mul(subdesc, Math.div(porc,100));
+                return Math.RoundTo(value, DECIMAL_PRECISION);
+            }
+
+            ff["_i1"].addEventListener("change", (e) => {
+                ff["Pi1"].value = _porcentaje(Number(e.target.value), 1);
+                trigger(ff["Pi3"],"change");
+                trigger(ff["Pi4"],"change");
+            });
+            ff["Pi1"].addEventListener("change", (e) => {
+                ff["_i1"].value = _importe(Number(e.target.value), 1);
+                trigger(ff["Pi3"],"change");
+                trigger(ff["Pi4"],"change");
+            });
+
+            ff["_i2"].addEventListener("change", (e) => {
+                ff["Pi2"].value = _porcentaje(Number(e.target.value), 2);
+                trigger(ff["Pi3"],"change");
+                trigger(ff["Pi4"],"change");
+            });
+            ff["Pi2"].addEventListener("change", (e) => {
+                ff["_i2"].value = _importe(Number(e.target.value), 2);
+                trigger(ff["Pi3"],"change");
+                trigger(ff["Pi4"],"change");
+            });
+
+            ff["_i3"].addEventListener("change", (e) => {
+                ff["Pi3"].value = _porcentaje(Number(e.target.value), 3);
+            });
+            ff["Pi3"].addEventListener("change", (e) => {
+                ff["_i3"].value = _importe(Number(e.target.value), 3);
+            });
+            
+            ff["_i4"].addEventListener("change", (e) => {
+                ff["Pi4"].value = _porcentaje(Number(e.target.value), 4);
+            });
+            ff["Pi4"].addEventListener("change", (e) => {
+                ff["_i4"].value = _importe(Number(e.target.value), 4);
+            });
+
+            e.target.setAttribute("change-events","true");
+        }
+    }
+
+    function applyFormImpuestos() {
+        let index = table.CurrentRowIndex();
+        if (index < 0) return;
+        let dt = table.DataArray[index];
+        if (Object.keys(dt).length < 15) return;
+        let ff = formImpuestos.elements;
+
+        dt.i1_tasa = Math.RoundTo(Number(ff["Pi1"].value) / 100, 6);
+        dt.i2_tasa = Math.RoundTo(Number(ff["Pi2"].value) / 100, 6);
+        dt.i3_tasa = Math.RoundTo(Number(ff["Pi3"].value) / 100, 6);
+        dt.i4_tasa = Math.RoundTo(Number(ff["Pi4"].value) / 100, 6);
+
+        actualizarProducto(dt,index);
+        tools.hideModal("modal-impuestos");
+    }
+
+    //#region FORM EVENTS
     ikProveedor.addEventListener("change", function(data) {
         if (!data) return;
         changeURLImport(data);
@@ -673,7 +826,7 @@ document.addEventListener("DOMContentLoaded", () =>
         btnReAbrirDoc.classList.toggle("d-none",!show_btn_reabrir);
         btnProcesarDoc.classList.toggle("d-none",!show_btn_procesar);
         btnCancelarDoc.classList.toggle("d-none",!show_btn_cancelar);
-        btn_delete.classList.toggle("d-none",!show_btn_cancelar);
+        if (btn_delete) btn_delete.classList.toggle("d-none",!show_btn_cancelar);
         btnAddDoc.classList.toggle('d-none',!show_btn_insert_doc);
         btnFacturar.classList.toggle('d-none',!show_btn_facturar);
         btnProcesarText.textContent = btnProcText;
@@ -681,10 +834,12 @@ document.addEventListener("DOMContentLoaded", () =>
     });
     trigger(selDocumento,"change");
 
-    var lastTipoCambio = 1;
+    let curTCambio = Number(txtTipoCambio.value);
+    let lastTipoCambio = (curTCambio == 0) ? getTCambioDeDivisa() : curTCambio;
+    txtTipoCambio.value = lastTipoCambio;
+
     selDivisa.addEventListener("change", function() {
-        let option = selDivisa.options[selDivisa.selectedIndex];
-        txtTipoCambio.value = Number(option.getAttribute("data-tcambio"));
+        txtTipoCambio.value = getTCambioDeDivisa();
         trigger(txtTipoCambio,"change");
     });
 
@@ -707,34 +862,6 @@ document.addEventListener("DOMContentLoaded", () =>
 
         lastTipoCambio = tcambio;
     });
-
-    /* formPedido.addEventListener("submit", (event) => {
-        event.preventDefault();
-        if (!event.target.checkValidity()) return;
-
-        let formData = {}
-        let fields = event.target.elements;
-
-        for (let i = 0; i < fields.length; i++) {
-            const f = fields[i];
-            if (f.name !== "")
-                formData[f.name] = f.value;
-        }
-
-        formData._detalle = tData;
-        let onSuccess = function(r) {
-            if (r.message) { alert(r.message); return false; }
-            window.location.href = "./";
-        }
-        let onFail = null;
-
-        InduxsoftCrudlModel.InvokeService("./",formData,onSuccess,onFail,"POST",false,false,"",false);
-    }); */
-
-    /* formPedido.addEventListener("reset", (event) => {
-        tData = {};
-        window.location.href = DOC_COMPRAS;
-    }); */
 
     btnGuardarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
@@ -815,7 +942,7 @@ document.addEventListener("DOMContentLoaded", () =>
         formPedido.submit();
     });
     
-    btn_delete.addEventListener("click",()=>
+    if (btn_delete) btn_delete.addEventListener("click",()=>
     {
         if (!confirm("¿Desea eliminar el registro seleccionado?")) return;
         
@@ -840,8 +967,22 @@ document.addEventListener("DOMContentLoaded", () =>
         ikDocInsert.searchText("", false);
     });
 
-    //* ======================================== [ EDITABLE EVENTS ] ========================================
+    modalImpuestos.addEventListener("show.bs.modal", (e) => loadModalImpuestos(e));
+    modalImpuestos.addEventListener("hidden.bs.modal", (e) => {
+        spanPrecio.textContent = "0.00";
+        spanCantidad.textContent = "0.00";
+        spanDescuentos.textContent = "0.00";
+        spanSubtotal.textContent = "0.00";
+        spanTagI1.textContent = "";
+        spanTagI2.textContent = "";
+        spanTagI3.textContent = "";
+        spanTagI4.textContent = "";
+        formImpuestos.reset();
+    });
+    btnImpuestosOk.addEventListener("click", () => applyFormImpuestos());
+    //#endregion
 
+    //#region EDITABLE EVENTS
     var lastRowIndex = -1;
     var lastUnit = "";
 
@@ -849,8 +990,25 @@ document.addEventListener("DOMContentLoaded", () =>
         return (table?.DataArray??[]).filter(row => Object.keys(row??{}).length >= (table?.Columns??[]).length);
     }
 
+    btnAddRow.addEventListener("click", () => { table.AddRow(); });
+    btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); });
+
+    table.setInputKey("codigo",ikProducto);
+    table.setInputKey("descripcion", ikProducto);
+    table.onTdPaint = (td,idxRow,idxCol,field) => { colorearTabla(td,idxRow,idxCol,field) }
+
+    table.ButtonOnClick = function(irow,icol,coldef) {
+        switch (coldef.field) {
+            case 'impuestos':
+                tools.showModal("modal-impuestos");
+                break;
+        }
+    }
+
     table.Events[tEvents.RowDeleted] = function(e) {
         disableSelDivisa((filterData().length > 0));
+        toggleColumns();
+        sumarImportes();
     }
 
     table.Events[tEvents.EnterCell] = function(e) {
@@ -1075,8 +1233,7 @@ document.addEventListener("DOMContentLoaded", () =>
         }
         else table.UpdateRow(currentRowIndex);
     }
-
-    
+    //#endregion
 });
 
 

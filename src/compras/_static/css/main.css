@@ -34,3 +34,7 @@ select[readonly] {
     background-color: #e9ecef;
     opacity: 1;
 }
+
+input[type="number"] {
+    text-align: end;
+}
