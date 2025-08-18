@@ -59,6 +59,9 @@ document.addEventListener("DOMContentLoaded", () =>
         divisa_producto:2
     }
 
+    let lastTipoCambio = (Number(txtTipoCambio.value) == 0) ? getTCambioDeDivisa() : Number(txtTipoCambio.value);
+    txtTipoCambio.value = lastTipoCambio;
+
     function init() {
         
     }
@@ -234,7 +237,7 @@ document.addEventListener("DOMContentLoaded", () =>
     function calcularImpuestos(info) {
         let tc_doc = Number(txtTipoCambio.value);
         let tc_prd = Number(info.tipocambio);
-        let precio = Number(info?._precio ?? info.precio);
+        let precio = Number(info?._precio || info.precio);
         
         let costo = convertir(precio,tc_prd,tc_doc,convertir_a.divisa_documento);
         let cantidad = Number(info.cantidad);
@@ -388,7 +391,6 @@ document.addEventListener("DOMContentLoaded", () =>
             documento: (data.documento??null),
 
             // campos extras para operaciones.
-            _precio: data.precio,
             i1_txt: data.i1_txt,
             i2_txt: data.i2_txt,
             i3_txt: data.i3_txt,
@@ -613,6 +615,7 @@ document.addEventListener("DOMContentLoaded", () =>
         changeURLImport(data);
         selDivisa.value = data.idivisa;
         txtTipoCambio.value = data.tcambio;
+        trigger(txtTipoCambio,"change");
     });
 
     ikProducto.addEventListener("change", function(data) {
@@ -834,23 +837,19 @@ document.addEventListener("DOMContentLoaded", () =>
     });
     trigger(selDocumento,"change");
 
-    let curTCambio = Number(txtTipoCambio.value);
-    let lastTipoCambio = (curTCambio == 0) ? getTCambioDeDivisa() : curTCambio;
-    txtTipoCambio.value = lastTipoCambio;
-
     selDivisa.addEventListener("change", function() {
         txtTipoCambio.value = getTCambioDeDivisa();
         trigger(txtTipoCambio,"change");
     });
 
-    txtTipoCambio.addEventListener("change", function(event) {
-        let tcambio = Number(event.target.value);
+    txtTipoCambio.addEventListener("change", (e) => {
+        let tcambio = Number(e.target.value);
         if (tcambio <= 0) return;
         if (lastTipoCambio == tcambio) return;
         
         for (let i = 0; i < tData.length; i++) {
             const producto = tData[i];
-            if (Object.entries(producto ?? {}).length === 0) continue;
+            if (Object.keys(producto ?? {}).length === 0) continue;
 
             let precio = Math.mul(producto.precio,lastTipoCambio);
             precio = Math.div(precio,tcambio);
@@ -1252,7 +1251,6 @@ var _bitacora=
         }
 
         var uri=_bitacora._url.replace("@guid",guid).replace("@det",det);
-        console.log(uri)
         webshell.Panels.Show(webshell.Panels.Const.Right,uri);
     }
 }
