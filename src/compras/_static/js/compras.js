@@ -38,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () =>
 
     const modalImpuestos = document.getElementById("modal-impuestos");
     const formImpuestos = document.getElementById("form-impuestos");
+    let labelProducto = document.getElementById("label-producto");
     let spanPrecio = document.getElementById("span-precio");
     let spanCantidad = document.getElementById("span-cantidad");
     let spanDescuentos = document.getElementById("span-descuentos")
@@ -46,6 +47,8 @@ document.addEventListener("DOMContentLoaded", () =>
     let spanTagI2 = document.getElementById("tag-i2");
     let spanTagI3 = document.getElementById("tag-i3");
     let spanTagI4 = document.getElementById("tag-i4");
+    let spanImpuestos = document.getElementById("span-impuestos");
+    let spanImporte = document.getElementById("span-importe");
     const btnImpuestosOk = document.getElementById("btn-impuestos-ok");
 
     var table = document.getElementById("tbl_productos");
@@ -64,10 +67,6 @@ document.addEventListener("DOMContentLoaded", () =>
 
     function init() {
         
-    }
-    
-    function _round(value) {
-        return Math.RoundTo(Number(value),DECIMAL_PRECISION);
     }
 
     function _number_format(value) {
@@ -96,6 +95,27 @@ document.addEventListener("DOMContentLoaded", () =>
         });
 
         return formatter.format(value);
+    }
+
+    function _round(value) {
+        return Math.RoundTo(Number(value),DECIMAL_PRECISION);
+    }
+
+    function trigger(element,event) {
+        if (element) {
+            let e = new Event(event);
+            element.dispatchEvent(e);
+        }
+    }
+
+    function show_error(text,removeIn=0) {
+        if (removeIn <= 0) removeIn = 3;
+
+        error_span.textContent = text;
+        
+        setTimeout(function(){
+            error_span.textContent = "";
+        }, (removeIn * 1000));
     }
 
     function getTCambioDeDivisa() {
@@ -140,33 +160,6 @@ document.addEventListener("DOMContentLoaded", () =>
     setTimeout(()=>{onResize()},500);
     window.addEventListener("resize", (e) => onResize());
 
-    function trigger(element,event) {
-        if (element) {
-            let e = new Event(event);
-            element.dispatchEvent(e);
-        }
-    }
-
-    function show_error(text,removeIn=0) {
-        if (removeIn <= 0) removeIn = 3;
-
-        error_span.textContent = text;
-        
-        setTimeout(function(){
-            error_span.textContent = "";
-        }, (removeIn * 1000));
-    }
-
-    function round(num, dec=2) {
-        var signo = (num >= 0 ? 1 : -1);
-        num = num * signo;
-        if (dec === 0) return signo * Math.round(num);
-        num = num.toString().split('e');
-        num = Math.round(+(num[0] + 'e' + (num[1] ? (+num[1] + dec) : dec)));
-        num = num.toString().split('e');
-        return signo * (num[0] + 'e' + (num[1] ? (+num[1] - dec) : -dec));
-    }
-
     function desactivar_botones(v)
     {
         if (btnGuardarDoc) btnGuardarDoc.disabled = v;
@@ -176,27 +169,6 @@ document.addEventListener("DOMContentLoaded", () =>
         if (btnReAbrirDoc) btnReAbrirDoc.disabled = v;
         if (btnFacturar) btnFacturar.disabled = v;
         if (btn_delete) btn_delete.disabled = v;
-    }
-
-    function number_format(value, {moneda = "", decimal = 2}) {
-        let options = {}
-
-        if (moneda.trim() != "") 
-        {
-            options.style = "currency";
-            options.currency = moneda;
-            options.minimumFractionDigits = decimal;
-            options.maximumFractionDigits = decimal;
-        }
-        else
-        {
-            value = round(value,decimal);
-        }
-
-        let langcode = (new Intl.NumberFormat()).resolvedOptions().locale;
-        let result = new Intl.NumberFormat(langcode, options).format(value);
-        
-        return result;
     }
 
     function sumarImportes() {
@@ -212,25 +184,19 @@ document.addEventListener("DOMContentLoaded", () =>
             total = Math.add(total,Number(producto.importe));
         }
 
-        let option = selDivisa.options[selDivisa.selectedIndex];
-        let divisa = option.getAttribute("data-codigo").toUpperCase();
-
-        let fmt = {moneda: divisa, decimal: DECIMAL_PRECISION};
-
-        lblSubtotal.textContent = number_format(subtotal,fmt);
-        lblDescuento.textContent = number_format(descuentos,fmt);
-        lblImpuesto.textContent = number_format(impuestos,fmt);
-        lblImporte.textContent = number_format(total,fmt);
+        lblSubtotal.textContent = _money_format(subtotal);
+        lblDescuento.textContent = _money_format(descuentos);
+        lblImpuesto.textContent = _money_format(impuestos);
+        lblImporte.textContent = _money_format(total);
     }
 
     function convertir(value,tcprd,tcdoc,mode) {
         if (mode === convertir_a.divisa_documento) {
-            return Math.RoundTo(Math.div(Math.mul(value,tcprd),tcdoc), DECIMAL_PRECISION)
+            return _round(Math.div(Math.mul(value,tcprd),tcdoc))
         }
         if (mode === convertir_a.divisa_producto) {
-            return Math.RoundTo(Math.div(Math.mul(value,tcdoc),tcprd), DECIMAL_PRECISION)
+            return _round(Math.div(Math.mul(value,tcdoc),tcprd))
         }
-        
         return 0;
     }
 
@@ -262,14 +228,14 @@ document.addEventListener("DOMContentLoaded", () =>
         let importes = {
             costo: costo,
             cantidad: cantidad,
-            subtotal: Math.RoundTo(subtotal, DECIMAL_PRECISION),
-            descuentos: Math.RoundTo(descuentos, DECIMAL_PRECISION),
-            impuestos: Math.RoundTo(impuestos, DECIMAL_PRECISION),
-            total: Math.RoundTo(total, DECIMAL_PRECISION),
-            impuesto1: Math.RoundTo(impuesto1, DECIMAL_PRECISION),
-            impuesto2: Math.RoundTo(impuesto2, DECIMAL_PRECISION),
-            impuesto3: Math.RoundTo(impuesto3, DECIMAL_PRECISION),
-            impuesto4: Math.RoundTo(impuesto4, DECIMAL_PRECISION),
+            subtotal: _round(subtotal),
+            descuentos: _round(descuentos),
+            impuestos: _round(impuestos),
+            total: _round(total),
+            impuesto1: _round(impuesto1),
+            impuesto2: _round(impuesto2),
+            impuesto3: _round(impuesto3),
+            impuesto4: _round(impuesto4),
         }
 
         return importes;
@@ -506,6 +472,56 @@ document.addEventListener("DOMContentLoaded", () =>
     }
     disableSelDivisa((filterData().length > 0));
 
+    function _actualizarImpuestos(e) {
+        let index = table.CurrentRowIndex();
+        if (index < 0) return;
+        let dt = table.DataArray[index];
+        if (Object.keys(dt).length < 15) return;
+        let ff = formImpuestos.elements;
+
+        let i1=Number(ff["_i1"].value), i2=Number(ff["_i2"].value), i3=Number(ff["_i3"].value), i4=Number(ff["_i4"].value);
+        let p1=Number(ff["Pi1"].value), p2=Number(ff["Pi2"].value), p3=Number(ff["Pi3"].value), p4=Number(ff["Pi4"].value);
+        let subtotal = Math.sub(dt.subtotal,dt.descuentos);
+        let subtotal_gravado = subtotal + i1 + i2;
+
+        const _porcentaje = (parte,total) => _round(Math.mul(Math.div(parte,total),100));
+        const _importe = (porc,total) => _round(Math.mul(total,Math.div(porc,100)));
+        const _calcImpuestos = () => {
+            let impuestos = _round(i1 + i2 + i3 + i4);
+            spanImpuestos.textContent = _money_format(impuestos);
+            spanImporte.textContent = _money_format(Math.add(subtotal,impuestos));
+        }
+
+        switch (e.target.id) {
+            case "_i1":
+            case "_i2":
+                ff["Pi1"].value = _porcentaje(i1,subtotal);
+                ff["Pi2"].value = _porcentaje(i2,subtotal);
+                trigger(ff["Pi3"],"change");
+                trigger(ff["Pi4"],"change");
+                break;
+            case "_i3":
+            case "_i4":
+                ff["Pi3"].value = _porcentaje(i3,subtotal_gravado);
+                ff["Pi4"].value = _porcentaje(i4,subtotal_gravado);
+                _calcImpuestos();
+                break;
+            case "Pi1":
+            case "Pi2":
+                ff["_i1"].value = _importe(p1,subtotal);
+                ff["_i2"].value = _importe(p2,subtotal);
+                trigger(ff["Pi3"],"change");
+                trigger(ff["Pi4"],"change");
+                break;
+            case "Pi3":
+            case "Pi4":
+                ff["_i3"].value = _importe(p3,subtotal_gravado);
+                ff["_i4"].value = _importe(p4,subtotal_gravado);
+                _calcImpuestos();
+                break;
+        }
+    }
+
     function loadModalImpuestos(e) {
         let index = table.CurrentRowIndex();
         if (index < 0) return;
@@ -513,11 +529,11 @@ document.addEventListener("DOMContentLoaded", () =>
         if (Object.keys(dt).length < 15) return;
         let ff = formImpuestos.elements;
 
+        labelProducto.textContent = dt.descripcion;
         spanPrecio.textContent = _money_format(dt.precio);
         spanCantidad.textContent = _number_format(dt.cantidad);
         spanDescuentos.textContent = _money_format(dt.descuentos);
         spanSubtotal.textContent = _money_format(dt.subtotal);
-
         spanTagI1.textContent = " - "+dt.i1_txt;
         spanTagI2.textContent = " - "+dt.i2_txt;
         spanTagI3.textContent = " - "+dt.i3_txt;
@@ -526,68 +542,23 @@ document.addEventListener("DOMContentLoaded", () =>
         ff["_i2"].value = dt.impuesto2;
         ff["_i3"].value = dt.impuesto3;
         ff["_i4"].value = dt.impuesto4;
-        ff["Pi1"].value = dt.i1_tasa * 100;
-        ff["Pi2"].value = dt.i2_tasa * 100;
-        ff["Pi3"].value = dt.i3_tasa * 100;
-        ff["Pi4"].value = dt.i4_tasa * 100;
+        ff["Pi1"].value = _round(dt.i1_tasa * 100);
+        ff["Pi2"].value = _round(dt.i2_tasa * 100);
+        ff["Pi3"].value = _round(dt.i3_tasa * 100);
+        ff["Pi4"].value = _round(dt.i4_tasa * 100);
+        spanImpuestos.textContent = _money_format(dt.impuestos);
+        spanImporte.textContent = _money_format(dt.importe);
 
         if ((e.target.getAttribute("change-events")??"false") == "false")
         {
-            const _porcentaje = (value,impuesto) => {
-                let subdesc = Math.sub(dt.subtotal,dt.descuentos);
-                if (impuesto==3 || impuesto==4) {
-                    subdesc = Math.add(subdesc, Number(ff["_i1"].value));
-                    subdesc = Math.add(subdesc, Number(ff["_i2"].value));
-                }
-                let porc = Math.mul(Math.div(value,subdesc), 100);
-                return Math.RoundTo(porc, 6);
-            }
-
-            const _importe = (porc,impuesto) => {
-                let subdesc = Math.sub(dt.subtotal,dt.descuentos);
-                if (impuesto==3 || impuesto==4) {
-                    subdesc = Math.add(subdesc, Number(ff["_i1"].value));
-                    subdesc = Math.add(subdesc, Number(ff["_i2"].value));
-                }
-                let value = Math.mul(subdesc, Math.div(porc,100));
-                return Math.RoundTo(value, DECIMAL_PRECISION);
-            }
-
-            ff["_i1"].addEventListener("change", (e) => {
-                ff["Pi1"].value = _porcentaje(Number(e.target.value), 1);
-                trigger(ff["Pi3"],"change");
-                trigger(ff["Pi4"],"change");
-            });
-            ff["Pi1"].addEventListener("change", (e) => {
-                ff["_i1"].value = _importe(Number(e.target.value), 1);
-                trigger(ff["Pi3"],"change");
-                trigger(ff["Pi4"],"change");
-            });
-
-            ff["_i2"].addEventListener("change", (e) => {
-                ff["Pi2"].value = _porcentaje(Number(e.target.value), 2);
-                trigger(ff["Pi3"],"change");
-                trigger(ff["Pi4"],"change");
-            });
-            ff["Pi2"].addEventListener("change", (e) => {
-                ff["_i2"].value = _importe(Number(e.target.value), 2);
-                trigger(ff["Pi3"],"change");
-                trigger(ff["Pi4"],"change");
-            });
-
-            ff["_i3"].addEventListener("change", (e) => {
-                ff["Pi3"].value = _porcentaje(Number(e.target.value), 3);
-            });
-            ff["Pi3"].addEventListener("change", (e) => {
-                ff["_i3"].value = _importe(Number(e.target.value), 3);
-            });
-            
-            ff["_i4"].addEventListener("change", (e) => {
-                ff["Pi4"].value = _porcentaje(Number(e.target.value), 4);
-            });
-            ff["Pi4"].addEventListener("change", (e) => {
-                ff["_i4"].value = _importe(Number(e.target.value), 4);
-            });
+            ff["Pi1"].addEventListener("change", (e) => _actualizarImpuestos(e));
+            ff["Pi2"].addEventListener("change", (e) => _actualizarImpuestos(e));
+            ff["Pi3"].addEventListener("change", (e) => _actualizarImpuestos(e));
+            ff["Pi4"].addEventListener("change", (e) => _actualizarImpuestos(e));
+            ff["_i1"].addEventListener("change", (e) => _actualizarImpuestos(e));
+            ff["_i2"].addEventListener("change", (e) => _actualizarImpuestos(e));
+            ff["_i3"].addEventListener("change", (e) => _actualizarImpuestos(e));
+            ff["_i4"].addEventListener("change", (e) => _actualizarImpuestos(e));
 
             e.target.setAttribute("change-events","true");
         }
@@ -600,10 +571,10 @@ document.addEventListener("DOMContentLoaded", () =>
         if (Object.keys(dt).length < 15) return;
         let ff = formImpuestos.elements;
 
-        dt.i1_tasa = Math.RoundTo(Number(ff["Pi1"].value) / 100, 6);
-        dt.i2_tasa = Math.RoundTo(Number(ff["Pi2"].value) / 100, 6);
-        dt.i3_tasa = Math.RoundTo(Number(ff["Pi3"].value) / 100, 6);
-        dt.i4_tasa = Math.RoundTo(Number(ff["Pi4"].value) / 100, 6);
+        dt.i1_tasa = _round(Number(ff["Pi1"].value) / 100);
+        dt.i2_tasa = _round(Number(ff["Pi2"].value) / 100);
+        dt.i3_tasa = _round(Number(ff["Pi3"].value) / 100);
+        dt.i4_tasa = _round(Number(ff["Pi4"].value) / 100);
 
         actualizarProducto(dt,index);
         tools.hideModal("modal-impuestos");
@@ -968,6 +939,7 @@ document.addEventListener("DOMContentLoaded", () =>
 
     modalImpuestos.addEventListener("show.bs.modal", (e) => loadModalImpuestos(e));
     modalImpuestos.addEventListener("hidden.bs.modal", (e) => {
+        labelProducto.textContent = "";
         spanPrecio.textContent = "0.00";
         spanCantidad.textContent = "0.00";
         spanDescuentos.textContent = "0.00";
@@ -976,6 +948,8 @@ document.addEventListener("DOMContentLoaded", () =>
         spanTagI2.textContent = "";
         spanTagI3.textContent = "";
         spanTagI4.textContent = "";
+        spanImpuestos.textContent = "0.00";
+        spanImporte.textContent = "0.00";
         formImpuestos.reset();
     });
     btnImpuestosOk.addEventListener("click", () => applyFormImpuestos());
@@ -993,11 +967,15 @@ document.addEventListener("DOMContentLoaded", () =>
     btnDelRow.addEventListener("click", () => { table.DeleteCurrentRow(); });
 
     table.setInputKey("codigo",ikProducto);
-    table.setInputKey("descripcion", ikProducto);
+    table.setInputKey("descripcion",ikProducto);
     table.onTdPaint = (td,idxRow,idxCol,field) => { colorearTabla(td,idxRow,idxCol,field) }
 
     table.ButtonOnClick = function(irow,icol,coldef) {
         switch (coldef.field) {
+            case 'codigo':
+            case 'descripcion':
+                ikProducto.searchText("",false);
+                break;
             case 'impuestos':
                 tools.showModal("modal-impuestos");
                 break;

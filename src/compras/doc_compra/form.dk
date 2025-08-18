@@ -367,8 +367,8 @@ module "doc.pedido.dk"
                     $"#<@ICON_DOCUMENT>"
                     $"Insertar doc."
                 }
-                button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-add-row" title="Agregar fila"){$"#<@ICON_ADD_ROW>"}
-                button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-del-row" title="Eliminar fila"){$"#<@ICON_REMOVE_ROW>"}
+                button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-add-row" title="Agregar fila"){$"#<@ICON_ADD_ROW> Agregar fila"}
+                button(type="button" class="btn btn-sm d-flex align-items-center justify-content-center gap-2 no-shadow" id="btn-del-row" title="Eliminar fila"){$"#<@ICON_REMOVE_ROW> Eliminar fila"}
 
                 "input-key"(
                     "id"="sel_doc_insert"
@@ -452,69 +452,87 @@ module "doc.pedido.dk"
                             h5(class="modal-title"){"Impuestos"}
                             button(class="btn-close btn-sm" type="button" "data-bs-dismiss"="modal" "aria-label"="Close"){""}
                         }
-                        div(class="modal-body row gx-2 p-4 bg-white")
+                        div(class="modal-body px-4 py-2 bg-white")
                         {
-                            form(class="row gx-2 #<ifstr(not(enable_editing),'disabled-form','')>" id="form-impuestos")
+                            form(class="#<ifstr(not(enable_editing),'disabled-form','')>" id="form-impuestos")
                             {
-                                div(class="col-sm-3")
-                                {
-                                    p(class="d-inline-flex gap-2") {"Precio:" span(id="span-precio"){"0.00"}}
-                                }
-                                div(class="col-sm-3")
-                                {
-                                    p(class="d-inline-flex gap-2") {"Cantidad:" span(id="span-cantidad"){"0.00"}}
-                                }
-                                div(class="col-sm-3")
-                                {
-                                    p(class="d-inline-flex gap-2") {"Descuentos:" span(id="span-descuentos"){"0.00"}}
-                                }
-                                div(class="col-sm-3")
-                                {
-                                    p(class="d-inline-flex gap-2") {"Subtotal:" span(id="span-subtotal"){"0.00"}}
-                                }
+                                h6(id="label-producto"){""}
 
-                                div(class="col-sm-12")
+                                div(class="row")
                                 {
-                                    label(class="form-label" "for"="_i1"){"Impuesto 1" span(id="tag-i1"){""}}
-                                    div(class="input-group input-group-sm w-sm-50")
+                                    div(class="col-sm-3")
                                     {
-                                        input(class="form-control rounded-0" type="number" value="0" id="Pi1" step="0.000001")
-                                        span(class="input-group-text"){"%"}
-                                        span(class="input-group-text"){"$"}
-                                        input(class="form-control rounded-0" type="number" value="0.00" id="_i1" step="#<num_step>")
+                                        p(class="d-inline-flex gap-2"){"Precio:" span(id="span-precio"){"0.00"}}
+                                    }
+                                    div(class="col-sm-3")
+                                    {
+                                        p(class="d-inline-flex gap-2"){"Cantidad:" span(id="span-cantidad"){"0.00"}}
+                                    }
+                                    div(class="col-sm-3")
+                                    {
+                                        p(class="d-inline-flex gap-2"){"Descuentos:" span(id="span-descuentos"){"0.00"}}
+                                    }
+                                    div(class="col-sm-3")
+                                    {
+                                        p(class="d-inline-flex gap-2"){"Subtotal:" span(id="span-subtotal"){"0.00"}}
                                     }
                                 }
-                                div(class="col-sm-12")
+                                div(class="column")
                                 {
-                                    label(class="form-label" "for"="_i2"){"Impuesto 2" span(id="tag-i2"){""}}
-                                    div(class="input-group input-group-sm")
+                                    div(class="col-sm-6")
                                     {
-                                        input(class="form-control rounded-0" type="number" value="0" id="Pi2" step="0.000001")
-                                        span(class="input-group-text"){"%"}
-                                        span(class="input-group-text"){"$"}
-                                        input(class="form-control rounded-0" type="number" value="0.00" id="_i2" step="#<num_step>")
+                                        label(class="form-label" "for"="_i1"){"Impuesto 1" span(id="tag-i1"){""}}
+                                        div(class="input-group input-group-sm")
+                                        {
+                                            input(class="form-control rounded-0" type="number" value="0" id="Pi1" step="0.000001")
+                                            span(class="input-group-text"){"%"}
+                                            span(class="input-group-text"){"$"}
+                                            input(class="form-control rounded-0" type="number" value="0.00" id="_i1" step="#<num_step>")
+                                        }
+                                    }
+                                    div(class="col-sm-6")
+                                    {
+                                        label(class="form-label" "for"="_i2"){"Impuesto 2" span(id="tag-i2"){""}}
+                                        div(class="input-group input-group-sm")
+                                        {
+                                            input(class="form-control rounded-0" type="number" value="0" id="Pi2" step="0.000001")
+                                            span(class="input-group-text"){"%"}
+                                            span(class="input-group-text"){"$"}
+                                            input(class="form-control rounded-0" type="number" value="0.00" id="_i2" step="#<num_step>")
+                                        }
+                                    }
+                                    div(class="col-sm-6")
+                                    {
+                                        label(class="form-label" "for"="_i3"){"Impuesto 3" span(id="tag-i3"){""}}
+                                        div(class="input-group input-group-sm")
+                                        {
+                                            input(class="form-control rounded-0" type="number" value="0" id="Pi3" step="0.000001")
+                                            span(class="input-group-text"){"%"}
+                                            span(class="input-group-text"){"$"}
+                                            input(class="form-control rounded-0" type="number" value="0.00" id="_i3" step="#<num_step>")
+                                        }
+                                    }
+                                    div(class="col-sm-6")
+                                    {
+                                        label(class="form-label" "for"="_i4"){"Impuesto 4" span(id="tag-i4"){""}}
+                                        div(class="input-group input-group-sm")
+                                        {
+                                            input(class="form-control rounded-0" type="number" value="0" id="Pi4" step="0.000001")
+                                            span(class="input-group-text"){"%"}
+                                            span(class="input-group-text"){"$"}
+                                            input(class="form-control rounded-0" type="number" value="0.00" id="_i4" step="#<num_step>")
+                                        }
                                     }
                                 }
-                                div(class="col-sm-12")
+                                div(class="row justify-content-end")
                                 {
-                                    label(class="form-label" "for"="_i3"){"Impuesto 3" span(id="tag-i3"){""}}
-                                    div(class="input-group input-group-sm")
+                                    div(class="col-sm-3")
                                     {
-                                        input(class="form-control rounded-0" type="number" value="0" id="Pi3" step="0.000001")
-                                        span(class="input-group-text"){"%"}
-                                        span(class="input-group-text"){"$"}
-                                        input(class="form-control rounded-0" type="number" value="0.00" id="_i3" step="#<num_step>")
+                                        p(class="d-inline-flex gap-2") {"Impuestos:" span(id="span-impuestos"){"0.00"}}
                                     }
-                                }
-                                div(class="col-sm-12")
-                                {
-                                    label(class="form-label" "for"="_i4"){"Impuesto 4" span(id="tag-i4"){""}}
-                                    div(class="input-group input-group-sm")
+                                    div(class="col-sm-3")
                                     {
-                                        input(class="form-control rounded-0" type="number" value="0" id="Pi4" step="0.000001")
-                                        span(class="input-group-text"){"%"}
-                                        span(class="input-group-text"){"$"}
-                                        input(class="form-control rounded-0" type="number" value="0.00" id="_i4" step="#<num_step>")
+                                        p(class="d-inline-flex gap-2") {"Importe:" span(id="span-importe"){"0.00"}}
                                     }
                                 }
                             }
