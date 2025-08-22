@@ -1075,6 +1075,8 @@ document.addEventListener("DOMContentLoaded", () =>
         lastUnit = producto.unidad;
         if (field == "unidad")
         {
+            if(lastUnit!=producto.unidada && lastUnit!=producto.unidadb && lastUnit!=producto.unidadc && lastUnit!=producto.unidadd && lastUnit!=producto.unidade)return;
+            
             producto["unidad"] = e.text;
 
             switch (e.text) {
@@ -1086,7 +1088,8 @@ document.addEventListener("DOMContentLoaded", () =>
                     else if (lastUnit == producto.unidadc) precioA = Math.div(producto.precio,producto.factorc);
                     else if (lastUnit == producto.unidadd) precioA = Math.div(producto.precio,producto.factord);
                     else if (lastUnit == producto.unidade) precioA = Math.div(producto.precio,producto.factore);
-                    
+                    else precioA=producto.precio;
+
                     producto["precio"] = precioA;
                     producto["factor"] = 1; // factora
                     lastUnit = producto.unidada;
@@ -1110,6 +1113,7 @@ document.addEventListener("DOMContentLoaded", () =>
                         let x = Math.mul(producto.factorb,producto.precio);
                         precioB = Math.div(x,producto.factore);
                     }
+                    else precioB=producto.precio;
 
                     producto["precio"] = precioB;
                     producto["factor"] = producto.factorb;
@@ -1134,6 +1138,7 @@ document.addEventListener("DOMContentLoaded", () =>
                         let x = Math.mul(producto.factorc,producto.precio);
                         precioC = Math.div(x,producto.factore);
                     }
+                    else precioC=producto.precio;
 
                     producto["precio"] = precioC;
                     producto["factor"] = producto.factorc;
@@ -1158,7 +1163,8 @@ document.addEventListener("DOMContentLoaded", () =>
                         let x = Math.mul(producto.factord,producto.precio);
                         precioD = Math.div(x,producto.factore);
                     }
-                    
+                    else precioD=producto.precio;
+
                     producto["precio"] = precioD;
                     producto["factor"] = producto.factord;
                     lastUnit = producto.unidadd;
@@ -1182,6 +1188,7 @@ document.addEventListener("DOMContentLoaded", () =>
                         let x = Math.mul(producto.factore,producto.precio);
                         precioE = Math.div(x,producto.factord);
                     }
+                    else precioE=producto.precio;
 
                     producto["precio"] = precioE;
                     producto["factor"] = producto.factore;
