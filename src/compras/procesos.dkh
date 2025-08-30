@@ -259,6 +259,7 @@ module ":erp.compras.procesos"
                     @"iserie*": @null
                     @"rcompra": @@(item,"#sys_pk")
                     @"fk_cardex_movimientos": pk_cardex
+                    @"salidas": 0
                 }
                 do erp.compras.procesos.asignarLoteSerie(db,item,dcardex)
                 do dbr.insert(db,"dcardex",dcardex)
@@ -340,6 +341,7 @@ module ":erp.compras.procesos"
                 @"iserie*": @null
                 @"rcompra": @@(item,"#sys_pk")
                 @"fk_cardex_movimientos": last_id
+                @"entradas": 0
             }
             do erp.compras.procesos.devolverLoteSerie(db,item,dcardex)
             do dbr.insert(db,"dcardex",dcardex)
@@ -428,6 +430,10 @@ module ":erp.compras.procesos"
                 @"sys_recver": 0
                 @"fk_cardex_movimientos": pk_cardex
             }
+            
+            if not(field.exist(dcardex,"entradas")){dcardex<"entradas">: 0}
+            if not(field.exist(dcardex,"salidas")){dcardex<"salidas">: 0}
+
             do erp.compras.procesos.devolverLoteSerie(db,itm,@null)
             do dbr.insert(db,"dcardex",dcardex)
         }
