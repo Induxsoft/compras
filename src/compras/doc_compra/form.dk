@@ -93,6 +93,8 @@ module "doc.pedido.dk"
             @"name": "ialmacen"
             @"required": ""
         }
+        @"first_value": "0"
+        @"first_text": "Seleccionar"
         @"value_field": "sys_pk"
         @"text_field": "descripcion"
         @"selected": form("ialmacen","nm",compra)
@@ -555,11 +557,26 @@ module "doc.pedido.dk"
 
         section(id="bottom_area")
         {
-            div(class="d-flex justify-content-between w-100 bg-light p-2 border printable-element")
+            div(class="d-flex align-items-center justify-content-between w-100 bg-light p-2 border printable-element")
             {
                 b{$"Subtotal: " span(id="lbl_subtotal"){$""}}
                 b{$"Descuento: " span(id="lbl_descuento"){$""}}
-                b{$"Impuesto: " span(id="lbl_impuesto"){$""}}
+                div(class="input-group w-auto align-items-center gap-1")
+                {
+                    div(class="d-none" id="taxes-summary")
+                    {
+                        b{"Impuesto 1: "} span(id="lbl-tax1"){"$0.0000"} br{}
+                        b{"Impuesto 2: "} span(id="lbl-tax2"){"$0.0000"} br{}
+                        b{"Impuesto 3: "} span(id="lbl-tax3"){"$0.0000"} br{}
+                        b{"Impuesto 4: "} span(id="lbl-tax4"){"$0.0000"} br{}
+                    }
+                    b{$"Impuesto: " span(id="lbl_impuesto"){$""}}
+                    button(
+                        class="btn btn-sm no-blur border" type="button" id="show-taxes-summary"
+                        "data-bs-toggle"="popover" "data-bs-placement"="top" "data-bs-html"="true"
+                        title="Resumen"
+                    ){$"#<@ICON_HDOTS>"}
+                }
                 b{$"Importe: " span(id="lbl_importe"){$""}}
             }
         }
@@ -606,7 +623,6 @@ module "doc.pedido.dk"
 
                 _bitacora._url="#<@URL_BITACORA>";
                 document.addEventListener("DOMContentLoaded",(e)=>{_bitacora.EnableLog("#<@("$./sys_guid")>")});
-
             '}
             
         }

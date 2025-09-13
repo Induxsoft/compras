@@ -156,12 +156,16 @@ module "model"
 
     doc.evaluarCampos::&db,&params,&data
     {
+        if @@(data,"#iproveedor") < 1 { do rise_error(511,"No se indico el proveedor.") }
+        if @@(data,"#documento") < 1 { do rise_error(512,"No se indico el tipo de documento.") }
+        if @@(data,"$referencia") == "" { do rise_error(513,"No se indico una referencia.") } 
+
         emision = trim(@@(data,"$fecha"))
         vencimiento = trim(@@(data,"$vencimiento"))
         fentrega = trim(@@(data,"$fentrega"))
         fembarque = trim(@@(data,"$fembarque"))
 
-        if emision == "" { data<"fecha*"> : @null }
+        if emision == "" { do rise_error(514,"No se indico la fecha del documento.") }
         if vencimiento == "" { data<"vencimiento*"> : @null }
         if fentrega == "" { data<"fentrega*"> : @null }
         if fembarque == "" { data<"fembarque*"> : @null }
@@ -171,8 +175,12 @@ module "model"
             ndt_emision = ndatetime.fromstr(emision,"yyyy-MM-dd")
             ndt_vencimiento = ndatetime.fromstr(vencimiento,"yyyy-MM-dd")
 
-            if ndatetime.diff(ndt_vencimiento,ndt_emision,"d") < 0 { do rise_error(500,"La fecha de vencimiento no puede ser inferior a la fecha de emisión.") }
+            if ndatetime.diff(ndt_vencimiento,ndt_emision,"d") < 0 { do rise_error(515,"La fecha de vencimiento no puede ser inferior a la fecha de emisión.") }
         }
+
+        if @@(data,"#idivisa") < 1 { do rise_error(516,"No se indico la divisa del documento.") }
+        if @@(data,"#tipocambio") <= 0 { do rise_error(517,"No se indico un tipo de cambio válido.") }
+        if @@(data,"#ialmacen") < 1 { do rise_error(518,"No se indico un almacén.") }
     }
 
     doc.agregar::&db,&params,&data
@@ -869,7 +877,7 @@ module "model"
     }
     catch::&db,&params,&data
     {
-        // do errordet(@false)
+        do errordet(@false)
         if isnull(data) { ref data:record.create() }
         if dbr.in_transaction(db) { do dbr.rollback(db) }
 

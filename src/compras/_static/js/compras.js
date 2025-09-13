@@ -31,10 +31,16 @@ document.addEventListener("DOMContentLoaded", () =>
     const btnAddRow = document.getElementById("btn-add-row");
     const btnDelRow = document.getElementById("btn-del-row");
     const div_tbl_prod = document.getElementById("div_tbl_productos");
+    const btnShowTaxesSummary = document.getElementById("show-taxes-summary");
+    const taxesSummary = document.getElementById("taxes-summary");
     let lblSubtotal = document.getElementById("lbl_subtotal");
     let lblDescuento = document.getElementById("lbl_descuento");
     let lblImpuesto = document.getElementById("lbl_impuesto");
     let lblImporte = document.getElementById("lbl_importe");
+    let lblTax1 = document.getElementById("lbl-tax1");
+    let lblTax2 = document.getElementById("lbl-tax2");
+    let lblTax3 = document.getElementById("lbl-tax3");
+    let lblTax4 = document.getElementById("lbl-tax4");
 
     const modalImpuestos = document.getElementById("modal-impuestos");
     const formImpuestos = document.getElementById("form-impuestos");
@@ -50,6 +56,12 @@ document.addEventListener("DOMContentLoaded", () =>
     let spanImpuestos = document.getElementById("span-impuestos");
     let spanImporte = document.getElementById("span-importe");
     const btnImpuestosOk = document.getElementById("btn-impuestos-ok");
+
+    new bootstrap.Popover(btnShowTaxesSummary, {
+        html: true,
+        title: "Resumen",
+        content: () => taxesSummary.innerHTML
+    });
 
     var table = document.getElementById("tbl_productos");
     var tData = table.DataArray;
@@ -172,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () =>
     }
 
     function sumarImportes() {
-        let subtotal = 0, descuentos = 0, impuestos = 0, total = 0;
+        let subtotal=0, descuentos=0, tax1=0, tax2=0, tax3=0, tax4=0, impuestos=0, total=0;
 
         for (let i = 0; i < tData.length; i++) {
             const producto = tData[i];
@@ -180,12 +192,20 @@ document.addEventListener("DOMContentLoaded", () =>
             
             subtotal = Math.add(subtotal,Number(producto.subtotal));
             descuentos = Math.add(descuentos,Number(producto.descuentos));
+            tax1 = Math.add(tax1,Number(producto.impuesto1));
+            tax2 = Math.add(tax2,Number(producto.impuesto2));
+            tax3 = Math.add(tax3,Number(producto.impuesto3));
+            tax4 = Math.add(tax4,Number(producto.impuesto4));
             impuestos = Math.add(impuestos,Number(producto.impuestos));
             total = Math.add(total,Number(producto.importe));
         }
 
         lblSubtotal.textContent = _money_format(subtotal);
         lblDescuento.textContent = _money_format(descuentos);
+        lblTax1.textContent = _money_format(tax1);
+        lblTax2.textContent = _money_format(tax2);
+        lblTax3.textContent = _money_format(tax3);
+        lblTax4.textContent = _money_format(tax4);
         lblImpuesto.textContent = _money_format(impuestos);
         lblImporte.textContent = _money_format(total);
     }

@@ -233,6 +233,7 @@ model "erp.compras"
         @"uf_iaduana" int
         @"uf_numdocaduanero" string(200)
         @"uf_fechadocaduanero" date
+        @"uuid_xml" string(50)
     }
     // corte
     entity "corte" : "TableModel"
