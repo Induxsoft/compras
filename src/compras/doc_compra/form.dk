@@ -46,7 +46,11 @@ module "doc.pedido.dk"
         }
     }
     
-    if list.count(dcompra) <= 0 { ref dcompra = from.json(empty_rows) }
+    add = (10 - list.count(dcompra))
+    repeat add
+    {
+        do list.add(dcompra,record.create())
+    }
 
     new sel_documento
     {

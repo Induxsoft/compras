@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () =>
     const btnAddRow = document.getElementById("btn-add-row");
     const btnDelRow = document.getElementById("btn-del-row");
     const div_tbl_prod = document.getElementById("div_tbl_productos");
-    const btnShowTaxesSummary = document.getElementById("show-taxes-summary");
+    const showTaxesSummary = document.getElementById("show-taxes-summary");
     const taxesSummary = document.getElementById("taxes-summary");
     let lblSubtotal = document.getElementById("lbl_subtotal");
     let lblDescuento = document.getElementById("lbl_descuento");
@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () =>
     let spanImporte = document.getElementById("span-importe");
     const btnImpuestosOk = document.getElementById("btn-impuestos-ok");
 
-    new bootstrap.Popover(btnShowTaxesSummary, {
+    const popoverTaxes = new bootstrap.Popover(showTaxesSummary, {
         html: true,
         title: "Resumen",
         content: () => taxesSummary.innerHTML
@@ -208,6 +208,8 @@ document.addEventListener("DOMContentLoaded", () =>
         lblTax4.textContent = _money_format(tax4);
         lblImpuesto.textContent = _money_format(impuestos);
         lblImporte.textContent = _money_format(total);
+
+        popoverTaxes.hide();
     }
 
     function convertir(value,tcprd,tcdoc,mode) {
