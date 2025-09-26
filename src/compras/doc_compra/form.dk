@@ -21,7 +21,7 @@ module "doc.pedido.dk"
     ref compra = ifnull(@("&./compra"),record.create())
     ref dcompra = ifnull(@('&./dcompra'),list.create())
     ref titles = ifnull(@("&./titles"),record.create())
-
+    
     @_entities_type = @("$parameters/_entities_type")
     @_entity_id = @("$parameters/_entity_id")
 
@@ -251,8 +251,9 @@ module "doc.pedido.dk"
                         tr
                         {
                             th(class="text-start bg-light-gray"){$"Proveedor:"}
-                            td{$"#<@@(dtprov,'$codigo')>"}
-                            td{$"#<@@(dtprov,'$nombre')>"}
+                            td{$"#<@@(dtprov,'$codigo')> - #<@@(dtprov,'$nombre')>"}
+                            th(class="text-start bg-light-gray"){$"Almacén:"}
+                            td{$"#<@@(compra,'$codalmancen')> - #<@@(compra,'$descalmacen')>"}
                         }
                     }
                 }
@@ -544,7 +545,8 @@ module "doc.pedido.dk"
                             }
                         }
                         #!
-                        if enable_editing {
+                        if enable_editing 
+                        {
                             #$ div(class="modal-footer")
                             {
                                 button(type="button" class="btn btn-sm btn-primary rounded-0" id="btn-impuestos-ok"){$"Aceptar"}
@@ -563,9 +565,30 @@ module "doc.pedido.dk"
         {
             div(class="d-flex align-items-center justify-content-between w-100 bg-light p-2 border printable-element")
             {
-                b{$"Subtotal: " span(id="lbl_subtotal"){$""}}
-                b{$"Descuento: " span(id="lbl_descuento"){$""}}
-                div(class="input-group w-auto align-items-center gap-1")
+                div(style="width: min-content;")
+                {
+                    b{$"Subtotal: " }
+                    span(id="lbl_subtotal"){$""}
+                }
+                
+                div(style="width: min-content;")
+                {
+                    b{$"Descuentos: " }
+                    span(id="lbl_descuento"){$""}
+                }
+                
+                div(style="width: min-content;" class="show-on-print")
+                {
+                    b{"Traslados: "}
+                    span(id="lbl-traslados"){"$0.0000"}br{}
+                }
+                div(style="width: min-content;" class="show-on-print")
+                {
+                    b{"Retenciones: "}
+                    span(id="lbl-retenciones"){"$0.0000"}
+                }
+
+                div(class="input-group w-auto align-items-center gap-1 hide-on-prin")
                 {
                     div(class="d-none" id="taxes-summary")
                     {
@@ -574,14 +597,24 @@ module "doc.pedido.dk"
                         b{"Impuesto 3: "} span(id="lbl-tax3"){"$0.0000"} br{}
                         b{"Impuesto 4: "} span(id="lbl-tax4"){"$0.0000"} br{}
                     }
-                    b{$"Impuesto: " span(id="lbl_impuesto"){$""}}
+                    div(style="width: min-content;margin-right: .6rem;")
+                    {
+                        b{$"Impuestos: "}
+                        span(id="lbl_impuesto"){$""}
+                    }
+                    
                     button(
                         class="btn btn-sm no-blur border" type="button" id="show-taxes-summary"
                         "data-bs-toggle"="popover" "data-bs-placement"="top" "data-bs-html"="true"
                         title="Resumen"
                     ){$"#<@ICON_HDOTS>"}
                 }
-                b{$"Importe: " span(id="lbl_importe"){$""}}
+                div(style="width: min-content;")
+                {
+                    b{$"Importe: "}
+                    span(id="lbl_importe"){$""}
+                }
+                
             }
         }
 
@@ -633,5 +666,5 @@ module "doc.pedido.dk"
     }
    
     #!
-    exception{ do clear_exceptions() }
+    // exception{ do clear_exceptions() }
 }

@@ -42,7 +42,9 @@ module "query_list.dk"
         csa.const edo_admin,
         cse.const edo_entrega,
         csf.const edo_facturacion,
-        csfi.const edo_financiero
+        csfi.const edo_financiero,
+        a.codigo AS codalmancen,
+        a.descripcion as descalmacen
     FROM compra c
         INNER JOIN proveedor pdr ON c.iproveedor = pdr.sys_pk
         INNER JOIN divisa dvp ON pdr.idivisa = dvp.sys_pk
@@ -52,6 +54,7 @@ module "query_list.dk"
         INNER JOIN cstatusentrega cse ON c.statusentrega = cse.id
         INNER JOIN cstatusfacturacion csf ON c.statusfacturacion = csf.id
         INNER JOIN cstatusfinancieros csfi ON c.statusfinanciero = csfi.id
+        INNER JOIN almacen a on c.ialmacen=a.sys_pk
     WHERE c.#<@keyfield> = @_entity_id
     "
     @sql_dcompra = "

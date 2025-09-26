@@ -41,6 +41,8 @@ document.addEventListener("DOMContentLoaded", () =>
     let lblTax2 = document.getElementById("lbl-tax2");
     let lblTax3 = document.getElementById("lbl-tax3");
     let lblTax4 = document.getElementById("lbl-tax4");
+    let lbltraslados=document.getElementById("lbl-traslados")
+    let lblretenciones=document.getElementById("lbl-retenciones")
 
     const modalImpuestos = document.getElementById("modal-impuestos");
     const formImpuestos = document.getElementById("form-impuestos");
@@ -206,6 +208,8 @@ document.addEventListener("DOMContentLoaded", () =>
         lblTax2.textContent = _money_format(tax2);
         lblTax3.textContent = _money_format(tax3);
         lblTax4.textContent = _money_format(tax4);
+        if(lbltraslados)lbltraslados.textContent=_money_format((tax1 + tax2 + tax3));
+        if(lblretenciones)lblretenciones.textContent=_money_format(Math.abs(tax4));
         lblImpuesto.textContent = _money_format(impuestos);
         lblImporte.textContent = _money_format(total);
 
@@ -974,7 +978,7 @@ document.addEventListener("DOMContentLoaded", () =>
         spanImporte.textContent = "0.00";
         formImpuestos.reset();
     });
-    btnImpuestosOk.addEventListener("click", () => applyFormImpuestos());
+    if(btnImpuestosOk)btnImpuestosOk.addEventListener("click", () => applyFormImpuestos());
     //#endregion
 
     //#region EDITABLE EVENTS
