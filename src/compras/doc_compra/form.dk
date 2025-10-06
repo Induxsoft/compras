@@ -588,7 +588,7 @@ module "doc.pedido.dk"
                     span(id="lbl-retenciones"){"$0.0000"}
                 }
 
-                div(class="input-group w-auto align-items-center gap-1 hide-on-prin")
+                div(class="input-group w-auto align-items-center gap-1 hide-on-print")
                 {
                     div(class="d-none" id="taxes-summary")
                     {
