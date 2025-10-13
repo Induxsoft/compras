@@ -70,14 +70,17 @@ var procesar =
             const rdb_bonifi = this.fields["rdb_bonificacion"];
             const div_cuenta = document.getElementById("div_sel_cuenta");
             const div_ingreso = document.getElementById("div_cat_ingreso");
+            const sel_cuenta=document.getElementById("sel_cuenta");
 
             rdb_deposito.addEventListener("focus", () => {
                 div_cuenta.hidden = false;
                 div_ingreso.hidden = false;
+                sel_cuenta.required=true;
             });
             rdb_bonifi.addEventListener("focus", () => {
                 div_cuenta.hidden = true;
                 div_ingreso.hidden = true;
+                sel_cuenta.required=false;
             });
         },
     },
