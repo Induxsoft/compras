@@ -148,6 +148,17 @@ module "doc.pedido.dk"
         member @"hidden" { @"print": if(enable_editing, @true, @false) }
     }
 
+    // Integrar inpuesto al saldo
+    int_imp = parse.bool(dbr.vars.get(@("&database"), "cmp_int_imp_costo"))
+    fld_imp = dbr.vars.get(@("&database"), "cmp_int_imp")
+    fromxml = field.exist(ifnull(@("&parameters"), record.create()),"int_imp") 
+    _cheked = int_imp
+    if fromxml
+    {
+        _cheked = parse.bool(@("#parameters/int_imp"))
+    }
+    // -----------------------------------------------
+
     #$
     div(class="container-lg" id="view")
     {
@@ -336,6 +347,15 @@ module "doc.pedido.dk"
                                 label(class="form-label" "for"="txt_cindirectos"){$"Costos indirectos:"}
                                 input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" step="0.000001" id="txt_cindirectos" value="#<form('indirectos','nm',compra)>")
                             }
+                        }
+                        div(class="my-2 d-flex gap-2 align-items-center bg-light p-1")
+                        {
+                            #! 
+                            checked = ifstr(_cheked, "checked", "")
+                            #$
+                            input(type="hidden" name="int_imp" value="#<_cheked>" id="ipt_int_imp")
+                            input(class="form-check-input m-0" type="checkbox" id="chk_int_imp" "#<checked>"="")
+                            label(class="form-check-label m-0" "for"="chk_int_imp"){small{$"Integrar Impuesto al costo en Cardex."}}
                         }
                     }
 
@@ -660,6 +680,47 @@ module "doc.pedido.dk"
 
                 _bitacora._url="#<@URL_BITACORA>";
                 document.addEventListener("DOMContentLoaded",(e)=>{_bitacora.EnableLog("#<@("$./sys_guid")>")});
+
+                // Integrar impuesto saldo
+                const _INT_IMP = #<int_imp>;
+                const _FLD_IMP = "#<fld_imp>";
+                const _INT_IMP_FROM_XML = #<fromxml>;
+                const _TABLE_P = document.querySelector("#tbl_productos");
+                const _BTN_PRC = document.querySelector("#btn-procesar");
+
+                const chk_int_imp = document.querySelector("#chk_int_imp");
+                const ipt_int_imp = document.querySelector("#ipt_int_imp");
+
+                chk_int_imp.addEventListener("change", () => {
+                    ipt_int_imp.value = (chk_int_imp.checked ? 1 : 0);
+                });
+
+                document.addEventListener("DOMContentLoaded", () => 
+                {
+                    // Si está activo "integrar impuesto al saldo en global vars"
+                    // Si no está activado el check
+                    // Si el doc está disponible para procesar
+                    if (_INT_IMP && !chk_int_imp.checked && !_BTN_PRC.classList.contains("d-none"))
+                    {
+                        // verificar si hay al menos un impuesto del campo especificado en global vars
+                        // en caso de que si, preguntar si desea "integrar impuesto al saldo" -> check = on
+                        const prod_con_imp = (_TABLE_P?.DataArray?.find(p => p[_FLD_IMP] > 0) ?? null);
+
+                        const imp_name = (field) => {
+                            return (field == "impuesto1" ? "ieps":
+                                    field == "impuesto2" ? "impuesto2":
+                                    field == "impuesto3" ? "iva":
+                                    field == "impuesto4" ? "impuesto4":
+                                    field);
+                        }
+
+                        if (prod_con_imp && confirm(`Hay al menos un elemento de la tabla con impuesto "${imp_name(_FLD_IMP)}". ¿Desea integrar el impuesto al saldo?`))
+                        {
+                            chk_int_imp.checked = true;
+                            ipt_int_imp.value = 1;
+                        }
+                    }
+                });
             '}
             
         }

@@ -59,6 +59,8 @@ document.addEventListener("DOMContentLoaded", () =>
     let spanImporte = document.getElementById("span-importe");
     const btnImpuestosOk = document.getElementById("btn-impuestos-ok");
 
+    const check_int_imp = document.querySelector("#chk_int_imp");
+
     const popoverTaxes = new bootstrap.Popover(showTaxesSummary, {
         html: true,
         title: "Resumen",
@@ -907,6 +909,7 @@ document.addEventListener("DOMContentLoaded", () =>
 
     btnProcesarDoc.addEventListener("click", function() {
         if (!formPedido.reportValidity()) return;
+        if (check_int_imp.checked && !confirm("Activaste 'Integrar Impuesto al costo en Cardex'. ¿Deseas continuar con el proceso?")) return;
         txt_statusadministrativo.value = EDO_ADMIN.cPROCESADO;
         if (btnProcesarText.textContent == 'Recibir') txt_statusadministrativo.value = EDO_ADMIN.Recibir;
         let _detalle = filterData()

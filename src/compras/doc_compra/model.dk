@@ -199,6 +199,7 @@ module "model"
         if nvo_status_admin == cCANCELADO { do rise_error(99,"Estado inválido.") }
 
         ref compra = record.copy(data,"*")
+        do field.remove(compra, "int_imp")
         // 1 - $ | 2 - # | 3 - * | 0 - not exist
         if field.typeof(compra,"_detalle") == 1 {
             compra<"_detalle*"> : from.json(@@(compra,"_detalle"))
@@ -297,6 +298,8 @@ module "model"
             }
         }
 
+        @url_redir = url_param_ensure(@url_redir, data, "int_imp")
+
         do dbr.apps.action.pos(entity)
         if start_transaction{do dbr.commit(db)}
         do dbr.apps.action.ext(entity)
@@ -329,6 +332,7 @@ module "model"
 
         ref entity = @null
         ref compra = record.copy(data,"*")
+        do field.remove(compra, "int_imp")
         // 1 - $ | 2 - # | 3 - * | 0 - not exist
         if field.typeof(compra,"_detalle") == 1 {
             compra<"_detalle*"> : from.json(@@(compra,"_detalle"))
@@ -506,6 +510,8 @@ module "model"
         }
 
         if redir { @url_redir = replace(@url_redir,"{_doc}",@@(params,"#_entity_id")) }
+        @url_redir = url_param_ensure(@url_redir, data, "int_imp")
+        
         return entity
 
         exception{ do catch(db,params,data) }
@@ -891,5 +897,14 @@ module "model"
         if isset("@@_action_context") { do dbr.apps.action.log() }
         do doc.prepareView(db,params,data)
         do rise_error(code,error)
+    }
+
+    function url_param_ensure(url, &data, param)
+    {
+        if not(isnull(data)) && field.exist(data, param) && not(contains(url,param+"="))
+        {
+            return url + ifstr(contains(url,"?"),"&","?") + param+"="+str(@@(data,param))
+        }
+        return url
     }
 }

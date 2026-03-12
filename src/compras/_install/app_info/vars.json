@@ -5,6 +5,48 @@
         "help": "Variables del paquete: compras",
         "vars": [
             {
+                "varname": "cmp_int_imp_costo",
+                "vardefault": "0",
+                "varvalue": "0",
+                "varcaption": "Integrar impuesto al costo",
+                "varhelp": "Se suma costo más impuesto al procesar un documento",
+                "vartype": "bool",
+                "varinput": {
+                    "control": "select",
+                    "source":{
+                        "type":"list",
+                        "values":[
+                            {"val":"1", "text":"Si"},
+                            {"val":"0", "text":"No"}
+                        ],
+                        "showfield":"text",
+                        "keyfield":"val"
+                    }
+                }
+            },
+            {
+                "varname": "cmp_int_imp",
+                "vardefault": "impuesto1",
+                "varvalue": "impuesto1",
+                "varcaption": "Integrar tipo de impuesto al costo",
+                "varhelp": "Impuesto a tomar si 'Integrar impuesto al costo' está activado",
+                "vartype": "string",
+                "varinput": {
+                    "control": "select",
+                    "source":{
+                        "type":"list",
+                        "values":[
+                            {"val":"impuesto1", "text":"impuesto1"},
+                            {"val":"impuesto2", "text":"impuesto2"},
+                            {"val":"impuesto3", "text":"impuesto3"},
+                            {"val":"impuesto4", "text":"impuesto4"}
+                        ],
+                        "showfield":"text",
+                        "keyfield":"val"
+                    }
+                }
+            },
+            {
                 "varname": "compras_lotes_inhab",
                 "vardefault": "1",
                 "varvalue": "1",

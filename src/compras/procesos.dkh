@@ -164,6 +164,8 @@ module ":erp.compras.procesos"
         //#region entradaInventario()
         start_transaction = @false
 
+        int_impt_to_cost = parse.bool(cookie.dget("int_imp","0"))
+
         sql_compra = "SELECT c.sys_pk, c.referencia, c.tipocambio, c.ialmacen, c.documento FROM compra c WHERE c.sys_pk = @icompra;"
         sql_dcompra = "
         SELECT 
@@ -192,7 +194,11 @@ module ":erp.compras.procesos"
             p.descripcion `producto`,
             d.fk_compra_detalle AS doccompra,
             IF(dca.rcompra IS NULL AND dca2.rcompra IS NULL, 0, 1) mov_aplicado,
-            IFNULL(d.descuento1,0) + IFNULL(d.descuento2,0) descuentos
+            IFNULL(d.descuento1,0) + IFNULL(d.descuento2,0) descuentos,
+            IFNULL(d.impuesto1,0) impuesto1,
+            IFNULL(d.impuesto2,0) impuesto2,
+            IFNULL(d.impuesto3,0) impuesto3,
+            IFNULL(d.impuesto4,0) impuesto4
         FROM dcompra d 
             INNER JOIN producto p ON d.iproducto = p.sys_pk
             INNER JOIN divisa dvs ON p.idivisa = dvs.sys_pk
@@ -242,6 +248,12 @@ module ":erp.compras.procesos"
                 entradas = @@(item,"#cantidad")
                 cargos = erp.compras.procesos.convertir(@@(item,"#cargos"),@@(item,"#tcambio"),@@(compra,"#tipocambio"),@convertir_a_divisa_producto)
 
+                if int_impt_to_cost
+                {
+                    impuesto = dbr.vars.get(db, "cmp_int_imp")
+                    cargos = cargos + erp.compras.procesos.convertir(@@(item,"#"+impuesto),@@(item,"#tcambio"),@@(compra,"#tipocambio"),@convertir_a_divisa_producto)
+                }
+
                 new dcardex
                 {
                     @"sys_pk": 0
@@ -268,6 +280,8 @@ module ":erp.compras.procesos"
 
             do erp.compras.procesos.actualizarCostoUltimoProducto(db,item,compra)
         }
+
+        do cookie.setw("int_imp", "")
 
         if start_transaction { do dbr.commit(db) }
         return pk_cardex
