@@ -7,4 +7,4 @@ El manual de usuario está disponible aquí: <https://docs.induxsoft.net/es/prod
 
 ## Código fuente
 
-Todo el código está disponible en la carpeta [https://github.com/Induxsoft/compras/tree/main/src) 
+Todo el código está disponible en la carpeta [src](https://github.com/Induxsoft/compras/tree/main/src) 
