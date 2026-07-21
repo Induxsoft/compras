@@ -401,8 +401,12 @@ module "doc.procesar.dk"
                                     {
                                         div(class="col-lg-4 col-md-4")
                                         {
-                                            label(class="form-label" "for"="txt_flimite"){$"Fecha limite de pago:"}
-                                            input(class="form-control form-control-sm rounded-0" type="date" name="flimite" value="#<form('flimite','dt',formData)>" id="txt_flimite" required="")
+                                            ##
+                                            // Fecha límite de pago para el documento por pagar
+                                            formData<"flimite"> : @@(compra,"$vencimiento")
+                                            ##
+                                            label(class="form-label" "for"="txt_flimite"){$"Fecha límite de pago:"}
+                                            input(class="form-control form-control-sm rounded-0" type="date" name="flimite" value="#<form('flimite','dt',formData)>" id="txt_flimite" readonly="")
                                         }
                                         div(class="col-lg-4 col-md-4")
                                         {
