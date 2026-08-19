@@ -58,7 +58,7 @@ module "query_list.dk"
     WHERE c.#<@keyfield> = @_entity_id
     "
     @sql_dcompra = "
-    SELECT
+    SELECT DISTINCT
     -- Campos visibles en el editable
         p.codigo,
         p.descripcion,
@@ -130,7 +130,7 @@ module "query_list.dk"
     WHERE d.fk_compra_detalle = @_entity_id
     "
     @sql_dcompra_init = "
-    SELECT
+    SELECT DISTINCT
     -- Campos visibles en el editable
         p.codigo,
         p.descripcion,
@@ -202,7 +202,7 @@ module "query_list.dk"
         AND d.fk_compra_detalle = @_entity_id;
     "
     @sql_dcompra_insert = "
-    SELECT
+    SELECT DISTINCT
         p.sys_pk,
         p.sys_guid,
         p.codigo,
