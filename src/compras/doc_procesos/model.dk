@@ -460,22 +460,38 @@ module "model"
             {
                 doctype = str(@cCOTIZACION) +","+ str(@cPEDIDO) +","+ str(@cREMISION)
 
-                // Liberar a las cotizaciones, pedidos o recepciones relacionadas (`aplicadoa` y `xfacturar`).
-                do dbr.execute(db,ftext(sql_liberar_documentos),params)
-
                 // Realizar la salida de todos los productos que entraron por este documento al mismo costo de la entrada, con excepción de las entradas que se habían realizado por remisiones consolidadas en la factura.
                 if desaplicar_mov
                 {
-                    ref mov = dbr.rec(db,"SELECT sys_pk FROM cardex WHERE doccompra=@sys_pk",entity)
-                    do erp.inventario.desaplicar_mov(db,@@(mov,"#sys_pk"))
+                    success = @false
 
-                    if eliminar_mov {
-                        do dbr.delete(db,"dcardex","fk_cardex_movimientos=@sys_pk",mov)
-                        do dbr.delete(db,"cardex","sys_pk=@sys_pk",mov)
-                    }
-
-                    exception
+                    codeblock ""
                     {
+                        // Liberar a las cotizaciones, pedidos o recepciones relacionadas (`aplicadoa` y `xfacturar`).
+                        do dbr.execute(db,ftext(sql_liberar_documentos),params)
+
+                        ref mov = dbr.rec(db,"SELECT sys_pk FROM cardex WHERE doccompra=@sys_pk",entity)
+                        do erp.inventario.desaplicar_mov(db,@@(mov,"#sys_pk"))
+
+                        if eliminar_mov {
+                            do dbr.delete(db,"dcardex","fk_cardex_movimientos=@sys_pk",mov)
+                            do dbr.delete(db,"cardex","sys_pk=@sys_pk",mov)
+                        }
+
+                        success = @true
+                        exception
+                        {
+                            do dbr.rollback(db)
+                            do pop_exception()
+                        }
+                    }
+                    if not(success)
+                    {
+                        do dbr.begin(db)
+                        
+                        // Liberar a las cotizaciones, pedidos o recepciones relacionadas (`aplicadoa` y `xfacturar`).
+                        do dbr.execute(db,ftext(sql_liberar_documentos),params)
+
                         mov_sys_pk = erp.compras.procesos.salidaInventarioMismoCostoEntrada(db,@@(data,"#sys_pk"))
                         if mov_sys_pk > 0 { do erp.inventario.aplicar_mov(db,mov_sys_pk,@true) }
                     }
