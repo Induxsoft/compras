@@ -885,15 +885,15 @@ document.addEventListener("DOMContentLoaded", () =>
     });
 
     btnReAbrirDoc.addEventListener("click", function() {
-        txt_statusadministrativo.value = EDO_ADMIN.cABIERTO;
-        let elements = formPedido.elements;
-
         desactivar_botones(true);
+        let elements = formPedido.elements;
+        let sys_pk = elements["sys_pk"].value;
+        txt_statusadministrativo.value = EDO_ADMIN.cABIERTO;
 
         let fd = new FormData();
-        fd.append("sys_pk",elements["sys_pk"].value);
+        fd.append("sys_pk",sys_pk);
         fd.append("sys_recver",elements["sys_recver"].value);
-        fd.append("statusadministrativo",elements["statusadministrativo"].value);
+        fd.append("statusadministrativo",EDO_ADMIN.cABIERTO);
 
         let onSuccess = function(r) {
             if (r.message) { alert(r.message); return false; }
@@ -904,7 +904,8 @@ document.addEventListener("DOMContentLoaded", () =>
             desactivar_botones(false);
         }
 
-        InduxsoftCrudlModel.InvokeService("./",fd,onSuccess,onFail,"PUT",false,false,"",true);
+        let endpoint = "/!/compras/compras/"+sys_pk+"/change-status/";
+        InduxsoftCrudlModel.InvokeService(endpoint,fd,onSuccess,onFail,"PUT",false,false,"",true);
     });
 
     btnProcesarDoc.addEventListener("click", function() {

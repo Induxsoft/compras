@@ -159,6 +159,8 @@ module "doc.pedido.dk"
     }
     // -----------------------------------------------
 
+    cell_button = ifstr(enable_editing,"true","false")
+
     #$
     div(class="container-lg" id="view")
     {
@@ -416,7 +418,7 @@ module "doc.pedido.dk"
             div(class="border border-top-0" id="div_tbl_productos" style="width:auto; min-width:100%; max-height:55vh; display:flex;")
             {
                 "edit-table"(id="tbl_productos" data="#<to.json(dcompra)>" class="printable-element" style="width:100%;"
-                "#<ifstr(not(enable_editing),'readonly','')>"="true"
+                "#<ifstr(not(enable_editing),'readonly','')>"=""
                 "auto-confirm"="true"
                 "row-height"="1.2rem"
                 "control-styles"="
@@ -445,15 +447,15 @@ module "doc.pedido.dk"
                         "edit-tr"
                         {
                             "edit-th"(type="NoEditable" field="origen" textalign="center"){$"Origen"}
-                            "edit-th"(type="Text" field="codigo" button="true"){$"Código"}
-                            "edit-th"(type="Text" field="descripcion" button="true"){$"Descripción"}
+                            "edit-th"(type="Text" field="codigo" button="#<cell_button>"){$"Código"}
+                            "edit-th"(type="Text" field="descripcion" button="#<cell_button>"){$"Descripción"}
                             "edit-th"(type="Select" field="unidad" options="{}"){$"Unidad"}
                             "edit-th"(type="Number" field="precio" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Precio"}
                             "edit-th"(type="NoEditable" field="cotizado" textalign="center"){$"Cotizado"}
                             "edit-th"(type="Number" field="cantidad" textalign="center"){$"Cantidad"}
                             "edit-th"(type="NoEditable" field="subtotal" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Subtotal"}
                             "edit-th"(type="Number" field="descuentos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Descuentos"}
-                            "edit-th"(type="NoEditable" field="impuestos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>" button="true"){$"Impuestos"}
+                            "edit-th"(type="NoEditable" field="impuestos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>" button="#<cell_button>"){$"Impuestos"}
                             "edit-th"(type="NoEditable" field="importe" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Importe"}
                             #! if not(@compras_lotes_inhab) {
                                 #$ "edit-th"(type="Text" field="lote"){$"Lote"}

@@ -39,10 +39,12 @@ module "model"
         condition = " (p.codbar1=@search or p.codbar2=@search or p.codbar3=@search) OR (p.codigo LIKE CONCAT('%',@search,'%') OR p.descripcion LIKE CONCAT('%',@search,'%'))"
         return dbr.list(db,ftext(@sql_buscar_producto),params)
     }
+
     doc.detalleDocumentoInsert::&db,&params
     {
         return dbr.list(db,@sql_dcompra_insert,params)
     }
+
     doc.buscarDocumento::&db,&params
     {
         doctypes = doc.getDocTypesFromCurrentdoc(params)
@@ -63,6 +65,7 @@ module "model"
         "
         return dbr.list(db,ftext(sql),params)
     }
+
     doc.getDocTypesFromCurrentdoc::&params
     {
         doctypes = ""
@@ -156,9 +159,14 @@ module "model"
 
     doc.evaluarCampos::&db,&params,&data
     {
-        if @@(data,"#iproveedor") < 1 { do rise_error(511,"No se indico el proveedor.") }
-        if @@(data,"#documento") < 1 { do rise_error(512,"No se indico el tipo de documento.") }
-        if @@(data,"$referencia") == "" { do rise_error(513,"No se indico una referencia.") } 
+        icompra = @@(data,"#sys_pk")
+        iproveedor = @@(data,"#iproveedor")
+        documento = @@(data,"#documento")
+        referencia = trim(@@(data,"$referencia"))
+
+        if iproveedor < 1 { do rise_error(511,"No se indico el proveedor.") }
+        if documento < 1 { do rise_error(512,"No se indico el tipo de documento.") }
+        if referencia == "" { do rise_error(513,"No se indico una referencia.") } 
 
         emision = trim(@@(data,"$fecha"))
         vencimiento = trim(@@(data,"$vencimiento"))
@@ -181,6 +189,99 @@ module "model"
         if @@(data,"#idivisa") < 1 { do rise_error(516,"No se indico la divisa del documento.") }
         if @@(data,"#tipocambio") <= 0 { do rise_error(517,"No se indico un tipo de cambio válido.") }
         if @@(data,"#ialmacen") < 1 { do rise_error(518,"No se indico un almacén.") }
+
+        icompra, iproveedor, referencia >> params
+        
+        duplicado = dbr.num(db,"
+        SELECT count(*) > 0
+        FROM compra
+        WHERE
+            NOT ifnull(sys_deleted,0)
+            AND statusadministrativo<>99
+            AND sys_pk<>@icompra
+            AND iproveedor=@iproveedor
+            AND referencia=@referencia
+        ",params)
+        if duplicado { do rise_error(519,"Entrada duplicada, ya existe un documento con la misma referencia para el proveedor indicado.") }
+    }
+
+    doc.validarEstados::&db,&params,&data
+    {
+        if trim(@@(params,"$_entity_id")) == "" { params<"_entity_id"> : @@(data,@keyfield) }
+
+        @procesar_pedido = @false
+        @url_redir = @DOC_COMPRAS
+        
+        ref cur_ent = dbr.rec(db,ftext("SELECT documento, statusadministrativo FROM compra WHERE #<@keyfield> = @_entity_id"),params)
+        is_pedido = (@@(cur_ent,"#documento")==@cPEDIDO || (isnull(cur_ent) && @@(data,"#documento")==@cPEDIDO))
+        cur_stt_adm = @@(cur_ent,"#statusadministrativo")
+        new_stt_adm = @@(data,"#statusadministrativo")
+
+        if is_pedido && cur_stt_adm!=@EDO_ADMIN.cCANCELADO && new_stt_adm==@EDO_ADMIN.cPROCESADO {
+            data<"statusadministrativo"> : @EDO_ADMIN.cCERRADO
+            @procesar_pedido = @true
+            return
+        }
+
+        switch cur_stt_adm
+        {
+            case @EDO_ADMIN.cNO_APLICA
+            {
+                if new_stt_adm == @EDO_ADMIN.cNO_APLICA || new_stt_adm == @EDO_ADMIN.cABIERTO || new_stt_adm == @EDO_ADMIN.cCERRADO { @url_redir = @DOC_CONSULTAR }
+                else if new_stt_adm == @EDO_ADMIN.cPROCESADO {
+                    data<"statusadministrativo"> : @EDO_ADMIN.cCERRADO
+                    @url_redir = @DOC_PROCESAR
+                }
+                else if new_stt_adm = @EDO_ADMIN.cCANCELADO {
+                    data<"statusadministrativo"> : @EDO_ADMIN.cCERRADO
+                    @url_redir = @DOC_CANCELAR
+                }
+                break
+            }
+            case @EDO_ADMIN.cABIERTO
+            {
+                if new_stt_adm == @EDO_ADMIN.cNO_APLICA { do rise_error(500,"Estado inválido, no es posible actualizar.") }
+
+                if new_stt_adm == @EDO_ADMIN.cABIERTO || new_stt_adm == @EDO_ADMIN.cCERRADO { @url_redir = @DOC_CONSULTAR }
+                else if new_stt_adm == @EDO_ADMIN.cPROCESADO {
+                    data<"statusadministrativo"> : @EDO_ADMIN.cCERRADO
+                    @url_redir = @DOC_PROCESAR
+                }
+                else if new_stt_adm = @EDO_ADMIN.cCANCELADO {
+                    data<"statusadministrativo"> : @EDO_ADMIN.cCERRADO
+                    @url_redir = @DOC_CANCELAR
+                }
+                break
+            }
+            case @EDO_ADMIN.cCERRADO
+            {
+                if new_stt_adm == @EDO_ADMIN.cNO_APLICA || new_stt_adm == @EDO_ADMIN.cCERRADO { do rise_error(500,"Estado inválido, no es posible actualizar.") }
+
+                if new_stt_adm == @EDO_ADMIN.cABIERTO {
+                    do dbr.apps.action.grant("GA15")
+                    @url_redir = @DOC_CONSULTAR
+                }
+                else if new_stt_adm == @EDO_ADMIN.cPROCESADO {
+                    data<"statusadministrativo"> : @EDO_ADMIN.cCERRADO
+                    @url_redir = @DOC_PROCESAR
+                }
+                else if new_stt_adm == @EDO_ADMIN.cCANCELADO {
+                    data<"statusadministrativo"> : @EDO_ADMIN.cCERRADO
+                    @url_redir = @DOC_CANCELAR
+                }
+                break
+            }
+            case @EDO_ADMIN.cPROCESADO
+            {
+                if new_stt_adm != @EDO_ADMIN.cCANCELADO { do rise_error(500,"Estado inválido, no es posible actualizar.") }
+                
+                data<"statusadministrativo"> : @EDO_ADMIN.cPROCESADO
+                @url_redir = @DOC_CANCELAR
+                break
+            }
+            case @EDO_ADMIN.cCANCELADO { do rise_error(500,"Documento cancelado, no es posible actualizar.") }
+            default { do rise_error(500,"Estado Inválido.") }
+        }
     }
 
     doc.agregar::&db,&params,&data
@@ -513,6 +614,42 @@ module "model"
         @url_redir = url_param_ensure(@url_redir, data, "int_imp")
         
         return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    doc.cambiarEstado::&db,&params,&data
+    {
+        @use_transaction = @false
+        
+        do dbr.apps.action.pre("GA12")
+        do dbr.begin(db)
+
+        do doc.validarEstados(db,params,data)
+        new status
+        {
+            @"sys_pk": @@(data,"#sys_pk")
+            @"sys_recver": @@(data,"#sys_recver")
+            @"sys_lastuser": @@(@http_context, "$session/user/uid")
+            @"statusadministrativo": @@(data,"#statusadministrativo")
+        }
+        ref entity = dbr.save(db,@table_name,status)
+
+        if @procesar_pedido {
+            do dbr.apps.action.grant("GA13")
+            do doc.setStatusEntregaFacturacion(db,@@(entity,"#sys_pk"))
+        }
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        new response
+        {
+            @"entity*": entity
+            @"url_redir": replace(@url_redir,"{_doc}",@@(entity,"#sys_pk"))
+        }
+        return response
 
         exception{ do catch(db,params,data) }
     }

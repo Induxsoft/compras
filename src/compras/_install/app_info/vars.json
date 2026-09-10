@@ -156,8 +156,8 @@
             },
             {
                 "varname": "v12.compras.01",
-                "vardefault": "1",
-                "varvalue": "1",
+                "vardefault": "0",
+                "varvalue": "0",
                 "varcaption": "Intentar desaplicar entradas al cancelar compras",
                 "varhelp": "",
                 "vartype": "bool",
@@ -176,8 +176,8 @@
             },
             {
                 "varname": "v12.compras.02",
-                "vardefault": "1",
-                "varvalue": "1",
+                "vardefault": "0",
+                "varvalue": "0",
                 "varcaption": "Eliminar movimiento desaplicado al cancelar",
                 "varhelp": "",
                 "vartype": "bool",

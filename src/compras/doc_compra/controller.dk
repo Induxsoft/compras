@@ -35,6 +35,10 @@ module "controller"
             point @list to doc.detalleDocumentoInsert
             break
         }
-        
+        case "change-status"
+        {
+            point @update to doc.cambiarEstado
+            break
+        }
     }
 }
