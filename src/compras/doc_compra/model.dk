@@ -679,6 +679,10 @@ module "model"
         params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
         params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))
 
+        max_rows = trun(parse.num(dbr.vars.get(db,"compras.max_rows")))
+
+        if max_rows > 1 { @default_max_rows = max_rows }
+        
         sql = "
         SELECT
             c.sys_pk,

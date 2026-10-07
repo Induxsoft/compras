@@ -195,5 +195,22 @@
                 }
             }
         ]
+    },
+    {
+        "id": "compras.views",
+        "parent":"compras",
+        "caption": "Interfaces / Vistas",
+        "help": "Ajustar el diseño de las vistas",
+        "vars": [
+            {
+                "varname": "compras.max_rows",
+                "vardefault": "500",
+                "varvalue": "500",
+                "varcaption": "Mostrar los primeros N compras",
+                "varhelp": "Máximo de filas a mostrar en: \"Compras\"",
+                "vartype": "int",
+                "varinput": { "control": "number" }
+            }
+        ]
     }
 ]
