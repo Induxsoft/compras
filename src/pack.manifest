@@ -1,6 +1,6 @@
 {
 	"id":"compras",
 	"installable":["compras"],
-	"version":"1.0.140",
+	"version":"1.0.141",
 	"schema_ver":"1.0.11"
 }

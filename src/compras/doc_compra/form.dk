@@ -346,18 +346,34 @@ module "doc.pedido.dk"
                             }
                             div(class="col-lg-2 col-md-3 col-sm-4 col-4")
                             {
-                                label(class="form-label" "for"="txt_cindirectos"){$"Costos indirectos:"}
+                                label(class="form-label" "for"="txt_cindirectos"){$"C. Indirectos:"}
                                 input(type="number" class="form-control form-control-sm rounded-0" name="indirectos" min="0" step="0.000001" id="txt_cindirectos" value="#<form('indirectos','nm',compra)>")
                             }
                         }
-                        div(class="my-2 d-flex gap-2 align-items-center bg-light p-1")
+
+                        div(class="d-flex gap-2 align-items-end my-2")
                         {
-                            #! 
-                            checked = ifstr(_cheked, "checked", "")
-                            #$
-                            input(type="hidden" name="int_imp" value="#<_cheked>" id="ipt_int_imp")
-                            input(class="form-check-input m-0" type="checkbox" id="chk_int_imp" "#<checked>"="")
-                            label(class="form-check-label m-0" "for"="chk_int_imp"){small{$"Integrar Impuesto al costo en Cardex."}}
+                            div(class="form-check form-check-inline")
+                            {
+                                #!
+                                checked = ifstr(_cheked, "checked", "")
+                                #$
+                                input(type="hidden" name="int_imp" value="#<_cheked>" id="ipt_int_imp")
+                                input(class="form-check-input" type="checkbox" id="chk_int_imp" "#<checked>"="")
+                                label(class="form-check-label" "for"="chk_int_imp"){"Integrar Impuesto al costo en Cardex."}
+                            }
+
+                            // div(class="d-inline-flex align-items-end gap-1")
+                            // {
+                            //     label(class="" title="Aplicar descuentos a todas las partidas"){"Descuentos:"}
+                            //     div(class="input-group input-group-sm" id="div-descuentos-globales")
+                            //     {
+                            //         input(class="form-control rounded-0" type="number" id="p-dg" step="0.000001" placeholder="0")
+                            //         span(class="input-group-text"){"%"}
+                            //         span(class="input-group-text"){"$"}
+                            //         input(class="form-control rounded-0" type="number" id="i-dg" step="#<num_step>" placeholder="0.00")
+                            //     }
+                            // }
                         }
                     }
 
@@ -454,7 +470,8 @@ module "doc.pedido.dk"
                             "edit-th"(type="NoEditable" field="cotizado" textalign="center"){$"Cotizado"}
                             "edit-th"(type="Number" field="cantidad" textalign="center"){$"Cantidad"}
                             "edit-th"(type="NoEditable" field="subtotal" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Subtotal"}
-                            "edit-th"(type="Number" field="descuentos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Descuentos"}
+                            "edit-th"(type="Number" field="pdescuento" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){"%Descuento"}
+                            "edit-th"(type="Number" field="descuentos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){"Descuentos"}
                             "edit-th"(type="NoEditable" field="impuestos" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>" button="#<cell_button>"){$"Impuestos"}
                             "edit-th"(type="NoEditable" field="importe" textalign="end" format="true" thousandssep="true" decs="#<@DECIMAL_PRECISION>"){$"Importe"}
                             #! if not(@compras_lotes_inhab) {

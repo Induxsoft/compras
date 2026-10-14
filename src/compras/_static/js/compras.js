@@ -117,6 +117,13 @@ document.addEventListener("DOMContentLoaded", () =>
         return Math.RoundTo(Number(value),DECIMAL_PRECISION);
     }
 
+    function _porcentaje(parte,total) {
+        return _round(Math.mul(Math.div(parte,total),100));
+    }
+    function _importe(porc,total) {
+        return _round(Math.mul(total,Math.div(porc,100)));
+    }
+
     function trigger(element,event) {
         if (element) {
             let e = new Event(event);
@@ -235,13 +242,14 @@ document.addEventListener("DOMContentLoaded", () =>
         
         let costo = convertir(precio,tc_prd,tc_doc,convertir_a.divisa_documento);
         let cantidad = Number(info.cantidad);
-        let descuentos = Number(info.descuentos);
+        let subtotal = Math.mul(costo,cantidad);
+        let pdescuento = Number(info.pdescuento);
+        let descuentos = _importe(pdescuento,subtotal); //Number(info.descuentos);
         let i1_tasa = Number(info.i1_tasa);
         let i2_tasa = Number(info.i2_tasa);
         let i3_tasa = Number(info.i3_tasa);
         let i4_tasa = Number(info.i4_tasa);
 
-        let subtotal = Math.mul(costo,cantidad);
         let sub_desc = Math.sub(subtotal,descuentos);
         let impuesto1 = Math.mul(sub_desc,i1_tasa);
         let impuesto2 = Math.mul(sub_desc,i2_tasa);
@@ -360,6 +368,7 @@ document.addEventListener("DOMContentLoaded", () =>
             origen: (data.origen??''),
             cotizado: (data.cotizado??''),
             subtotal: i.subtotal,
+            pdescuento: _porcentaje(i.descuentos,i.subtotal),
             descuentos: i.descuentos,
             impuestos: i.impuestos,
             importe: i.total,
@@ -500,6 +509,29 @@ document.addEventListener("DOMContentLoaded", () =>
     }
     disableSelDivisa((filterData().length > 0));
 
+    function descuentosGlobales(porcentaje,importe) {
+        porcentaje = Number(porcentaje);
+        importe = Number(importe);
+
+        for (let index = 0; index < table.DataArray.length; index++) {
+            const producto = table.DataArray[index];
+            if (Object.keys(producto).length < 15) continue;
+            if (porcentaje > 0)
+            {
+                producto.pdescuento = porcentaje;
+                producto.descuentos = _importe(porcentaje,producto.subtotal);
+            }
+            else
+            {
+                producto.pdescuento = _porcentaje(importe,producto.subtotal);
+                producto.descuentos = importe;
+            }
+            actualizarProducto(producto,index);
+        }
+
+        document.querySelectorAll("#div-descuentos-globales input").forEach(input => { input.value = "" });
+    }
+
     function _actualizarImpuestos(e) {
         let index = table.CurrentRowIndex();
         if (index < 0) return;
@@ -512,8 +544,6 @@ document.addEventListener("DOMContentLoaded", () =>
         let subtotal = Math.sub(dt.subtotal,dt.descuentos);
         let subtotal_gravado = subtotal + i1 + i2;
 
-        const _porcentaje = (parte,total) => _round(Math.mul(Math.div(parte,total),100));
-        const _importe = (porc,total) => _round(Math.mul(total,Math.div(porc,100)));
         const _calcImpuestos = () => {
             let impuestos = _round(i1 + i2 + i3 + i4);
             spanImpuestos.textContent = _money_format(impuestos);
@@ -983,6 +1013,9 @@ document.addEventListener("DOMContentLoaded", () =>
         formImpuestos.reset();
     });
     if(btnImpuestosOk)btnImpuestosOk.addEventListener("click", () => applyFormImpuestos());
+
+    // document.getElementById("p-dg")?.addEventListener("change", (e) => descuentosGlobales(e.target.value, 0));
+    // document.getElementById("i-dg")?.addEventListener("change", (e) => descuentosGlobales(0, e.target.value));
     //#endregion
 
     //#region EDITABLE EVENTS
@@ -1073,12 +1106,14 @@ document.addEventListener("DOMContentLoaded", () =>
         if (Object.entries(producto ?? {}).length === 0) return;
         let actualizar_importes = false;
 
-        if (["precio","cantidad","descuentos"].includes(field))
+        if (["precio","cantidad","pdescuento","descuentos"].includes(field))
         {
             let value = Number(e.text.trim());
             producto[field] = value;
+
             if (field == "precio") producto["precio"] = value;
-            if (field == "cantidad"){
+            if (field == "cantidad")
+            {
                 let idocumento = Number(selDocumento.value);
                 producto["cantidad"] = value;
                 if ((idocumento == cREMISION || idocumento == cFACTURA) && producto.origen && producto.cantidad > producto.pendientes) {
@@ -1098,7 +1133,17 @@ document.addEventListener("DOMContentLoaded", () =>
                 }
                 updateCotizado(producto);
             }
-            if (field == "descuentos") producto["descuentos"] = value;
+            if (field == "pdescuento")
+            {
+                producto["pdescuento"] = value;
+                producto["descuentos"] = _importe(value,producto.subtotal);
+            }
+            if (field == "descuentos")
+            {
+                producto["pdescuento"] = _porcentaje(value,producto.subtotal);
+                producto["descuentos"] = value;
+            }
+
             actualizar_importes = true;
         }
         
