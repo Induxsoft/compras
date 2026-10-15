@@ -118,10 +118,24 @@ document.addEventListener("DOMContentLoaded", () =>
     }
 
     function _porcentaje(parte,total) {
-        return _round(Math.mul(Math.div(parte,total),100));
+        try {
+            let porc = _round(Math.mul(Math.div(parte,total),100));
+            if (isNaN(porc)) return 0;
+            return Number(porc);
+        } catch (error) {
+            console.warn(error);
+            return 0;
+        }
     }
     function _importe(porc,total) {
-        return _round(Math.mul(total,Math.div(porc,100)));
+        try {
+            let importe = _round(Math.mul(total,Math.div(porc,100)));
+            if (isNaN(importe)) return 0;
+            return Number(importe);
+        } catch (error) {
+            console.warn(error);
+            return 0;
+        }
     }
 
     function trigger(element,event) {
